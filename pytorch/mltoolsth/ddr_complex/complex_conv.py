@@ -9,8 +9,7 @@ import numpy as np
 
 import unittest
 import sys
-sys.path.append('/homes/khammern/medic02/projects/fastmri_challenge/reconstruction/common/')
-import ddr_complex.mytorch as mytorch
+from mltoolsth import mytorch
 
 __all__ = ['ComplexConv2d',
            'ComplexConvRealWeight2d',
@@ -28,13 +27,13 @@ class ComplexConvRealWeight2d(torch.nn.Module):
                  stride, dilation, groups, bias, zero_mean, bound_norm)
 
     def forward(self, x):
-        Kx_re = self.conv(x[...,0])
-        Kx_im = self.conv(x[...,1])
+        Kx_re = self.conv(x[...,0].contiguous())
+        Kx_im = self.conv(x[...,1].contiguous())
         return torch.cat([Kx_re.unsqueeze_(-1), Kx_im.unsqueeze_(-1)], dim=-1)
 
     def backward(self, x, output_shape=None):
-        KTx_re = self.conv.backward(x[...,0], output_shape=output_shape)
-        KTx_im = self.conv.backward(x[...,1], output_shape=output_shape)
+        KTx_re = self.conv.backward(x[...,0].contiguous(), output_shape=output_shape)
+        KTx_im = self.conv.backward(x[...,1].contiguous(), output_shape=output_shape)
         return torch.cat([KTx_re.unsqueeze_(-1), KTx_im.unsqueeze_(-1)], dim=-1)
 
 class ComplexConv2d(torch.nn.Module):
@@ -84,7 +83,8 @@ class ComplexConv2d(torch.nn.Module):
                 if bound_norm:
                     norm = torch.sum(self.weight.data**2 * self.mask, self.weight.reduction_dim, True).sqrt_()
                     if surface:
-                        self.weight.data.div_(norm, 1e-9)
+                        self.weight.data.div_(
+                            torch.max(norm, torch.ones_like(norm)*1e-9))
                     else:
                         self.weight.data.div_(
                             torch.max(norm, torch.ones_like(norm)))

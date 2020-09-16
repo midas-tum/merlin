@@ -1,4 +1,3 @@
-
 import torch
 import optoth.pad2d
 
@@ -9,7 +8,7 @@ __all__ = ['Conv2d', 'ConvScale2d', 'ConvScaleTranspose2d']
 class Conv2d(torch.nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size=3, invariant=False,
                  stride=1, dilation=1, groups=1, bias=False, 
-                 zero_mean=False, bound_norm=False):
+                 zero_mean=False, bound_norm=False, pad=True):
         super(Conv2d, self).__init__()
 
         self.in_channels = in_channels
@@ -23,6 +22,7 @@ class Conv2d(torch.nn.Module):
         self.zero_mean = zero_mean
         self.bound_norm = bound_norm
         self.padding = 0
+        self.pad = pad
 
         # add the parameter
         if self.invariant:
@@ -37,8 +37,8 @@ class Conv2d(torch.nn.Module):
 
         # specify reduction index
         self.weight.L_init = 1e+4
-        self.weight.reduction_dim = (1, 2, 3)
         if zero_mean or bound_norm:
+            self.weight.reduction_dim = (1, 2, 3)
     
             # define a projection
             def l2_proj(surface=False):
@@ -75,8 +75,7 @@ class Conv2d(torch.nn.Module):
         weight = self.get_weight()
         # then pad
         pad = weight.shape[-1]//2
-        if pad > 0:
-            # x = torch.nn.functional.pad(x, (pad,pad,pad,pad), 'reflect')
+        if self.pad and pad > 0:
             x = optoth.pad2d.pad2d(x, (pad,pad,pad,pad), mode='symmetric')
         # compute the convolution
         return torch.nn.functional.conv2d(x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
@@ -97,7 +96,7 @@ class Conv2d(torch.nn.Module):
         # compute the convolution
         x = torch.nn.functional.conv_transpose2d(x, weight, self.bias, self.stride, self.padding, output_padding, self.groups, self.dilation)
         pad = weight.shape[-1]//2
-        if pad > 0:
+        if self.pad and pad > 0:
             x = optoth.pad2d.pad2d_transpose(x, (pad,pad,pad,pad), mode='symmetric')
         return x
 

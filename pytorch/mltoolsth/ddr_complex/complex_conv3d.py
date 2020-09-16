@@ -6,9 +6,7 @@ import optoth.pad3d
 import numpy as np
 
 import unittest
-import sys
-sys.path.append('/homes/khammern/medic02/projects/fastmri_challenge/reconstruction/common/')
-import ddr_complex.mytorch as mytorch
+from mltoolsth import mytorch
 from .complex_init import *
 
 __all__ = [ 'ComplexConv3d',
@@ -27,13 +25,13 @@ class ComplexConvRealWeight3d(torch.nn.Module):
                  stride, dilation, groups, bias, zero_mean, bound_norm)
 
     def forward(self, x):
-        Kx_re = self.conv(x[...,0])
-        Kx_im = self.conv(x[...,1])
+        Kx_re = self.conv(x[...,0].contiguous())
+        Kx_im = self.conv(x[...,1].contiguous())
         return torch.cat([Kx_re.unsqueeze_(-1), Kx_im.unsqueeze_(-1)], dim=-1)
 
     def backward(self, x, output_shape=None):
-        KTx_re = self.conv.backward(x[...,0], output_shape=output_shape)
-        KTx_im = self.conv.backward(x[...,1], output_shape=output_shape)
+        KTx_re = self.conv.backward(x[...,0].contiguous(), output_shape=output_shape)
+        KTx_im = self.conv.backward(x[...,1].contiguous(), output_shape=output_shape)
         return torch.cat([KTx_re.unsqueeze_(-1), KTx_im.unsqueeze_(-1)], dim=-1)
 
 class Conv3d(torch.nn.Module):
@@ -191,9 +189,11 @@ class ComplexConv3d(torch.nn.Module):
 
         # specify reduction index
         self.weight.L_init = 1e+4
-        if zero_mean or bound_norm:    
+        if bound_norm:
             self.weight.reduction_dim = (1, 2, 3, 4, 5)
+        if zero_mean:
             self.weight.reduction_dim_mean = (1, 2, 3, 4)
+        if zero_mean or bound_norm:    
             # define a projection
             def l2_proj(surface=False):
                 # reduce the mean
@@ -212,8 +212,8 @@ class ComplexConv3d(torch.nn.Module):
 
             # initially call the projection
             self.weight.proj(True)
-        else:
-            self.weight.reduction_dim = (5)
+        # else:
+        #     self.weight.reduction_dim = (5)
 
     def get_weight(self):
         weight = self.weight
