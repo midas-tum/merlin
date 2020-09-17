@@ -6,7 +6,7 @@ from .complex_regularizer import *
 from .complex_conv import *
 from optoth.activations import TrainableActivation
 
-from mltoolsth.mytorch.complex import complex_angle, complex_abs, complex_normalization
+from .mytorch.complex import complex_angle, complex_abs, complex_normalization
 
 import numpy as np
 import unittest

@@ -3,6 +3,7 @@ import torch
 
 __all__ = ['ComplexRegularizer',
             'ComplexRegularizerWrapper3d',
+         'ComplexICRegularizerWrapper3d',
            'ComplexRegularizerWrapper',
            'PseudoComplexRegularizerWrapper']
 
@@ -59,7 +60,7 @@ class ComplexRegularizerWrapper(torch.nn.Module):
         # to [nBatch*nSmaps, 1, nFE, nPE, 2]
         shp = x.shape
         x = x.view(shp[0] * shp[1], 1, *shp[2:])
-
+        
         # apply reg
         x = self.R.grad(x)
 
@@ -128,6 +129,63 @@ class ComplexRegularizerWrapper3d(torch.nn.Module):
 
     def get_vis(self):
         return self.R.get_vis()
+
+class ComplexICRegularizerWrapper3d(torch.nn.Module):
+    """
+    Basic regularization function
+    """
+
+    def __init__(self, R):
+        super(ComplexICRegularizerWrapper3d, self).__init__()
+
+        self.R = R
+
+    def forward(self, x, v):
+        # reshape 3d tensor [D, H, W, 2] to 5d tensor [batch_size, channels, D, H, W, 2]
+        shp = x.shape
+        x = x.view(1, 1, *x.shape)
+        v = v.view(1, 1, *v.shape)
+        xv = torch.cat([x, v], dim=1)
+        # apply reg
+        dxv = self.R(xv)
+
+        x = dxv[:,0]
+        v = dxv[:,1]
+
+        # re-shape data from [nBatch, nSmaps, nFE, nPE, 2]
+        # to [nBatch*nSmaps, 1, nFE, nPE, 2]
+        x = x.view(*shp)
+        v = v.view(*shp)
+        return x, v
+
+    # def energy(self, x):
+    #     # reshape 3d tensor [D, H, W, 2] to 5d tensor [batch_size, channels, D, H, W, 2]
+    #     x = x.view(1, 1, *x.shape)
+
+    #     # apply denoising
+    #     return self.R.energy(x)
+
+    # def grad(self, x):
+    #     # reshape 3d tensor [D, H, W, 2] to 5d tensor [batch_size, channels, D, H, W, 2]
+    #     shp = x.shape
+    #     x = x.view(1, 1, *x.shape)
+
+    #     # apply reg
+    #     x = self.R.grad(x)
+
+    #     # re-shape data from [nBatch, nSmaps, nFE, nPE, 2]
+    #     # to [nBatch*nSmaps, 1, nFE, nPE, 2]
+    #     x = x.view(*shp)
+    #     return x
+
+    # def get_theta(self):
+    #     """
+    #     return all parameters of the regularization
+    #     """
+    #     return self.R.named_parameters()
+
+    # def get_vis(self):
+    #     return self.R.get_vis()
 
 class PseudoComplexRegularizerWrapper(ComplexRegularizerWrapper):
     def energy(self, x):
