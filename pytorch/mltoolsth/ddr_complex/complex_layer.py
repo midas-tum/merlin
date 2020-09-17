@@ -5,8 +5,9 @@ import optoth.pad2d
 import numpy as np
 
 import unittest
-from . import mytorch
+from mltoolsth import mytorch
 from .complex_loss import *
+
 class ComplexNormalization_fun(torch.autograd.Function):
     @staticmethod
     def forward(ctx, z, eps):

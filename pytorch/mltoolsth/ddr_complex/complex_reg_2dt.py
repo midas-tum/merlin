@@ -8,7 +8,7 @@ from .complex_norm import *
 import numpy as np
 
 import unittest
-from . import mytorch
+from mltoolsth import mytorch
 from .complex_act import *
 
 __all__ = ['ComplexSplitFast',

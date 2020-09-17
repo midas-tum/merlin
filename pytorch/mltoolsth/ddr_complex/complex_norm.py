@@ -5,7 +5,7 @@ import optoth.pad2d
 import numpy as np
 
 import unittest
-from . import mytorch
+from mltoolsth import mytorch
 from .complex_act import Identity
 
 __all__ = [#'ComplexInstanceNormalization1d',

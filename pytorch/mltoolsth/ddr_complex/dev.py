@@ -1,6 +1,6 @@
 
 import torch
-from . import mytorch
+from mltoolsth import mytorch
 import unittest
 from optoth.activations import TrainableActivation
 import numpy as np

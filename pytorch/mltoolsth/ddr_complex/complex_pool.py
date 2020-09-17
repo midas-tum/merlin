@@ -1,6 +1,6 @@
 
 import torch
-from . import mytorch
+from mltoolsth import mytorch
 import unittest
 
 class MagnitudeMaxPool3d(torch.nn.Module):
