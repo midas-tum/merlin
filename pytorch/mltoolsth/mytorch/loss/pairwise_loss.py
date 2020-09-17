@@ -26,6 +26,23 @@ def nmse(gt, pred, batch=True, reduce=True):
     else:
         return error
 
+def nrmse(gt, pred, batch=True, reduce=True):
+    """ torch nmse for batch input"""
+    if batch:
+        batch_size = gt.shape[0]
+    else:
+        batch_size = 1
+
+    # reshape the view
+    pred = pred.contiguous().view(batch_size, -1)
+    gt = gt.contiguous().view(batch_size, -1)
+
+    error = (torch.norm(gt - pred, dim=1) / torch.norm(gt, dim=1))
+    if reduce:
+        return error.mean()
+    else:
+        return error
+
 def psnr(gt, pred, data_range=None, batch=True, reduce=True):
     """ Compute the peak signal to noise ratio (psnr)
     :param gt: gt image (torch.Tensor
@@ -90,6 +107,45 @@ class PSNRLoss(torch.nn.Module):
             pred,
             gt,
             data_range=data_range,
+            batch=self.batch,
+            reduce=self.reduce,
+        )
+
+class NRMSELoss(torch.nn.Module):
+    """
+    Computes PSNR between two images according to:
+
+    psnr(x, y) = 10 * log10(1/MSE(x, y)), MSE(x, y) = ||x-y||^2 / size(x)
+
+    Parameters:
+    -----------
+
+    x: Tensor - gterence image (or batch)
+    y: Tensor - reconstructed image (or batch)
+    normalized: bool - If abs(data) is normalized to [0, 1]
+    batch_mode: bool - If batch is passed, set this to True
+    is_complex: bool - If data is complex valued, 2 values (e.g. (x,y)) are paired
+
+    Notice that ``abs'' squares
+    Be cagtul with the order, since peak intensity is taken from the gterence
+    image (taking from reconstruction yields a different value).
+
+    """
+
+    def __init__(self, batch=True, reduce=True):
+        """
+        normalized: bool - If abs(data) is normalized to [0, 1]
+        batch_mode: bool - If batch is passed, set this to True
+        is_complex: bool - If data is complex valued, 2 values (e.g. (x,y)) are paired
+        """
+        super(NRMSELoss, self).__init__()
+        self.batch = batch
+        self.reduce = reduce
+
+    def forward(self, pred, gt, data_range=None):
+        return nrmse(
+            pred,
+            gt,
             batch=self.batch,
             reduce=self.reduce,
         )
