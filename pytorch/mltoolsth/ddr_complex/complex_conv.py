@@ -191,15 +191,10 @@ class ComplexConv2d(torch.nn.Module):
         weight = self.get_weight()
         # then pad
         pad = weight.shape[-2]//2
-
         if pad > 0:
             x = self.complex_pad2d(x, pad)
-        assert not (torch.isnan(x).any() or torch.isinf(x).any())
-            
         # compute the convolution
         x = self.complex_conv2d_forward(x, weight, self.bias)
-        assert not (torch.isnan(weight).any() or torch.isinf(weight).any()) 
-        assert not (torch.isnan(x).any() or torch.isinf(x).any())
         return x
 
     def backward(self, x, output_shape=None):
@@ -259,7 +254,6 @@ class PseudoComplexConv2d(ComplexConv2d):
         weight = self.get_weight()
         # then pad
         pad = weight.shape[-1]//2
-        
         if pad > 0:
             x = optoth.pad2d.pad2d(x, (pad,pad,pad,pad), mode='symmetric')
 
@@ -296,7 +290,6 @@ class PseudoComplexConv2d(ComplexConv2d):
                             self.dilation)
 
         pad = weight.shape[-1]//2
-
         if pad > 0:
             x = optoth.pad2d.pad2d_transpose(x, (pad,pad,pad,pad), mode='symmetric')
         return x
