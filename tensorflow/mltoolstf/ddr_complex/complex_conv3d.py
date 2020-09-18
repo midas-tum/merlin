@@ -5,6 +5,8 @@ import numpy as np
 import unittest
 
 from complex_init import complex_initializer
+from complex_conv import complex_conv3d, complex_conv3d_transpose, complex_conv3d_real_weight
+from complex_pad import complex_pad3d, complex_pad3d_transpose
 
 __all__ = ['ComplexConv3d',
            'ComplexConvScale3d',
@@ -75,65 +77,6 @@ class ComplexConv3d(tf.keras.layers.Layer):
             self.weight.proj = l2_proj
             self.weight.assign(l2_proj(self.weight, True))
 
-    def complex_pad3d(self, x, pad, mode='symmetric'):
-        xp_re = optotf.pad3d.pad3d(tf.math.real(x), pad, mode=mode)
-        xp_im = optotf.pad3d.pad3d(tf.math.imag(x), pad, mode=mode)
-
-        return tf.complex(xp_re, xp_im)
-
-    def complex_pad3d_transpose(self, x, pad, mode='symmetric'):
-        xp_re = optotf.pad3d.pad3d_transpose(tf.math.real(x), pad, mode=mode)
-        xp_im = optotf.pad3d.pad3d_transpose(tf.math.imag(x), pad, mode=mode)
-
-        return tf.complex(xp_re, xp_im)
-
-    def complex_conv3d(self, x, weight, padding="VALID", strides=1, dilations=1):
-        xre = tf.math.real(x)
-        xim = tf.math.imag(x)
-
-        wre = tf.math.real(weight)
-        wim = tf.math.imag(weight)
-
-        conv_rr = tf.nn.conv3d(xre, wre, padding=padding, strides=strides, dilations=dilations)
-        conv_ii = tf.nn.conv3d(xim, wim, padding=padding, strides=strides, dilations=dilations)
-        conv_ri = tf.nn.conv3d(xre, wim, padding=padding, strides=strides, dilations=dilations)
-        conv_ir = tf.nn.conv3d(xim, wre, padding=padding, strides=strides, dilations=dilations)
-
-        conv_re = conv_rr - conv_ii
-        conv_im = conv_ir + conv_ri
-
-        return tf.complex(conv_re, conv_im)
-
-    def complex_conv3d_real_weight(self, x, weight, padding="VALID", strides=1, dilations=1):
-        xre = tf.math.real(x)
-        xim = tf.math.imag(x)
-
-        conv_rr = tf.nn.conv3d(xre, weight, padding=padding, strides=strides, dilations=dilations)
-        conv_ir = tf.nn.conv3d(xim, weight, padding=padding, strides=strides, dilations=dilations)
-
-        conv_re = conv_rr
-        conv_im = conv_ir
-
-        return tf.complex(conv_re, conv_im)
-
-    def complex_conv3d_transpose(self, x, weight, output_shape, padding="VALID", strides=1, dilations=1):
-        xre = tf.math.real(x)
-        xim = tf.math.imag(x)
-
-        wre = tf.math.real(weight)
-        wim = tf.math.imag(weight)
-
-        convT_rr = tf.nn.conv3d_transpose(xre, wre, output_shape, padding=padding, strides=strides, dilations=dilations)
-        convT_ii = tf.nn.conv3d_transpose(xim, wim, output_shape, padding=padding, strides=strides, dilations=dilations)
-        convT_ri = tf.nn.conv3d_transpose(xre, wim, output_shape, padding=padding, strides=strides, dilations=dilations)
-        convT_ir = tf.nn.conv3d_transpose(xim, wre, output_shape, padding=padding, strides=strides, dilations=dilations)
-
-        convT_re = convT_rr + convT_ii
-        convT_im = convT_ir - convT_ri
-
-        return tf.complex(convT_re, convT_im)
-
-
     def get_weight(self):
         return self.weight
 
@@ -144,10 +87,10 @@ class ComplexConv3d(tf.keras.layers.Layer):
         pad = [w//2 for w in weight.shape[:3]]
 
         if self.pad and any(pad):
-            x = self.complex_pad3d(x, (pad[2],pad[2],pad[1],pad[1],pad[0],pad[0]), mode='symmetric')
+            x = complex_pad3d(x, (pad[2],pad[2],pad[1],pad[1],pad[0],pad[0]), mode='symmetric')
 
         # compute the ComplexConvolution
-        x = self.complex_conv3d(x, weight, padding="VALID", strides=(1,) + self.stride + (1,), dilations=(1,) + self.dilation + (1,))
+        x = complex_conv3d(x, weight, padding="VALID", strides=(1,) + self.stride + (1,), dilations=(1,) + self.dilation + (1,))
 
         if self.use_bias:
             x = tf.nn.bias_add(x, self.bias)
@@ -187,11 +130,11 @@ class ComplexConv3d(tf.keras.layers.Layer):
             x = tf.nn.bias_add(x, -self.bias)
 
         # compute the transpose ComplexConvolution
-        x = self.complex_conv3d_transpose(x, weight, output_shape, padding='SAME', strides=(1,) + self.stride + (1,), dilations=(1,) + self.dilation + (1,))
+        x = complex_conv3d_transpose(x, weight, output_shape, padding='SAME', strides=(1,) + self.stride + (1,), dilations=(1,) + self.dilation + (1,))
 
         # transpose padding
         if self.pad and any(pad):
-            x = self.complex_pad3d_transpose(x, (pad[2],pad[2],pad[1],pad[1],pad[0],pad[0]), mode='symmetric')
+            x = complex_pad3d_transpose(x, (pad[2],pad[2],pad[1],pad[1],pad[0],pad[0]), mode='symmetric')
         return x
 
 class ComplexConvScale3d(ComplexConv3d):
@@ -217,7 +160,7 @@ class ComplexConvScale3d(ComplexConv3d):
             weight = tf.transpose(weight, (3, 0, 1, 2, 4))
             for i in range(self.stride[1]//2):
                 weight = tf.pad(weight, [[0,0], [0,0], [5,5], [5,5], [0,0]], 'CONSTANT')
-                weight = self.complex_conv3d_real_weight(weight, self.blur, padding="SAME", strides=(1,) + self.stride + (1,), dilations=(1,) + self.dilation + (1,))
+                weight = complex_conv3d_real_weight(weight, self.blur, padding="SAME", strides=(1,) + self.stride + (1,), dilations=(1,) + self.dilation + (1,))
             weight = tf.transpose(weight, (1, 2, 3, 0, 4))
             weight = tf.reshape(weight, (self.kernel_size[0], self.kernel_size[1]+2*self.stride[1], self.kernel_size[2]+2*self.stride[2], self.in_channels, self.out_channels))
         return weight
