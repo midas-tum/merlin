@@ -84,7 +84,7 @@ class Conv3d(tf.keras.layers.Layer):
 
         return x
 
-    def backward(self, x, output_shape):
+    def backward(self, x, output_shape=None):
         weight = self.get_weight()
 
         # zero pad
@@ -93,12 +93,13 @@ class Conv3d(tf.keras.layers.Layer):
 
         # determine the output padding
         if not output_shape is None:
+            output_shape = list(output_shape)
             output_padding = [output_shape[i+1] - ((x.shape[i+1]-1)*self.stride[i]+1) for i in range(3)]
         else:
-            output_padding = 0
+            output_shape = [x.shape[0], 1, 1, 1, self.in_channels]
+            output_padding = [0, 0, 0]
         
-        # construct output shape
-        output_shape = list(output_shape)
+        # construct output shape       
         output_shape = [(x.shape[i] - 1)*self.stride[i-1] + self.dilation[i-1] * (ksz[i-1] - 1) + output_padding[i-1] + 1 if (i > 0 and i < 4) else output_shape[i] for i in range(5) ]
 
         # zero pad input
@@ -153,14 +154,14 @@ class ConvScaleTranspose3d(ConvScale3d):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=(1,2,2), bias=False, zero_mean=False, bound_norm=False):
         super(ConvScaleTranspose3d, self).__init__(
             in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
-            stride=stride, dilation=1, bias=bias, 
+            stride=stride, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
 
-    def forward(self, x, output_shape=None):
+    def call(self, x, output_shape=None):
         return super().backward(x, output_shape)
 
     def backward(self, x):
-        return super().forward(x)
+        return super().call(x)
 
 
 class Conv3dTest(unittest.TestCase):
@@ -259,7 +260,7 @@ class ConvScale3dTest(unittest.TestCase):
         nf_in = 10
         nf_out = 32
         shape = [nBatch, D, M, N, nf_in]
-        
+
         model = ConvScale3d(nf_in, nf_out, kernel_size=3, stride=(1,2,2))
         x = tf.random.normal(shape)
         Kx = model(x)

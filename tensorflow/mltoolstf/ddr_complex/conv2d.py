@@ -73,7 +73,7 @@ class Conv2d(tf.keras.layers.Layer):
 
         return x
 
-    def backward(self, x, output_shape):
+    def backward(self, x, output_shape=None):
         weight = self.get_weight()
 
         # zero pad
@@ -82,15 +82,16 @@ class Conv2d(tf.keras.layers.Layer):
 
         # determine the output padding
         if not output_shape is None:
+            output_shape = list(output_shape)
             output_padding = (
                 output_shape[1] - ((x.shape[1]-1)*self.stride+1),
                 output_shape[2] - ((x.shape[2]-1)*self.stride+1)
             )
         else:
-            output_padding = 0
+            output_padding = [0, 0]
+            output_shape = [x.shape[0], 1, 1, self.in_channels]
 
         # construct output shape
-        output_shape = list(output_shape)
         output_shape[1] = (x.shape[1] - 1)*self.stride + self.dilation * (ksz - 1) + output_padding[0] + 1
         output_shape[2] = (x.shape[2] - 1)*self.stride + self.dilation * (ksz - 1) + output_padding[1] + 1
 
@@ -165,11 +166,11 @@ class ConvScaleTranspose2d(ConvScale2d):
             stride=stride, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
 
-    def forward(self, x, output_shape=None):
+    def call(self, x, output_shape=None):
         return super().backward(x, output_shape)
 
     def backward(self, x):
-        return super().forward(x)
+        return super().call(x)
 
 
 class Conv2dTest(unittest.TestCase):
