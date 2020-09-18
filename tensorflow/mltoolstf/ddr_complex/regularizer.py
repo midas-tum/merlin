@@ -10,7 +10,7 @@ class Regularizer(tf.keras.Model):
     def __init__(self):
         super(Regularizer, self).__init__()
 
-    def forward(self, x):
+    def call(self, x):
         return self.grad(x)
 
     def energy(self, x):

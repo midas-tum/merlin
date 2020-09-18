@@ -5,3 +5,6 @@ def complex_abs(z, eps=1e-9):
 
 def complex_norm(z, eps=1e-9):
     return z / tf.cast(complex_abs(z, eps), tf.complex64)
+
+def complex_angle(z, eps=1e-9):
+    return tf.math.atan2(tf.math.imag(z), tf.math.real(z) + eps)

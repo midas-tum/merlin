@@ -8,7 +8,8 @@ from complex_init import complex_initializer
 
 __all__ = ['ComplexConv3d',
            'ComplexConvScale3d',
-           'ComplexConvScaleTranspose3d']
+           'ComplexConvScaleTranspose3d',
+           'ComplexConv2dt']
 
 class ComplexConv3d(tf.keras.layers.Layer):
     def __init__(self, in_channels, out_channels, kernel_size=3,
@@ -153,7 +154,7 @@ class ComplexConv3d(tf.keras.layers.Layer):
 
         return x
 
-    def backward(self, x, output_shape):
+    def backward(self, x, output_shape=None):
         weight = self.get_weight()
 
         # zero pad
@@ -162,12 +163,16 @@ class ComplexConv3d(tf.keras.layers.Layer):
 
         # determine the output padding
         if not output_shape is None:
+            output_shape = list(output_shape)
+            output_shape[-1] = self.in_channels
             output_padding = [output_shape[i+1] - ((x.shape[i+1]-1)*self.stride[i]+1) for i in range(3)]
         else:
-            output_padding = 0
+            output_shape = [x.shape[0], 1, 1, 1, self.in_channels]
+            output_padding = [0,0,0]
+
         
         # construct output shape
-        output_shape = list(output_shape)
+
         output_shape = [(x.shape[i] - 1)*self.stride[i-1] + self.dilation[i-1] * (ksz[i-1] - 1) + output_padding[i-1] + 1 if (i > 0 and i < 4) else output_shape[i] for i in range(5) ]
 
         # zero pad input
@@ -225,13 +230,98 @@ class ComplexConvScaleTranspose3d(ComplexConvScale3d):
             stride=stride, dilation=1, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
 
-    def forward(self, x, output_shape=None):
+    def call(self, x, output_shape=None):
         return super().backward(x, output_shape)
 
     def backward(self, x):
-        return super().forward(x)
+        return super().call(x)
 
 
+class ComplexConv2dt(tf.keras.layers.Layer):
+    def __init__(self, in_channels, inter_channels, out_channels, kernel_size=3,
+                 stride=1, dilation=1, bias=False, zero_mean=True, bound_norm=True):
+        super(ComplexConv2dt, self).__init__()
+
+        if stride > 2:
+            conv_module = ComplexConvScale3d
+        else:
+            conv_module = ComplexConv3d
+
+        self.conv_xy = conv_module(in_channels,
+                    inter_channels,
+                    kernel_size=(1, *kernel_size[1:]),
+                    stride=stride,
+                    bias=bias,
+                    zero_mean=zero_mean,
+                    bound_norm=bound_norm)
+
+        self.conv_t = ComplexConv3d(inter_channels,
+                 out_channels,
+                 kernel_size=(kernel_size[0], 1, 1),
+                 bias=bias,
+                 zero_mean=False,
+                 bound_norm=bound_norm)
+
+    def call(self, x):
+        x_sp = self.conv_xy(x)
+        x_t = self.conv_t(x_sp)
+        return x_t  
+
+    def backward(self, x, output_shape=None):
+        xT_t = self.conv_t.backward(x, output_shape)
+        xT_sp = self.conv_xy.backward(xT_t, output_shape)
+        return xT_sp
+
+class ComplexConv2dtTest(unittest.TestCase):
+    def test_grad(self):
+        nBatch = 5
+        M = 128
+        N = 128
+        D = 24
+        nf_in = 2
+        nf_out = 32
+        shape = [nBatch, D, M, N, nf_in]
+        ksz = (3,5,5)
+        nf_inter = np.ceil((nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
+        model = ComplexConv2dt(nf_in, nf_out, nf_inter, kernel_size=ksz)
+        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        Kx = model(x)
+
+        with tf.GradientTape() as g:
+            g.watch(x)
+            Kx = model(x)
+            loss = 0.5 * tf.reduce_sum(tf.math.conj(Kx) * Kx)
+        grad_x = g.gradient(loss, x)
+        x_autograd = grad_x.numpy()
+
+        KHKx = model.backward(Kx, output_shape=x.shape)
+        x_bwd = KHKx.numpy()
+
+        self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
+
+    def test_adjoint(self):
+        nBatch = 5
+        M = 128
+        N = 128
+        D = 24
+        nf_in = 2
+        nf_out = 32
+        shape = [nBatch, D, M, N, nf_in]
+
+        ksz = (3,5,5)
+        nf_inter = np.ceil((nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
+
+        model = ComplexConv2dt(nf_in, nf_out, nf_inter, kernel_size=ksz)
+        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        Kx = model(x)
+
+        y = tf.complex(tf.random.normal(Kx.shape), tf.random.normal(Kx.shape))
+        KHy = model.backward(y, x.shape)
+
+        rhs = tf.reduce_sum(Kx * y).numpy()
+        lhs = tf.reduce_sum(x * KHy).numpy()
+
+        self.assertTrue(rhs, lhs)
 class ComplexConv3dTest(unittest.TestCase):
     def test_grad(self):
         nBatch = 5
