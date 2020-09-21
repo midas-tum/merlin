@@ -1,18 +1,17 @@
 import tensorflow as tf
 import unittest
 from complex_layer import *
+import numpy as np
 
-# __all__ = ['cReLU',
-#            'cPReLU',
-#            'ModReLU',
-#            'ModPReLU',
-#         #    'ComplexStudentT2',
-#         #    'ComplexStudentT',
-#         #    'ComplexTrainablePolarActivation',
-#         #    'ComplexTrainablePolarActivationBias',
-#         #    'ComplexTrainableMagnitudeActivation',
-#         #    'ComplexTrainableMagnitudeActivationBias'
-#         ]
+__all__ = ['cReLU',
+           'ModReLU',
+           'cPReLU',
+           'ModPReLU',
+           'cStudentT',
+           'ModStudentT',
+           'cStudentT2',
+           'ModStudentT2'
+         ]
 
 class cReLU(tf.keras.layers.Layer):
     def call(self, z):
@@ -21,9 +20,14 @@ class cReLU(tf.keras.layers.Layer):
         return tf.complex(actre, actim)
 
 class ModReLU(tf.keras.layers.Layer):
+    def __init__(self, bias=0.1, trainable=True):
+        super().__init__()
+        self.bias_init = bias
+        self.trainable = trainable
+
     def build(self, input_shape):
         super().build(input_shape)
-        initializer = tf.keras.initializers.Constant(0)
+        initializer = tf.keras.initializers.Constant(self.bias_init)
         self.bias = self.add_weight('bias',
                                       shape=(input_shape[-1]),
                                       initializer=initializer,
@@ -31,10 +35,19 @@ class ModReLU(tf.keras.layers.Layer):
     def call(self, z):
         return tf.cast(tf.keras.activations.relu(complex_abs(z) + self.bias), tf.complex64) * complex_norm(z)
 
+    def __str__(self):
+        s = f"ModReLU: bias_init={self.bias_init}, trainable={self.trainable}"
+        return s
+
 class cPReLU(tf.keras.layers.Layer):
+    def __init__(self, alpha=0.1, trainable=False):
+        super().__init__()
+        self.alpha_init = alpha
+        self.trainable = trainable
+
     def build(self, input_shape):
         super().build(input_shape)
-        initializer = tf.keras.initializers.Constant(0.1)
+        initializer = tf.keras.initializers.Constant(self.alpha_init)
         self.alpha_real = self.add_weight('alpha_real',
                                       shape=(input_shape[-1]),
                                       initializer=initializer,
@@ -52,15 +65,25 @@ class cPReLU(tf.keras.layers.Layer):
 
         return tf.complex(actre, actim)
 
+    def __str__(self):
+        s = f"cPReLU: alpha_init={self.alpha_init}, trainable={self.trainable}"
+        return s
+
 class ModPReLU(tf.keras.layers.Layer):
+    def __init__(self, alpha=0.1, bias=0, trainable=False):
+        super().__init__()
+        self.alpha_init = alpha
+        self.bias_init = bias
+        self.trainable = trainable
+
     def build(self, input_shape):
         super().build(input_shape)
-        initializer = tf.keras.initializers.Constant(0)
+        initializer = tf.keras.initializers.Constant(self.bias_init)
         self.bias = self.add_weight('bias',
                                       shape=(input_shape[-1]),
                                       initializer=initializer,
                                       )
-        initializer_alpha = tf.keras.initializers.Constant(0.1)
+        initializer_alpha = tf.keras.initializers.Constant(self.alpha_init)
         self.alpha = self.add_weight('alpha',
                                       shape=(input_shape[-1]),
                                       initializer=initializer_alpha,
@@ -69,23 +92,25 @@ class ModPReLU(tf.keras.layers.Layer):
         act = tf.maximum(0.0, complex_abs(z) + self.bias) + self.alpha * tf.minimum(0.0, complex_abs(z) + self.bias)
         return tf.cast(act, tf.complex64) * complex_norm(z)
 
+    def __str__(self):
+        s = f"ModPReLU: alpha_init={self.alpha_init}, bias_init={self.bias_init}, trainable={self.trainable}"
+        return s
+
 
 class cStudentT(tf.keras.layers.Layer):
-    def __init__(self, alpha=2.0):
+    def __init__(self, alpha=2.0, trainable=False):
         super().__init__()
-        self.alpha = alpha
-    # def build(self, input_shape):
-    #     super().build(input_shape)
-    #     initializer = tf.keras.initializers.Constant(0)
-    #     self.bias = self.add_weight('bias',
-    #                                   shape=(input_shape[-1]),
-    #                                   initializer=initializer,
-    #                                   )
-    #     initializer_alpha = tf.keras.initializers.Constant(0.1)
-    #     self.alpha = self.add_weight('alpha',
-    #                                   shape=(input_shape[-1]),
-    #                                   initializer=initializer_alpha,
-    #                                   )
+        self.alpha_init = alpha
+        self.trainable = trainable
+
+    def build(self, input_shape):
+        super().build(input_shape)
+        initializer_alpha = tf.keras.initializers.Constant(self.alpha_init)
+        self.alpha = self.add_weight('alpha',
+                                      shape=(input_shape[-1]),
+                                      initializer=initializer_alpha,
+                                      trainable=self.trainable,
+                                      )
     def _calc(self, x):
         d = 1 + self.alpha * x**2
         return tf.math.log(d) / (2 * self.alpha)
@@ -98,42 +123,57 @@ class cStudentT(tf.keras.layers.Layer):
         actim = self._calc(zim)
         return tf.complex(actre, actim)
 
+    def __str__(self):
+        s = f"cStudentT: alpha_init={self.alpha_init}, trainable={self.trainable}"
+        return s
+
 class ModStudentT(tf.keras.layers.Layer):
-    def __init__(self, alpha=2.0):
+    def __init__(self, alpha=2.0, beta=0.1, trainable=False):
         super().__init__()
-        self.alpha = alpha
+        self.alpha_init = alpha
+        self.beta_init = beta
+        self.trainable = trainable
 
     def build(self, input_shape):
         super().build(input_shape)
-        initializer = tf.keras.initializers.Constant(0)
-        self.bias = self.add_weight('bias',
+        initializer_beta = tf.keras.initializers.Constant(self.beta_init)
+        self.beta = self.add_weight('beta',
                                       shape=(input_shape[-1]),
-                                      initializer=initializer,
+                                      initializer=initializer_beta,
+                                      trainable=self.trainable
                                       )
-        # initializer_alpha = tf.keras.initializers.Constant(0.1)
-        # self.alpha = self.add_weight('alpha',
-        #                               shape=(input_shape[-1]),
-        #                               initializer=initializer_alpha,
-        #                               )
+        initializer_alpha = tf.keras.initializers.Constant(self.alpha_init)
+        self.alpha = self.add_weight('alpha',
+                                      shape=(input_shape[-1]),
+                                      initializer=initializer_alpha,
+                                      trainable=self.trainable
+                                      )
     def _calc(self, x):
         d = 1 + self.alpha * x**2
         return tf.math.log(d) / (2 * self.alpha)
 
     def call(self, z):
-        act = self._calc(complex_abs(z) + self.bias)
+        act = self._calc(complex_abs(z) + self.beta)
         return tf.cast(act, tf.complex64) * complex_norm(z)
 
+    def __str__(self):
+        s = f"ModStudentT: alpha_init={self.alpha_init}, beta_init={self.beta_init}, trainable={self.trainable}"
+        return s
+
 class cStudentT2(tf.keras.layers.Layer):
-    def __init__(self, alpha=2.0):
+    def __init__(self, alpha=2.0, trainable=False):
         super().__init__()
-        self.alpha = alpha
-    # def build(self, input_shape):
-    #     super().build(input_shape)
-    #     initializer_alpha = tf.keras.initializers.Constant(0.1)
-    #     self.alpha = self.add_weight('alpha',
-    #                                   shape=(input_shape[-1]),
-    #                                   initializer=initializer_alpha,
-    #                                   )
+        self.alpha_init = alpha
+        self.trainable = trainable
+
+    def build(self, input_shape):
+        super().build(input_shape)
+        initializer_alpha = tf.keras.initializers.Constant(self.alpha_init)
+        self.alpha = self.add_weight('alpha',
+                                      shape=(input_shape[-1]),
+                                      initializer=initializer_alpha,
+                                      trainable=self.trainable
+                                      )
     def call(self, z):
         zre = tf.math.real(z)
         zim = tf.math.imag(z)
@@ -153,100 +193,100 @@ class cStudentT2(tf.keras.layers.Layer):
        
         return act, dfz, dfzH
 
-    #     actre = self._calc(zre)
-    #     actim = self._calc(zim)
-    #     return tf.complex(actre[0], actim[0]), tf.complex(actre[1], actim[1])
-    # def call(self, z):
-    #     with tf.GradientTape() as g:
-    #         g.watch(z)
-    #         zre = tf.math.real(z)
-    #         zim = tf.math.imag(z)
-    #         actre = tf.math.log(1 + self.alpha * zre ** 2) / ( 2 * self.alpha)
-    #         actim = tf.math.log(1 + self.alpha * zim ** 2) / ( 2 * self.alpha)
-
-    #         act = tf.complex(actre, actim)
-
-    #     act_prime = g.gradient(act, z)
-    #     return act, act_prime
-
-class Idendity2(tf.keras.layers.Layer):
-    def __init__(self, alpha=2.0):
-        super().__init__()
-        self.alpha = alpha
-    # def build(self, input_shape):
-    #     super().build(input_shape)
-    #     initializer_alpha = tf.keras.initializers.Constant(0.1)
-    #     self.alpha = self.add_weight('alpha',
-    #                                   shape=(input_shape[-1]),
-    #                                   initializer=initializer_alpha,
-    #                                   )
-    def call(self, z):
-        return z, tf.zeros_like(z)
-
 class ModStudentT2(tf.keras.layers.Layer):
-    def __init__(self, alpha=2.0):
+    def __init__(self, alpha=2.0, beta=0.1, trainable=False):
         super().__init__()
-        self.alpha = alpha
+        self.alpha_init = alpha
+        self.beta_init = beta
+        self.trainable = trainable
 
     def build(self, input_shape):
         super().build(input_shape)
-        initializer = tf.keras.initializers.Constant(0.1)
-        self._bias = self.add_weight('bias',
+        initializer_beta = tf.keras.initializers.Constant(self.beta_init)
+        self._beta = self.add_weight('beta',
                                       shape=(input_shape[-1]),
-                                      initializer=initializer,
+                                      initializer=initializer_beta,
+                                      trainable=self.trainable
                                       )
-        # initializer_alpha = tf.keras.initializers.Constant(0.1)
-        # self.alpha = self.add_weight('alpha',
-        #                               shape=(input_shape[-1]),
-        #                               initializer=initializer_alpha,
-        #                               )
+
+        initializer_alpha = tf.keras.initializers.Constant(self.alpha_init)
+        self._alpha = self.add_weight('alpha',
+                                      shape=(input_shape[-1]),
+                                      initializer=initializer_alpha,
+                                      trainable=self.trainable
+                                      )
 
     @property
-    def bias(self):
-        return tf.cast(self._bias, tf.complex64)
+    def beta(self):
+        return tf.cast(self._beta, tf.complex64)
+
+    @property
+    def alpha(self):
+        return tf.cast(self._alpha, tf.complex64)
 
     def call(self, z):
         mz = tf.cast(complex_abs(z), tf.complex64)
         nz = complex_norm(z)
 
-        d = 1 + self.alpha * (mz + self.bias)**2
+        d = 1 + self.alpha * (mz + self.beta)**2
         
         act = tf.math.log(d) / (2 * self.alpha) * nz
 
-        dx = (mz + self.bias) / (2 * d) + tf.math.log(d)  / (4 * self.alpha * mz)
-        dxH = (z * z) / (2 * mz ** 2) * ((mz + self.bias)/d - tf.math.log(d) / (2 * self.alpha * mz))
+        dfx = (mz + self.beta) / (2 * d) + tf.math.log(d)  / (4 * self.alpha * mz)
+        dfxH = (z * z) / (2 * mz ** 2) * ((mz + self.beta)/d - tf.math.log(d) / (2 * self.alpha * mz))
 
-        return act, dx, dxH
+        return act, dfx, dfxH
 
 class TestActivation(unittest.TestCase):   
-    def _test(self, act, shape):
-        model = act()
+    def _test(self, act, args, shape):
+        model = act(**args)
         x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
         Kx = model(x)
+        print(model)
     
     def test_cReLU(self):
-        self._test(cReLU, [5, 32])
+        self._test(cReLU, {}, [5, 32])
 
     def test_cPReLU(self):
-        self._test(cPReLU, [5, 32])
+        self._test(cPReLU, {'alpha':0.1, 'trainable':True}, [5, 32])
 
     def test_ModReLU(self):
-        self._test(ModReLU, [5, 32])
+        self._test(ModReLU, {'bias':0.1, 'trainable':True}, [5, 32])
 
     def test_ModPReLU(self):
-        self._test(ModPReLU, [5, 32])
+        self._test(ModPReLU, {'alpha':0.1, 'bias':0.01, 'trainable':True}, [5, 32])
 
-# class TestStudentTActivation(unittest.TestCase):   
-#     def _test(self, act, shape):
-#         model = act()
-#         x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-#         act, act_prime = model(x)
+    def test_cStudentT(self):
+        self._test(cStudentT, {'alpha':0.1, 'trainable':True}, [5, 32])
 
-#     def test_ModStudentT2(self):
-#         self._test(ModStudentT2, [5, 32])
+    def test_ModStudentT(self):
+        self._test(ModStudentT, {'alpha':0.1, 'beta':0.01, 'trainable':True}, [5, 32])
 
-#     def test_cStudentT2(self):
-#         self._test(cStudentT2, [5, 32])
+class TestActivation2(unittest.TestCase):   
+    def _test(self, act, args, shape):
+        model = act(**args)
+        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+
+        with tf.GradientTape() as g:
+            g.watch(x)
+            fx, dfx, dfxH = model(x)
+            loss = 0.5 * tf.reduce_sum(tf.math.conj(fx) * fx)
+
+        grad_x = g.gradient(loss, x)
+        x_autograd = grad_x.numpy()
+
+        z = tf.math.conj(fx)
+        zH = fx
+        fprimex = z * dfxH + zH * dfx
+        x_bwd = fprimex.numpy()
+
+        self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
+
+    def test_ModStudentT2(self):
+        self._test(ModStudentT2, {'alpha':0.1, 'beta':0.01, 'trainable':True}, [5, 32])
+
+    def test_cStudentT2(self):
+        self._test(cStudentT2, {'alpha':0.1, 'trainable':True}, [5, 32])
 
     
 if __name__ == "__main__":
