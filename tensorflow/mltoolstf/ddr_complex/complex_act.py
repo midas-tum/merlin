@@ -96,6 +96,61 @@ class ModPReLU(tf.keras.layers.Layer):
         s = f"ModPReLU: alpha_init={self.alpha_init}, bias_init={self.bias_init}, trainable={self.trainable}"
         return s
 
+class Cardioid(tf.keras.layers.Layer):
+    def __init__(self, bias=2.0, trainable=True):
+        super().__init__()
+        self.bias_init = bias
+        self.trainable = trainable
+
+    def build(self, input_shape):
+        super().build(input_shape)
+        initializer_bias = tf.keras.initializers.Constant(self.bias_init)
+        self.bias = self.add_weight('bias',
+                                      shape=(input_shape[-1]),
+                                      initializer=initializer_bias,
+                                      trainable=self.trainable,
+                                      )
+    def call(self, z):
+        phase = complex_angle(z)
+        cos = tf.cast(tf.math.cos(phase), tf.complex64) 
+
+        return 0.5 * (1 + cos) * z
+        
+    def __str__(self):
+        s = f"Cardioid: bias_init={self.bias_init}, trainable={self.trainable}"
+        return s
+
+class Cardioid2(tf.keras.layers.Layer):
+    def __init__(self, bias=2.0, trainable=True):
+        super().__init__()
+        self.bias_init = bias
+        self.trainable = trainable
+
+    def build(self, input_shape):
+        super().build(input_shape)
+        initializer_bias = tf.keras.initializers.Constant(self.bias_init)
+        self.bias = self.add_weight('bias',
+                                      shape=(input_shape[-1]),
+                                      initializer=initializer_bias,
+                                      trainable=self.trainable,
+                                      )
+    def call(self, z):
+        phase = complex_angle(z)
+        sin = tf.cast(tf.math.sin(phase), tf.complex64) 
+        mz = tf.cast(complex_abs(z), tf.complex64)
+        cos = tf.cast(tf.math.cos(phase), tf.complex64) 
+
+        fx = 0.5 * (1 + cos) * z
+
+        dfx = 0.5 + 0.5 * cos - 0.25 * 1j * sin
+        
+        dfxH = - 0.25 * 1j * sin * (z * z) / (mz * mz)
+
+        return fx, dfx, dfxH
+        
+    def __str__(self):
+        s = f"Cardioid2: bias_init={self.bias_init}, trainable={self.trainable}"
+        return s
 
 class cStudentT(tf.keras.layers.Layer):
     def __init__(self, alpha=2.0, trainable=False):
@@ -125,39 +180,6 @@ class cStudentT(tf.keras.layers.Layer):
 
     def __str__(self):
         s = f"cStudentT: alpha_init={self.alpha_init}, trainable={self.trainable}"
-        return s
-
-class ModStudentT(tf.keras.layers.Layer):
-    def __init__(self, alpha=2.0, beta=0.1, trainable=False):
-        super().__init__()
-        self.alpha_init = alpha
-        self.beta_init = beta
-        self.trainable = trainable
-
-    def build(self, input_shape):
-        super().build(input_shape)
-        initializer_beta = tf.keras.initializers.Constant(self.beta_init)
-        self.beta = self.add_weight('beta',
-                                      shape=(input_shape[-1]),
-                                      initializer=initializer_beta,
-                                      trainable=self.trainable
-                                      )
-        initializer_alpha = tf.keras.initializers.Constant(self.alpha_init)
-        self.alpha = self.add_weight('alpha',
-                                      shape=(input_shape[-1]),
-                                      initializer=initializer_alpha,
-                                      trainable=self.trainable
-                                      )
-    def _calc(self, x):
-        d = 1 + self.alpha * x**2
-        return tf.math.log(d) / (2 * self.alpha)
-
-    def call(self, z):
-        act = self._calc(complex_abs(z) + self.beta)
-        return tf.cast(act, tf.complex64) * complex_norm(z)
-
-    def __str__(self):
-        s = f"ModStudentT: alpha_init={self.alpha_init}, beta_init={self.beta_init}, trainable={self.trainable}"
         return s
 
 class cStudentT2(tf.keras.layers.Layer):
@@ -192,6 +214,43 @@ class cStudentT2(tf.keras.layers.Layer):
         dfz  = tf.cast(0.5 * (h(zre) + h(zim)), tf.complex64)
        
         return act, dfz, dfzH
+
+    def __str__(self):
+        s = f"cStudentT2: alpha_init={self.alpha_init}, trainable={self.trainable}"
+        return s
+
+class ModStudentT(tf.keras.layers.Layer):
+    def __init__(self, alpha=2.0, beta=0.1, trainable=False):
+        super().__init__()
+        self.alpha_init = alpha
+        self.beta_init = beta
+        self.trainable = trainable
+
+    def build(self, input_shape):
+        super().build(input_shape)
+        initializer_beta = tf.keras.initializers.Constant(self.beta_init)
+        self.beta = self.add_weight('beta',
+                                      shape=(input_shape[-1]),
+                                      initializer=initializer_beta,
+                                      trainable=self.trainable
+                                      )
+        initializer_alpha = tf.keras.initializers.Constant(self.alpha_init)
+        self.alpha = self.add_weight('alpha',
+                                      shape=(input_shape[-1]),
+                                      initializer=initializer_alpha,
+                                      trainable=self.trainable
+                                      )
+    def _calc(self, x):
+        d = 1 + self.alpha * x**2
+        return tf.math.log(d) / (2 * self.alpha)
+
+    def call(self, z):
+        act = self._calc(complex_abs(z) + self.beta)
+        return tf.cast(act, tf.complex64) * complex_norm(z)
+
+    def __str__(self):
+        s = f"ModStudentT: alpha_init={self.alpha_init}, beta_init={self.beta_init}, trainable={self.trainable}"
+        return s
 
 class ModStudentT2(tf.keras.layers.Layer):
     def __init__(self, alpha=2.0, beta=0.1, trainable=False):
@@ -237,6 +296,10 @@ class ModStudentT2(tf.keras.layers.Layer):
 
         return act, dfx, dfxH
 
+    def __str__(self):
+        s = f"ModStudentT2: alpha_init={self.alpha_init}, beta_init={self.beta_init}, trainable={self.trainable}"
+        return s
+
 class TestActivation(unittest.TestCase):   
     def _test(self, act, args, shape):
         model = act(**args)
@@ -252,6 +315,9 @@ class TestActivation(unittest.TestCase):
 
     def test_ModReLU(self):
         self._test(ModReLU, {'bias':0.1, 'trainable':True}, [5, 32])
+
+    def test_Cardioid(self):
+        self._test(Cardioid, {'bias':0.1, 'trainable':True}, [5, 32])
 
     def test_ModPReLU(self):
         self._test(ModPReLU, {'alpha':0.1, 'bias':0.01, 'trainable':True}, [5, 32])
@@ -275,8 +341,8 @@ class TestActivation2(unittest.TestCase):
         grad_x = g.gradient(loss, x)
         x_autograd = grad_x.numpy()
 
-        z = tf.math.conj(fx)
         zH = fx
+        z = tf.math.conj(zH)
         fprimex = z * dfxH + zH * dfx
         x_bwd = fprimex.numpy()
 
@@ -288,6 +354,8 @@ class TestActivation2(unittest.TestCase):
     def test_cStudentT2(self):
         self._test(cStudentT2, {'alpha':0.1, 'trainable':True}, [5, 32])
 
-    
+    def test_CardioidT2(self):
+        self._test(Cardioid2, {'bias':0.1, 'trainable':True}, [5, 32])
+
 if __name__ == "__main__":
     unittest.test()
