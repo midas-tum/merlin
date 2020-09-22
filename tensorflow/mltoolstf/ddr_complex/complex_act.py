@@ -1,6 +1,6 @@
 import tensorflow as tf
 import unittest
-from complex_layer import *
+from .complex_layer import *
 import numpy as np
 
 __all__ = ['cReLU',
