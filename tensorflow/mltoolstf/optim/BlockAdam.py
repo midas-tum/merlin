@@ -147,16 +147,16 @@ class BlockAdamOptimizer(optimizer.Optimizer):
     beta1_t = math_ops.cast(self._beta1_t, var.dtype.base_dtype)
     beta2_t = math_ops.cast(self._beta2_t, var.dtype.base_dtype)
     epsilon_t = math_ops.cast(self._epsilon_t, var.dtype.base_dtype)
-    lr = (lr_t * math_ops.sqrt(1 - beta2_power) / (1 - beta1_power))
+    lr = (lr_t * math_ops.cast(math_ops.sqrt(1 - beta2_power) / (1 - beta1_power), var.dtype.base_dtype))
     # m_t = beta1 * m + (1 - beta1) * g_t
     m = self.get_slot(var, "m")
     m_scaled_g_values = grad * (1 - beta1_t)
     m_t = state_ops.assign(m, m * beta1_t + m_scaled_g_values, use_locking=self._use_locking)
 
     if hasattr(var, 'reduction_dim'):
-        grad_reduced = math_ops.reduce_sum(grad**2, var.reduction_dim, True)
+        grad_reduced = math_ops.reduce_sum(math_ops.conj(grad)*grad, var.reduction_dim, True)
     else:
-        grad_reduced = grad**2
+        grad_reduced = math_ops.conj(grad)*grad
     
     v = self.get_slot(var, "v")
     v_scaled_g_values = grad_reduced * (1 - beta2_t)
@@ -164,11 +164,11 @@ class BlockAdamOptimizer(optimizer.Optimizer):
     v_sqrt = math_ops.sqrt(v_t)
 
     if hasattr(var, 'proj'):
-      print('proj', var)
+      #print('proj', var)
       var_update = state_ops.assign(
         var, var.proj(var - lr * m_t / (v_sqrt + epsilon_t)), use_locking=self._use_locking)
     else:
-      print('noproj', var)
+      #print('noproj', var)
       var_update = state_ops.assign_sub(
         var, lr * m_t / (v_sqrt + epsilon_t), use_locking=self._use_locking)
 
