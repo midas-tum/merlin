@@ -4,14 +4,24 @@ import optotf.pad3d
 import numpy as np
 import unittest
 
-from complex_init import complex_initializer
-from complex_conv import complex_conv3d, complex_conv3d_transpose, complex_conv3d_real_weight
-from complex_pad import complex_pad3d, complex_pad3d_transpose
+from .complex_init import complex_initializer
+from .complex_conv import (
+    complex_conv3d,
+    complex_conv3d_transpose,
+    complex_conv3d_real_weight,
+    complex_conv3d_real_weight_transpose
+)
+from .complex_pad import (
+    complex_pad3d,
+    complex_pad3d_transpose
+)
 
 __all__ = ['ComplexConv3d',
            'ComplexConvScale3d',
            'ComplexConvScaleTranspose3d',
-           'ComplexConv2dt']
+           'ComplexConvRealWeight3d',
+           'ComplexConv2dt',
+           ]
 
 class ComplexConv3d(tf.keras.layers.Layer):
     def __init__(self, in_channels, out_channels, kernel_size=3,
@@ -37,26 +47,26 @@ class ComplexConv3d(tf.keras.layers.Layer):
         self.zero_mean = zero_mean
         self.bound_norm = bound_norm
         self.pad = pad
-        self.weight_shape =  self.kernel_size + (in_channels, out_channels)
-        self.bias_shape = (out_channels,)
+        self.weight_shape =  self.kernel_size + (in_channels, out_channels, 2,)
+        self.bias_shape = (out_channels, 2)
         self.use_bias = bias
 
     def build(self, input_shape):
         super().build(input_shape)
-        initializer = tf.keras.initializers.GlorotNormal
-        self.weight = self.add_weight('weight',
+        initializer = tf.keras.initializers.GlorotNormal() # <--- TODO change to complex normalization!
+        self._weight = self.add_weight('weight',
                                       shape=self.weight_shape,
-                                      initializer=complex_initializer(initializer),
-                                      dtype=tf.complex64
+                                      initializer=initializer,
+                                      dtype=tf.float32
                                       )
-        self.bias   = self.add_weight('bias',
+        self._bias   = self.add_weight('bias',
                                       shape=self.bias_shape,
-                                      initializer=complex_initializer(tf.keras.initializers.Zeros),
-                                      dtype=tf.complex64) if self.use_bias else None
+                                      initializer=tf.keras.initializers.Zeros(),
+                                      dtype=tf.float32) if self.use_bias else None
 
         # define the weight constraints
         if self.zero_mean or self.bound_norm:
-            self.weight.reduction_dim = (0, 1, 2, 3)
+            self._weight.reduction_dim = (0, 1, 2, 3, 4)
             reduction_dim_mean = (0, 1, 2, 3)
 
             def l2_proj(weight, surface=False):
@@ -66,31 +76,33 @@ class ComplexConv3d(tf.keras.layers.Layer):
                     tmp = tmp - tf.reduce_mean(tmp, reduction_dim_mean, True)
                 # normalize by the l2-norm
                 if self.bound_norm:
-                    norm = tf.cast(
-                        tf.math.sqrt(tf.reduce_sum(tf.math.conj(tmp)*tmp, self.weight.reduction_dim, True)), tf.float32)
+                    norm = tf.math.sqrt(tf.reduce_sum(tmp ** 2, self._weight.reduction_dim, True))
                     if surface:
-                        tmp = tmp / tf.cast(tf.math.maximum(norm, tf.ones_like(norm)*1e-9), tf.complex64)
+                        tmp = tmp / tf.math.maximum(norm, tf.ones_like(norm)*1e-9)
                     else:
-                        tmp = tmp / tf.cast(tf.math.maximum(norm, tf.ones_like(norm)), tf.complex64)
+                        tmp = tmp / tf.math.maximum(norm, tf.ones_like(norm))
                 return tmp
 
-            self.weight.proj = l2_proj
-            self.weight.assign(l2_proj(self.weight, True))
+            self._weight.proj = l2_proj
+            self._weight.assign(l2_proj(self._weight, True))
 
-    def get_weight(self):
-        return self.weight
+    @property
+    def weight(self):
+        return tf.complex(self._weight[...,0], self._weight[...,1])
+
+    @property
+    def bias(self):
+        return tf.complex(self._bias[...,0], self._bias[...,1])
 
     def call(self, x):
-        weight = self.get_weight()
-
-        # then pad
-        pad = [w//2 for w in weight.shape[:3]]
+        # first pad
+        pad = [w//2 for w in self.weight.shape[:3]]
 
         if self.pad and any(pad):
             x = complex_pad3d(x, (pad[2],pad[2],pad[1],pad[1],pad[0],pad[0]), mode='symmetric')
 
         # compute the ComplexConvolution
-        x = complex_conv3d(x, weight, padding="VALID", strides=(1,) + self.stride + (1,), dilations=(1,) + self.dilation + (1,))
+        x = complex_conv3d(x, self.weight, padding="VALID", strides=(1,) + self.stride + (1,), dilations=(1,) + self.dilation + (1,))
 
         if self.use_bias:
             x = tf.nn.bias_add(x, self.bias)
@@ -98,26 +110,24 @@ class ComplexConv3d(tf.keras.layers.Layer):
         return x
 
     def backward(self, x, output_shape=None):
-        weight = self.get_weight()
-
         # zero pad
-        pad = [w//2 for w in weight.shape[:3]]
-        ksz = [w for w in weight.shape[:3]]
+        pad = [w//2 for w in self.weight.shape[:3]]
+        ksz = [w for w in self.weight.shape[:3]]
 
         # determine the output padding
         if not output_shape is None:
-            output_shape = list(output_shape)
+            output_shape = tf.unstack(output_shape)
             output_shape[-1] = self.in_channels
             output_padding = [output_shape[i+1] - ((x.shape[i+1]-1)*self.stride[i]+1) for i in range(3)]
         else:
-            output_shape = [x.shape[0], 1, 1, 1, self.in_channels]
+            output_shape = [tf.shape(x)[0], 1, 1, 1, self.in_channels]
             output_padding = [0,0,0]
 
         
         # construct output shape
-
-        output_shape = [(x.shape[i] - 1)*self.stride[i-1] + self.dilation[i-1] * (ksz[i-1] - 1) + output_padding[i-1] + 1 if (i > 0 and i < 4) else output_shape[i] for i in range(5) ]
-
+        output_shape = [(tf.shape(x)[i] - 1)*self.stride[i-1] + self.dilation[i-1] * (ksz[i-1] - 1) + output_padding[i-1] + 1 if (i > 0 and i < 4) else output_shape[i] for i in range(5) ]
+        output_shape = tf.stack(output_shape)
+        
         # zero pad input
         pad_k = [w//2 for w in self.kernel_size]
         tf_pad = [[0,0,],] + \
@@ -130,7 +140,7 @@ class ComplexConv3d(tf.keras.layers.Layer):
             x = tf.nn.bias_add(x, -self.bias)
 
         # compute the transpose ComplexConvolution
-        x = complex_conv3d_transpose(x, weight, output_shape, padding='SAME', strides=(1,) + self.stride + (1,), dilations=(1,) + self.dilation + (1,))
+        x = complex_conv3d_transpose(x, self.weight, output_shape, padding='SAME', strides=(1,) + self.stride + (1,), dilations=(1,) + self.dilation + (1,))
 
         # transpose padding
         if self.pad and any(pad):
@@ -144,8 +154,8 @@ class ComplexConvScale3d(ComplexConv3d):
             in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
             stride=stride, dilation=1, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
-        assert self.stride[0] == 1
         # create the ComplexConvolution kernel
+        assert self.stride[0] == 1
         if self.stride[1] > 1 :
             np_k = np.asarray([1, 4, 6, 4, 1], dtype=np.float32)[:, np.newaxis]
             np_k = np_k @ np_k.T
@@ -153,8 +163,9 @@ class ComplexConvScale3d(ComplexConv3d):
             np_k = np.reshape(np_k, (1, 5, 5, 1, 1))
             self.blur = tf.Variable(initial_value=tf.convert_to_tensor(np_k), trainable=False)
 
-    def get_weight(self):
-        weight = super().get_weight()
+    @property
+    def weight(self):
+        weight = super().weight
         if self.stride[1] > 1 :
             weight = tf.reshape(weight, self.kernel_size + (self.out_channels*self.in_channels, 1))
             weight = tf.transpose(weight, (3, 0, 1, 2, 4))
@@ -179,6 +190,130 @@ class ComplexConvScaleTranspose3d(ComplexConvScale3d):
     def backward(self, x):
         return super().call(x)
 
+
+class ComplexConvRealWeight3d(tf.keras.layers.Layer):
+    def __init__(self, in_channels, out_channels, kernel_size=3,
+                 stride=1, dilation=1, bias=False, 
+                 zero_mean=True, bound_norm=True, pad=True):
+        super(ComplexConvRealWeight3d, self).__init__()
+
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+
+        def get_param(x):
+            if isinstance(x, int):
+                return (x, x, x)
+            elif isinstance(x, tuple):
+                assert len(x) == 3
+                return x
+            else:
+                raise ValueError('expects tuple or int')
+        
+        self.kernel_size = get_param(kernel_size)
+        self.stride = get_param(stride)
+        self.dilation = get_param(dilation)
+        self.zero_mean = zero_mean
+        self.bound_norm = bound_norm
+        self.pad = pad
+        self.weight_shape =  self.kernel_size + (in_channels, out_channels)
+        self.bias_shape = (out_channels,)
+        self.use_bias = bias
+
+    def build(self, input_shape):
+        super().build(input_shape)
+        initializer = tf.keras.initializers.GlorotNormal()
+        self._weight = self.add_weight('weight',
+                                      shape=self.weight_shape,
+                                      initializer=initializer,
+                                      dtype=tf.float32
+                                      )
+        self._bias   = self.add_weight('bias',
+                                      shape=self.bias_shape,
+                                      initializer=tf.keras.initializers.Zeros(),
+                                      dtype=tf.float32) if self.use_bias else None
+
+        # define the weight constraints
+        if self.zero_mean or self.bound_norm:
+            self._weight.reduction_dim = (0, 1, 2, 3)
+            reduction_dim_mean = (0, 1, 2, 3)
+
+            def l2_proj(weight, surface=False):
+                tmp = weight
+                # reduce the mean
+                if self.zero_mean:
+                    tmp = tmp - tf.reduce_mean(tmp, reduction_dim_mean, True)
+                # normalize by the l2-norm
+                if self.bound_norm:
+                    norm = tf.math.sqrt(tf.reduce_sum(tmp**2, self._weight.reduction_dim, True))
+                    if surface:
+                        tmp = tmp / tf.math.maximum(norm, tf.ones_like(norm)*1e-9)
+                    else:
+                        tmp = tmp / tf.math.maximum(norm, tf.ones_like(norm))
+                return tmp
+
+            self._weight.proj = l2_proj
+            self._weight.assign(l2_proj(self._weight, True))
+
+    @property
+    def weight(self):
+        return self._weight
+
+    @property
+    def bias(self):
+        return self._bias
+
+    def call(self, x):
+        # then pad
+        pad = [w//2 for w in self.weight.shape[:3]]
+
+        if self.pad and any(pad):
+            x = complex_pad3d(x, (pad[2],pad[2],pad[1],pad[1],pad[0],pad[0]), mode='symmetric')
+
+        # compute the ComplexConvolution
+        x = complex_conv3d_real_weight(x, self.weight, padding="VALID", strides=(1,) + self.stride + (1,), dilations=(1,) + self.dilation + (1,))
+
+        if self.use_bias:
+            x = tf.nn.bias_add(x, self.bias)
+
+        return x
+
+    def backward(self, x, output_shape=None):
+        # zero pad
+        pad = [w//2 for w in self.weight.shape[:3]]
+        ksz = [w for w in self.weight.shape[:3]]
+
+        # determine the output padding
+        if not output_shape is None:
+            output_shape = tf.unstack(output_shape)
+            output_shape[-1] = self.in_channels
+            output_padding = [output_shape[i+1] - ((x.shape[i+1]-1)*self.stride[i]+1) for i in range(3)]
+        else:
+            output_shape = [tf.shape(x)[0], 1, 1, 1, self.in_channels]
+            output_padding = [0,0,0]
+
+        
+        # construct output shape
+        output_shape = [(tf.shape(x)[i] - 1)*self.stride[i-1] + self.dilation[i-1] * (ksz[i-1] - 1) + output_padding[i-1] + 1 if (i > 0 and i < 4) else output_shape[i] for i in range(5) ]
+        output_shape = tf.stack(output_shape)
+        
+        # zero pad input
+        pad_k = [w//2 for w in self.kernel_size]
+        tf_pad = [[0,0,],] + \
+                 [[pad_k[i] + output_padding[i]//2, pad_k[i] + output_padding[i]//2 + np.mod(output_padding[i],2)] for i in range(3)] + \
+                 [[0,0,],]
+        x = tf.pad(x, tf_pad)
+
+        # remove bias
+        if self.use_bias:
+            x = tf.nn.bias_add(x, -self.bias)
+
+        # compute the transpose ComplexConvolution
+        x = complex_conv3d_real_weight_transpose(x, self.weight, output_shape, padding='SAME', strides=(1,) + self.stride + (1,), dilations=(1,) + self.dilation + (1,))
+
+        # transpose padding
+        if self.pad and any(pad):
+            x = complex_pad3d_transpose(x, (pad[2],pad[2],pad[1],pad[1],pad[0],pad[0]), mode='symmetric')
+        return x
 
 class ComplexConv2dt(tf.keras.layers.Layer):
     def __init__(self, in_channels, inter_channels, out_channels, kernel_size=3,
@@ -375,4 +510,6 @@ class ComplexConvScale3dTest(unittest.TestCase):
         self.assertTrue(rhs, lhs)
 
 if __name__ == "__main__":
+    for gpu in tf.config.list_physical_devices('GPU'):
+        tf.config.experimental.set_memory_growth(gpu, True)
     unittest.test()

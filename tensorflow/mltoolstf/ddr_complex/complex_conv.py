@@ -2,11 +2,13 @@ import tensorflow as tf
 
 __all__ = [
     "complex_conv2d",
-    "complex_conv3d"
+    "complex_conv3d",
     "complex_conv2d_transpose",
     "complex_conv3d_transpose",
     "complex_conv2d_real_weight",
     "complex_conv3d_real_weight",
+    "complex_conv2d_real_weight_transpose",
+    "complex_conv3d_real_weight_transpose",
 ]
 
 def complex_conv(conv_fun, x, weight, padding="VALID", strides=1, dilations=1):
@@ -44,16 +46,22 @@ def complex_conv_transpose(conv_fun, x, weight, output_shape, padding="SAME", st
     return tf.complex(convT_re, convT_im)
 
 def complex_conv_real_weight(conv_fun, x, weight, padding="VALID", strides=1, dilations=1):
-    xre = tf.math.real(x)
-    xim = tf.math.imag(x)
-
-    conv_rr = conv_fun(xre, weight, padding=padding, strides=strides, dilations=dilations)
-    conv_ir = conv_fun(xim, weight, padding=padding, strides=strides, dilations=dilations)
+    conv_rr = conv_fun(tf.math.real(x), weight, padding=padding, strides=strides, dilations=dilations)
+    conv_ir = conv_fun(tf.math.imag(x), weight, padding=padding, strides=strides, dilations=dilations)
 
     conv_re = conv_rr
     conv_im = conv_ir
 
     return tf.complex(conv_re, conv_im)
+
+def complex_conv_real_weight_transpose(conv_fun, x, weight, output_shape, padding="SAME", strides=1, dilations=1):
+    convT_rr = conv_fun(tf.math.real(x), weight, output_shape, padding=padding, strides=strides, dilations=dilations)
+    convT_ir = conv_fun(tf.math.imag(x), weight, output_shape, padding=padding, strides=strides, dilations=dilations)
+
+    convT_re = convT_rr
+    convT_im = convT_ir
+
+    return tf.complex(convT_re, convT_im)
 
 def complex_conv2d(x, weight, padding="VALID", strides=1, dilations=1):
     return complex_conv(tf.nn.conv2d, x, weight, padding=padding, strides=strides, dilations=dilations)
@@ -72,3 +80,9 @@ def complex_conv2d_real_weight(x, weight, padding="VALID", strides=1, dilations=
 
 def complex_conv3d_real_weight(x, weight, padding="VALID", strides=1, dilations=1):
     return complex_conv_real_weight(tf.nn.conv3d, x, weight, padding=padding, strides=strides, dilations=dilations)
+
+def complex_conv2d_real_weight_transpose(x, weight, output_shape, padding="VALID", strides=1, dilations=1):
+    return complex_conv_real_weight_transpose(tf.nn.conv2d_transpose, x, weight, output_shape, padding=padding, strides=strides, dilations=dilations)
+
+def complex_conv3d_real_weight_transpose(x, weight, output_shape, padding="VALID", strides=1, dilations=1):
+    return complex_conv_real_weight_transpose(tf.nn.conv3d_transpose, x, weight, output_shape, padding=padding, strides=strides, dilations=dilations)

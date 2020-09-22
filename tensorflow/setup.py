@@ -29,11 +29,11 @@ setup(
     author_email="k.hammernik@imperial.ac.uk",
     packages=["mltoolstf",
               "mltoolstf.optim",
-              #"mltoolstf.ddr_complex"
+              "mltoolstf.ddr_complex"
              ],
     package_dir={"mltoolstf": os.path.join('.', "mltoolstf"),
                  "mltoolstf.optim": os.path.join('.', "mltoolstf/optim"),
-                 #"mltoolstf.ddr_complex": os.path.join('.', "mltoolstf/ddr_complex"),
+                 "mltoolstf.ddr_complex": os.path.join('.', "mltoolstf/ddr_complex"),
     },
     install_requires=REQUIRED_PACKAGES
 )
