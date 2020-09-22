@@ -1,9 +1,9 @@
 import tensorflow as tf
 
-from regularizer import *
-from complex_conv2d import *
+from .regularizer import *
+from .complex_conv2d import *
 from optotf.activations import TrainableActivation
-from complex_layer import *
+from .complex_layer import *
 import unittest
 import numpy as np
 
@@ -77,8 +77,9 @@ class MagnitudeFoE2d(FoERegularizer):
         #     self.load_state_dict(self.ckpt_state_dict)
 
     def _activation(self, x):
-        magn = tf.cast(self.f1_abs(complex_abs(x)), tf.complex64) / x.shape[-1]
-        return magn * complex_norm(x)
+        magn = self.f1_abs(complex_abs(x)) / tf.cast(tf.shape(x)[-1], tf.float32)
+        xn = complex_norm(x)
+        return tf.complex(magn * tf.math.real(xn), magn * tf.math.imag(xn))
 
 class ComplexFoE2d(FoERegularizer):
     """
@@ -96,9 +97,11 @@ class ComplexFoE2d(FoERegularizer):
         #     self.load_state_dict(self.ckpt_state_dict)
 
     def _activation(self, x):
-        x_re = self.f1(tf.math.real(x)) / x.shape[1]
-        x_im = self.f1(tf.math.imag(x)) / x.shape[1]
+        nf = tf.cast(tf.shape(x)[-1], tf.float32)
+        x_re = self.f1(tf.math.real(x)) / nf
+        x_im = self.f1(tf.math.imag(x)) / nf
         return tf.complex(x_re, x_im)
+
 
 class PolarFoETest(unittest.TestCase):
     def test_FoE_polar(self):
