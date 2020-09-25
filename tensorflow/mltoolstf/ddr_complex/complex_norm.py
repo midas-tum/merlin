@@ -44,7 +44,7 @@ class ComplexNormalizationBase(tf.keras.layers.Layer):
         cov_vu = cov_uv = K.mean(xre * xim, axis=reduction_axes, keepdims=True)
 
         # 3. get R = [[p, q], [r, s]], with E R c c^T R^T = R M R = I
-        sqrdet = K.sqrt(cov_uu * cov_vv - cov_uv * cov_vu)
+        sqrdet = K.sqrt(cov_uu * cov_vv - cov_uv * cov_vu )
         denom = sqrdet * K.sqrt(cov_uu + 2 * sqrdet + cov_vv)
 
         p, q = (cov_vv + sqrdet) / denom, -cov_uv / denom
@@ -77,14 +77,14 @@ class ComplexLayerNormalization(ComplexNormalizationBase):
         else:
             self.reduction_axes = [1,]
 
-class ComplexBatchNormalization(ComplexNormalizationBase):
-    def __init__(self,
-                channel_last=True,
-                epsilon=1e-4):
-        super().__init__(channel_last=channel_last, epsilon=epsilon)
-        # normalization along spatial & dimension
-        # [..., F] or [:, F, ...]
-        self.reduction_axes = [0]
+# class ComplexBatchNormalization(ComplexNormalizationBase):
+#     def __init__(self,
+#                 channel_last=True,
+#                 epsilon=1e-4):
+#         super().__init__(channel_last=channel_last, epsilon=epsilon)
+#         # normalization along spatial & dimension
+#         # [..., F] or [:, F, ...]
+#         self.reduction_axes = [0]
 
 class ComplexNormTest(unittest.TestCase):
     def _test_norm(self, shape, channel_last=True, layer_norm=False):
@@ -106,7 +106,7 @@ class ComplexNormTest(unittest.TestCase):
             if layer_norm:
                 axes += (1,)
 
-        print('test axes', axes)
+        #print('test axes', axes)
 
         xnre = tf.math.real(xn)
         xnim = tf.math.imag(xn)
@@ -114,22 +114,22 @@ class ComplexNormTest(unittest.TestCase):
         np_mu = K.mean(xn, axes).numpy()
         #print('mean', np_mu)
         self.assertTrue(np.linalg.norm(np_mu) < 1e-6)
-
+        #print(xn.shape)
         uu = K.var(xnre, axes).numpy()
         vv = K.var(xnim, axes).numpy()
         uv = K.mean(xnre * xnim, axes).numpy()
+        # print('vv', f'{vv}')
+        # print('vv', f'{vv}')
+        # print('uv', f'{uv}')
         self.assertTrue(np.linalg.norm(uu - 1) < 1e-3)
         self.assertTrue(np.linalg.norm(vv - 1) < 1e-3)
         self.assertTrue(np.linalg.norm(uv) < 1e-6)
         # uu = K.var(tf.math.real(x), axes).numpy()
         # vv = K.var(tf.math.imag(x), axes).numpy()
         # uv = K.mean(tf.math.real(x) * tf.math.imag(x), axes).numpy()
-        # print('vv', f'{vv}')
-        # print('vv', f'{vv}')
-        # print('uv', f'{uv}')
 
     def test1_instance(self):
-        self._test_norm([3, 320, 320, 2], channel_last=True)
+        self._test_norm([1, 200, 200, 1], channel_last=True)
 
     def test2_instance(self):
         self._test_norm([3, 2, 320, 320], channel_last=False)
