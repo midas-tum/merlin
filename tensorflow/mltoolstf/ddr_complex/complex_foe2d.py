@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from .regularizer import *
-from .complex_conv2d import *
+from .complex_padconv2d import *
 from optotf.activations import TrainableActivation
 from .complex_layer import *
 import unittest
@@ -49,7 +49,7 @@ class PolarFoE2d(FoERegularizer):
         super(PolarFoE2d, self).__init__(config=config, file=file)
 
         # setup the modules
-        self.K1 = ComplexConv2d(**self.config["K1"])
+        self.K1 = ComplexPadConv2d(**self.config["K1"])
         self.f1_abs = TrainableActivation(**self.config["f1_abs"])
         self.f1_phi = TrainableActivation(**self.config["f1_phi"])
 
@@ -70,7 +70,7 @@ class MagnitudeFoE2d(FoERegularizer):
         super(MagnitudeFoE2d, self).__init__(config=config, file=file)
 
         # setup the modules
-        self.K1 = ComplexConv2d(**self.config["K1"])
+        self.K1 = ComplexPadConv2d(**self.config["K1"])
         self.f1_abs = TrainableActivation(**self.config["f1_abs"])
 
         # if not self.ckpt_state_dict is None:
@@ -90,7 +90,7 @@ class ComplexFoE2d(FoERegularizer):
         super(ComplexFoE2d, self).__init__(config=config, file=file)
 
         # setup the modules
-        self.K1 = ComplexConv2d(**self.config["K1"])
+        self.K1 = ComplexPadConv2d(**self.config["K1"])
         self.f1 = TrainableActivation(**self.config["f1"])
 
         # if not self.ckpt_state_dict is None:

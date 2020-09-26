@@ -1,7 +1,7 @@
 import tensorflow as tf
 
 from .regularizer import *
-from .complex_conv3d import *
+from .complex_padconv3d import *
 from .complex_foe2d import FoERegularizer
 from optotf.activations import TrainableActivationKeras as TrainableActivation
 from .complex_layer import *
@@ -19,7 +19,7 @@ class MagnitudeFoE3d(FoERegularizer):
         super(MagnitudeFoE3d, self).__init__(config=config, file=file)
 
         # setup the modules
-        self.K1 = ComplexConv3d(**self.config["K1"])
+        self.K1 = ComplexPadConv3d(**self.config["K1"])
         self.f1_abs = TrainableActivation(**self.config["f1_abs"])
 
         # if not self.ckpt_state_dict is None:
@@ -39,7 +39,7 @@ class ComplexFoE3d(FoERegularizer):
         super(ComplexFoE3d, self).__init__(config=config, file=file)
 
         # setup the modules
-        self.K1 = ComplexConv3d(**self.config["K1"])
+        self.K1 = ComplexPadConv3d(**self.config["K1"])
         self.f1 = TrainableActivation(**self.config["f1"])
 
         # if not self.ckpt_state_dict is None:
@@ -56,7 +56,7 @@ class MagnitudeFoE2dt(FoERegularizer):
         super(MagnitudeFoE2dt, self).__init__(config=config, file=file)
 
         # setup the modules
-        self.K1 = ComplexConv2dt(**self.config["K1"])
+        self.K1 = ComplexPadConv2dt(**self.config["K1"])
         self.f1_abs = TrainableActivation(**self.config["f1_abs"])
 
         # if not self.ckpt_state_dict is None:
@@ -76,7 +76,7 @@ class ComplexFoE2dt(FoERegularizer):
         super(ComplexFoE2dt, self).__init__(config=config, file=file)
 
         # setup the modules
-        self.K1 = ComplexConv2dt(**self.config["K1"])
+        self.K1 = ComplexPadConv2dt(**self.config["K1"])
         self.f1 = TrainableActivation(**self.config["f1"])
 
         # if not self.ckpt_state_dict is None:

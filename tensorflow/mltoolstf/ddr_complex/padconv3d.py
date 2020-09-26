@@ -4,15 +4,15 @@ import optotf.pad3d
 import numpy as np
 import unittest
 
-__all__ = ['Conv3d',
-           'ConvScale3d',
-           'ConvScaleTranspose3d']
+__all__ = ['PadConv3d',
+           'PadConvScale3d',
+           'PadConvScaleTranspose3d']
 
-class Conv3d(tf.keras.layers.Layer):
+class PadConv3d(tf.keras.layers.Layer):
     def __init__(self, in_channels, out_channels, kernel_size=3,
                  stride=1, dilation=1, bias=False, 
                  zero_mean=True, bound_norm=True, pad=True):
-        super(Conv3d, self).__init__()
+        super(PadConv3d, self).__init__()
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -121,10 +121,10 @@ class Conv3d(tf.keras.layers.Layer):
             x = optotf.pad3d.pad3d_transpose(x, (pad[2],pad[2],pad[1],pad[1],pad[0],pad[0]), mode='symmetric')
         return x
 
-class ConvScale3d(Conv3d):
+class PadConvScale3d(PadConv3d):
     def __init__(self, in_channels, out_channels, kernel_size=3,
                  stride=(1,2,2), bias=False, zero_mean=False, bound_norm=False):
-        super(ConvScale3d, self).__init__(
+        super(PadConvScale3d, self).__init__(
             in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
             stride=stride, dilation=1, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
@@ -150,9 +150,9 @@ class ConvScale3d(Conv3d):
         return weight
 
 
-class ConvScaleTranspose3d(ConvScale3d):
+class PadConvScaleTranspose3d(PadConvScale3d):
     def __init__(self, in_channels, out_channels, kernel_size=3, stride=(1,2,2), bias=False, zero_mean=False, bound_norm=False):
-        super(ConvScaleTranspose3d, self).__init__(
+        super(PadConvScaleTranspose3d, self).__init__(
             in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
             stride=stride, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
@@ -164,7 +164,7 @@ class ConvScaleTranspose3d(ConvScale3d):
         return super().call(x)
 
 
-class Conv3dTest(unittest.TestCase):
+class PadConv3dTest(unittest.TestCase):
     def test_grad(self):
         nBatch = 5
         M = 128
@@ -174,7 +174,7 @@ class Conv3dTest(unittest.TestCase):
         nf_out = 32
         shape = [nBatch, D, M, N, nf_in]
 
-        model = Conv3d(nf_in, nf_out, kernel_size=(3,5,5))
+        model = PadConv3d(nf_in, nf_out, kernel_size=(3,5,5))
         x = tf.random.normal(shape)
         Kx = model(x)
 
@@ -199,7 +199,7 @@ class Conv3dTest(unittest.TestCase):
         nf_out = 32
         shape = [nBatch, D, M, N, nf_in]
 
-        model = Conv3d(nf_in, nf_out, kernel_size=(3,5,5))
+        model = PadConv3d(nf_in, nf_out, kernel_size=(3,5,5))
         x = tf.random.normal(shape)
         Kx = model(x)
 
@@ -215,7 +215,7 @@ class Conv3dTest(unittest.TestCase):
         nf_in = 1
         nf_out = 32
         
-        model = Conv3d(nf_in, nf_out, kernel_size=(3,5,5))
+        model = PadConv3d(nf_in, nf_out, kernel_size=(3,5,5))
         model.build(())
         np_weight = model.weights[0].numpy()
         reduction_dim = model.weights[0].reduction_dim
@@ -227,7 +227,7 @@ class Conv3dTest(unittest.TestCase):
 
         self.assertTrue(np.max(np.abs(weight_norm-1)) < 1e-6)
 
-class ConvScale3dTest(unittest.TestCase):
+class PadConvScale3dTest(unittest.TestCase):
     def test_grad(self):
         nBatch = 5
         M = 256
@@ -237,7 +237,7 @@ class ConvScale3dTest(unittest.TestCase):
         nf_out = 32
         shape = [nBatch, D, M, N, nf_in]
 
-        model = ConvScale3d(nf_in, nf_out, kernel_size=3, stride=(1,2,2))
+        model = PadConvScale3d(nf_in, nf_out, kernel_size=3, stride=(1,2,2))
         x = tf.random.normal(shape)
         
         with tf.GradientTape() as g:
@@ -261,7 +261,7 @@ class ConvScale3dTest(unittest.TestCase):
         nf_out = 32
         shape = [nBatch, D, M, N, nf_in]
 
-        model = ConvScale3d(nf_in, nf_out, kernel_size=3, stride=(1,2,2))
+        model = PadConvScale3d(nf_in, nf_out, kernel_size=3, stride=(1,2,2))
         x = tf.random.normal(shape)
         Kx = model(x)
 

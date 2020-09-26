@@ -2,6 +2,7 @@ import tensorflow as tf
 import unittest
 from .complex_layer import *
 import numpy as np
+import six
 
 __all__ = ['cReLU',
            'ModReLU',
@@ -10,8 +11,65 @@ __all__ = ['cReLU',
            'cStudentT',
            'ModStudentT',
            'cStudentT2',
-           'ModStudentT2'
+           'ModStudentT2',
+           'Identity',
+           'get'
          ]
+
+def get(identifier):
+    if identifier is None:
+        return Identity()
+    if isinstance(identifier, six.string_types):
+        identifier = str(identifier)
+        return deserialize(identifier)
+    elif callable(identifier):
+        return identifier
+    else:
+        raise TypeError(
+            'Could not interpret activation function identifier: {}'.format(
+                identifier))
+
+def deserialize(act):
+    if act == 'ModReLU':
+        return ModReLU()
+    elif act == 'cPReLU':
+        return cPReLU()
+    elif act == 'cReLU':
+        return cReLU()
+    elif act == 'ModPReLU':
+        return ModPReLU()
+    elif act == 'hard_sigmoid':
+        return HardSigmoid()
+    elif act is None or act == 'identity':
+        return Identity()
+    else:
+        raise ValueError(f"Selected activation '{act}' not implemented in complex activations")
+
+def serialize(act):
+    return act.__name__
+
+
+class HardSigmoid(tf.keras.layers.Layer):
+    def __init__(self, bias=0.1, trainable=True):
+        super().__init__()
+        self.bias_init = bias
+        self.trainable = trainable
+
+    @property
+    def __name__(self):
+        return 'hard_sigmoid'
+
+    def build(self, input_shape):
+        super().build(input_shape)
+        initializer = tf.keras.initializers.Constant(self.bias_init)
+        self.bias = self.add_weight('bias',
+                                      shape=(input_shape[-1]),
+                                      initializer=initializer,
+                                      )
+    def call(self, z):
+        return tf.cast(tf.keras.activations.hard_sigmoid(complex_abs(z) + self.bias), tf.complex64)
+    
+
 
 class cReLU(tf.keras.layers.Layer):
     def call(self, z):
@@ -19,11 +77,23 @@ class cReLU(tf.keras.layers.Layer):
         actim = tf.keras.activations.relu(tf.math.imag(z))
         return tf.complex(actre, actim)
 
+class Identity(tf.keras.layers.Layer):    
+    @property
+    def __name__(self):
+        return 'identity'
+
+    def call(self, z):
+        return z
+
 class ModReLU(tf.keras.layers.Layer):
     def __init__(self, bias=0.1, trainable=True):
         super().__init__()
         self.bias_init = bias
         self.trainable = trainable
+    
+    @property
+    def __name__(self):
+        return 'ModReLU'
 
     def build(self, input_shape):
         super().build(input_shape)

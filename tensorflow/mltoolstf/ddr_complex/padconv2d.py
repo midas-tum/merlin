@@ -4,15 +4,15 @@ import optotf.pad2d
 import numpy as np
 import unittest
 
-__all__ = ['Conv2d',
-           'ConvScale2d',
-           'ConvScaleTranspose2d']
+__all__ = ['PadConv2d',
+           'PadConvScale2d',
+           'PadConvScaleTranspose2d']
 
-class Conv2d(tf.keras.layers.Layer):
+class PadConv2d(tf.keras.layers.Layer):
     def __init__(self, in_channels, out_channels, kernel_size=3,
                  stride=1, dilation=1, bias=False, 
                  zero_mean=True, bound_norm=True, pad=True):
-        super(Conv2d, self).__init__()
+        super(PadConv2d, self).__init__()
 
         self.in_channels = in_channels
         self.out_channels = out_channels
@@ -130,10 +130,10 @@ class Conv2d(tf.keras.layers.Layer):
         return s.format(**self.__dict__)
 
 
-class ConvScale2d(Conv2d):
+class PadConvScale2d(PadConv2d):
     def __init__(self, in_channels, out_channels, kernel_size=3, 
                  stride=2, bias=False, zero_mean=False, bound_norm=False):
-        super(ConvScale2d, self).__init__(
+        super(PadConvScale2d, self).__init__(
             in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, 
             stride=stride, dilation=1, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
@@ -158,10 +158,10 @@ class ConvScale2d(Conv2d):
         return weight
 
 
-class ConvScaleTranspose2d(ConvScale2d):
+class PadConvScaleTranspose2d(PadConvScale2d):
     def __init__(self, in_channels, out_channels, kernel_size=3, 
                 stride=2, bias=False, zero_mean=False, bound_norm=False):
-        super(ConvScaleTranspose2d, self).__init__(
+        super(PadConvScaleTranspose2d, self).__init__(
             in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, 
             stride=stride, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
@@ -173,7 +173,7 @@ class ConvScaleTranspose2d(ConvScale2d):
         return super().call(x)
 
 
-class Conv2dTest(unittest.TestCase):
+class PadConv2dTest(unittest.TestCase):
     def test_grad(self):
         nBatch = 5
         M = 256
@@ -181,7 +181,7 @@ class Conv2dTest(unittest.TestCase):
         nf_in = 10
         nf_out = 32
 
-        model = Conv2d(nf_in, nf_out, kernel_size=3)
+        model = PadConv2d(nf_in, nf_out, kernel_size=3)
         x = tf.random.normal([nBatch, M, N, nf_in])
         Kx = model(x)
 
@@ -204,7 +204,7 @@ class Conv2dTest(unittest.TestCase):
         nf_in = 1
         nf_out = 32
 
-        model = Conv2d(nf_in, nf_out, kernel_size=3)
+        model = PadConv2d(nf_in, nf_out, kernel_size=3)
         x = tf.random.normal([nBatch, M, N, nf_in])
         Kx = model(x)
 
@@ -220,7 +220,7 @@ class Conv2dTest(unittest.TestCase):
         nf_in = 1
         nf_out = 32
         
-        model = Conv2d(nf_in, nf_out, kernel_size=3)
+        model = PadConv2d(nf_in, nf_out, kernel_size=3)
         model.build(())
         np_weight = model.weights[0].numpy()
         reduction_dim = model.weights[0].reduction_dim
@@ -232,7 +232,7 @@ class Conv2dTest(unittest.TestCase):
 
         self.assertTrue(np.max(np.abs(weight_norm-1)) < 1e-6)
 
-class ConvScale2dTest(unittest.TestCase):
+class PadConvScale2dTest(unittest.TestCase):
     def test_grad(self):
         nBatch = 5
         M = 256
@@ -240,7 +240,7 @@ class ConvScale2dTest(unittest.TestCase):
         nf_in = 10
         nf_out = 32
 
-        model = ConvScale2d(nf_in, nf_out, kernel_size=3, stride=2)
+        model = PadConvScale2d(nf_in, nf_out, kernel_size=3, stride=2)
         x = tf.random.normal([nBatch, M, N, nf_in])
         
         with tf.GradientTape() as g:
@@ -262,7 +262,7 @@ class ConvScale2dTest(unittest.TestCase):
         nf_in = 10
         nf_out = 32
 
-        model = ConvScale2d(nf_in, nf_out, kernel_size=3, stride=2)
+        model = PadConvScale2d(nf_in, nf_out, kernel_size=3, stride=2)
         x = tf.random.normal([nBatch, M, N, nf_in])
         Kx = model(x)
 
