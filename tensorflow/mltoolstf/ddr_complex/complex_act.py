@@ -76,7 +76,10 @@ class cReLU(tf.keras.layers.Layer):
         actre = tf.keras.activations.relu(tf.math.real(z))
         actim = tf.keras.activations.relu(tf.math.imag(z))
         return tf.complex(actre, actim)
-
+    @property
+    def __name__(self):
+        return 'cReLU'
+        
 class Identity(tf.keras.layers.Layer):    
     @property
     def __name__(self):
@@ -212,7 +215,7 @@ class Cardioid2(tf.keras.layers.Layer):
 
         fx = 0.5 * (1 + cos) * z
 
-        dfx = 0.5 + 0.5 * cos - 0.25 * 1j * sin
+        dfx = 0.5 + 0.5 * cos + 0.25 * 1j * sin
         
         dfxH = - 0.25 * 1j * sin * (z * z) / (mz * mz)
 
@@ -413,7 +416,7 @@ class TestActivation2(unittest.TestCase):
 
         zH = fx
         z = tf.math.conj(zH)
-        fprimex = z * dfxH + zH * dfx
+        fprimex = z * dfxH + zH * tf.math.conj(dfx)
         x_bwd = fprimex.numpy()
 
         self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
