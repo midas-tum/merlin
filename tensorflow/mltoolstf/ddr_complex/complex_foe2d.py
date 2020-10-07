@@ -1,16 +1,24 @@
 import tensorflow as tf
 
 from .regularizer import *
+<<<<<<< refs/remotes/origin/thomas_dev
 from .complex_conv2d import *
 from optotf.activations import TrainableActivation
 from .complex_layer import *
+=======
+from .complex_padconv import ComplexPadConv2D
+from .padconv import PadConv2D
+from optotf.activations import TrainableActivationKeras as TrainableActivation
+from mltoolstf.keras_utils import *
+>>>>>>> add some more keras utils, 2D dc, kerasify padconv
 import unittest
 import numpy as np
 
-__all__ = ['MagnitudeFoE2d',
-           'PolarFoE2d',
-           'ComplexFoE2d',
-           'FoERegularizer']
+__all__ = ['MagnitudeFoE2D',
+           'PolarFoE2D',
+           'ComplexFoE2D',
+           'FoERegularizer',
+           'Real2chFoE2D']
 
 
 class FoERegularizer(Regularizer):
@@ -42,14 +50,39 @@ class FoERegularizer(Regularizer):
     def grad(self, x):
         x = self._transformation(x)
         x = self._activation(x)
-        return self._transformation_T(x)
+        x = self._transformation_T(x)
+        return x
 
-class PolarFoE2d(FoERegularizer):
+class FoE2D(FoERegularizer):
     def __init__(self, config=None, file=None):
-        super(PolarFoE2d, self).__init__(config=config, file=file)
+        super(FoE2D, self).__init__(config=config, file=file)
 
         # setup the modules
+<<<<<<< refs/remotes/origin/thomas_dev
         self.K1 = ComplexConv2d(**self.config["K1"])
+=======
+        self.K1 = PadConv2D(**self.config["K1"])
+        self.f1 = TrainableActivation(**self.config["f1"])
+
+        # if not self.ckpt_state_dict is None:
+        #     self.load_state_dict(self.ckpt_state_dict)
+
+    def _activation(self, x):
+        return self.f1(x) / tf.cast(tf.shape(x)[-1], tf.float32)
+
+class Real2chFoE2D(FoE2D):
+    def grad(self, x):
+        xreal = complex2real(x)
+        xreal = super().grad(xreal)
+        return real2complex(xreal)
+
+class PolarFoE2D(FoERegularizer):
+    def __init__(self, config=None, file=None):
+        super(PolarFoE2D, self).__init__(config=config, file=file)
+
+        # setup the modules
+        self.K1 = ComplexPadConv2D(**self.config["K1"])
+>>>>>>> add some more keras utils, 2D dc, kerasify padconv
         self.f1_abs = TrainableActivation(**self.config["f1_abs"])
         self.f1_phi = TrainableActivation(**self.config["f1_phi"])
 
@@ -65,12 +98,16 @@ class PolarFoE2d(FoERegularizer):
 
         return tf.complex(re, im)
 
-class MagnitudeFoE2d(FoERegularizer):
+class MagnitudeFoE2D(FoERegularizer):
     def __init__(self, config=None, file=None):
-        super(MagnitudeFoE2d, self).__init__(config=config, file=file)
+        super(MagnitudeFoE2D, self).__init__(config=config, file=file)
 
         # setup the modules
+<<<<<<< refs/remotes/origin/thomas_dev
         self.K1 = ComplexConv2d(**self.config["K1"])
+=======
+        self.K1 = ComplexPadConv2D(**self.config["K1"])
+>>>>>>> add some more keras utils, 2D dc, kerasify padconv
         self.f1_abs = TrainableActivation(**self.config["f1_abs"])
 
         # if not self.ckpt_state_dict is None:
@@ -79,18 +116,22 @@ class MagnitudeFoE2d(FoERegularizer):
     def _activation(self, x):
         magn = self.f1_abs(complex_abs(x)) / tf.cast(tf.shape(x)[-1], tf.float32)
         xn = complex_norm(x)
-        return tf.complex(magn * tf.math.real(xn), magn * tf.math.imag(xn))
+        return complex_scale(xn, magn)
 
-class ComplexFoE2d(FoERegularizer):
+class ComplexFoE2D(FoERegularizer):
     """
     Fields of Experts regularizer used in the publication
     Effland, A. et al. "An optimal control approach to early stopping variational methods for image restoration". FoE 2019.
     """
     def __init__(self, config=None, file=None):
-        super(ComplexFoE2d, self).__init__(config=config, file=file)
+        super(ComplexFoE2D, self).__init__(config=config, file=file)
 
         # setup the modules
+<<<<<<< refs/remotes/origin/thomas_dev
         self.K1 = ComplexConv2d(**self.config["K1"])
+=======
+        self.K1 = ComplexPadConv2D(**self.config["K1"])
+>>>>>>> add some more keras utils, 2D dc, kerasify padconv
         self.f1 = TrainableActivation(**self.config["f1"])
 
         # if not self.ckpt_state_dict is None:
@@ -114,14 +155,12 @@ class PolarFoETest(unittest.TestCase):
         config = {
             'dtype': 'complex',
             'K1': {
-                'in_channels': 1,
-                'out_channels': nf_in,
+                'filters': nf_in,
                 'kernel_size': 11,
                 'bound_norm': True,
                 'zero_mean': True,
             },
             'f1_abs': {
-                'num_channels': nf_in,
                 'vmin': 0,
                 'vmax': 2,
                 'num_weights': nw,
@@ -130,7 +169,6 @@ class PolarFoETest(unittest.TestCase):
                 'init_scale': 0.01,
             },
             'f1_phi': {
-                'num_channels': nf_in,
                 'vmin': -np.pi,
                 'vmax':  np.pi,
                 'num_weights': nw,
@@ -140,7 +178,7 @@ class PolarFoETest(unittest.TestCase):
             },
         }
 
-        model = PolarFoE2d(config)
+        model = PolarFoE2D(config)
 
         x = tf.random.normal((nBatch, M, N, 1))
         Kx = model(x)
@@ -157,14 +195,12 @@ class MagnitudeFoETest(unittest.TestCase):
         config = {
             'dtype': 'complex',
             'K1': {
-                'in_channels': 1,
-                'out_channels': nf_in,
+                'filters': nf_in,
                 'kernel_size': 11,
                 'bound_norm': True,
                 'zero_mean': True,
             },
             'f1_abs': {
-                'num_channels': nf_in,
                 'vmin': 0,
                 'vmax': 2,
                 'num_weights': nw,
@@ -174,7 +210,7 @@ class MagnitudeFoETest(unittest.TestCase):
             },
         }
 
-        model = MagnitudeFoE2d(config)
+        model = MagnitudeFoE2D(config)
 
         x = tf.random.normal((nBatch, M, N, 1))
         Kx = model(x)
@@ -192,14 +228,12 @@ class ComplexFoETest(unittest.TestCase):
         config = {
             'dtype': 'complex',
             'K1': {
-                'in_channels': 1,
-                'out_channels': nf_in,
+                'filters': nf_in,
                 'kernel_size': 11,
                 'bound_norm': True,
                 'zero_mean': True,
             },
             'f1': {
-                'num_channels': nf_in,
                 'vmin': -vabs,
                 'vmax':  vabs,
                 'num_weights': nw,
@@ -209,7 +243,7 @@ class ComplexFoETest(unittest.TestCase):
             },
         }
 
-        model = ComplexFoE2d(config)
+        model = ComplexFoE2D(config)
 
         x = tf.random.normal((nBatch, M, N, 1))
         Kx = model(x)

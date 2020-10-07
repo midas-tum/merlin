@@ -28,7 +28,12 @@ def complex_conv(conv_fun, x, weight, padding="VALID", strides=1, dilations=1):
 
     return tf.complex(conv_re, conv_im)
 
+<<<<<<< refs/remotes/origin/thomas_dev
 def complex_conv_transpose(conv_fun, x, weight, output_shape, padding="SAME", strides=1, dilations=1):
+=======
+def complex_conv_transpose(conv_fun, x, weight, output_shape, strides, padding='SAME', data_format=None,
+    dilations=None, name=None):
+>>>>>>> add some more keras utils, 2D dc, kerasify padconv
     xre = tf.math.real(x)
     xim = tf.math.imag(x)
 
@@ -54,9 +59,9 @@ def complex_conv_real_weight(conv_fun, x, weight, padding="VALID", strides=1, di
 
     return tf.complex(conv_re, conv_im)
 
-def complex_conv_real_weight_transpose(conv_fun, x, weight, output_shape, padding="SAME", strides=1, dilations=1):
-    convT_rr = conv_fun(tf.math.real(x), weight, output_shape, padding=padding, strides=strides, dilations=dilations)
-    convT_ir = conv_fun(tf.math.imag(x), weight, output_shape, padding=padding, strides=strides, dilations=dilations)
+def complex_conv_real_weight_transpose(conv_fun, x, weight, output_shape, strides, padding="SAME", dilations=None, data_format=None, name=None):
+    convT_rr = conv_fun(tf.math.real(x), weight, output_shape, padding=padding, strides=strides, dilations=dilations, data_format=data_format, name=name)
+    convT_ir = conv_fun(tf.math.imag(x), weight, output_shape, padding=padding, strides=strides, dilations=dilations, data_format=data_format, name=name)
 
     convT_re = convT_rr
     convT_im = convT_ir
@@ -69,11 +74,22 @@ def complex_conv2d(x, weight, padding="VALID", strides=1, dilations=1):
 def complex_conv3d(x, weight, padding="VALID", strides=1, dilations=1):
     return complex_conv(tf.nn.conv3d, x, weight, padding=padding, strides=strides, dilations=dilations)
 
+<<<<<<< refs/remotes/origin/thomas_dev
 def complex_conv2d_transpose(x, weight, output_shape, padding="SAME", strides=1, dilations=1):
     return complex_conv_transpose(tf.nn.conv2d_transpose, x, weight, output_shape, padding=padding, strides=strides, dilations=dilations)
 
 def complex_conv3d_transpose(x, weight, output_shape, padding="SAME", strides=1, dilations=1):
     return complex_conv_transpose(tf.nn.conv3d_transpose, x, weight, output_shape, padding=padding, strides=strides, dilations=dilations)
+=======
+def complex_conv1d_transpose(x, weight, output_shape, strides, padding="SAME", dilations=None, data_format=None, name=None):
+    return complex_conv_transpose(tf.nn.conv1d_transpose, x, weight, output_shape, padding=padding, strides=strides, dilations=dilations, data_format=data_format, name=name)
+
+def complex_conv2d_transpose(x, weight, output_shape, strides, padding="SAME", dilations=None, data_format=None, name=None):
+    return complex_conv_transpose(tf.nn.conv2d_transpose, x, weight, output_shape, padding=padding, strides=strides, dilations=dilations, data_format=data_format, name=name)
+
+def complex_conv3d_transpose(x, weight, output_shape, strides, padding="SAME", dilations=None, data_format=None, name=None):
+    return complex_conv_transpose(tf.nn.conv3d_transpose, x, weight, output_shape, padding=padding, strides=strides, dilations=dilations, data_format=data_format, name=name)
+>>>>>>> add some more keras utils, 2D dc, kerasify padconv
 
 def complex_conv2d_real_weight(x, weight, padding="VALID", strides=1, dilations=1):
     return complex_conv_real_weight(tf.nn.conv2d, x, weight, padding=padding, strides=strides, dilations=dilations)
@@ -81,8 +97,8 @@ def complex_conv2d_real_weight(x, weight, padding="VALID", strides=1, dilations=
 def complex_conv3d_real_weight(x, weight, padding="VALID", strides=1, dilations=1):
     return complex_conv_real_weight(tf.nn.conv3d, x, weight, padding=padding, strides=strides, dilations=dilations)
 
-def complex_conv2d_real_weight_transpose(x, weight, output_shape, padding="VALID", strides=1, dilations=1):
-    return complex_conv_real_weight_transpose(tf.nn.conv2d_transpose, x, weight, output_shape, padding=padding, strides=strides, dilations=dilations)
+def complex_conv2d_real_weight_transpose(x, weight, output_shape, strides, padding="SAME", dilations=None, data_format=None, name=None):
+    return complex_conv_real_weight_transpose(tf.nn.conv2d_transpose, x, weight, output_shape, padding=padding, strides=strides, dilations=dilations, data_format=data_format, name=name)
 
-def complex_conv3d_real_weight_transpose(x, weight, output_shape, padding="VALID", strides=1, dilations=1):
-    return complex_conv_real_weight_transpose(tf.nn.conv3d_transpose, x, weight, output_shape, padding=padding, strides=strides, dilations=dilations)
+def complex_conv3d_real_weight_transpose(x, weight, output_shape, strides, padding="SAME", dilations=None, data_format=None, name=None):
+    return complex_conv_real_weight_transpose(tf.nn.conv3d_transpose, x, weight, output_shape, padding=padding, strides=strides, dilations=dilations, data_format=data_format, name=name)
