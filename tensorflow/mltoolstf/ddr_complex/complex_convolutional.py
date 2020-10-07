@@ -179,7 +179,7 @@ class ComplexConv(Layer):
                        'Received: %s' % (self.kernel_size,))
 
     if (self.padding == 'causal' and not isinstance(self,
-                                                    (ComplexConv1D, SeparableComplexConv1D))):
+                                                    (ComplexConv1D))):
       raise ValueError('Causal padding is only supported for `ComplexConv1D`'
                        'and `SeparableComplexConv1D`.')
 
@@ -399,7 +399,7 @@ class ComplexConv(Layer):
     return op_padding
 
 
-@keras_export('keras.layers.ComplexConv1D', 'keras.layers.ComplexConvolution1D')
+#@keras_export('keras.layers.ComplexConv1D', 'keras.layers.ComplexConvolution1D')
 class ComplexConv1D(ComplexConv):
   """1D convolution layer (e.g. temporal convolution).
   This layer creates a convolution kernel that is convolved
@@ -530,7 +530,7 @@ class ComplexConv1D(ComplexConv):
         **kwargs)
 
 
-@keras_export('keras.layers.ComplexConv2D', 'keras.layers.ComplexConvolution2D')
+#@keras_export('keras.layers.ComplexConv2D', 'keras.layers.ComplexConvolution2D')
 class ComplexConv2D(ComplexConv):
   """2D convolution layer (e.g. spatial convolution over images).
   This layer creates a convolution kernel that is convolved
@@ -678,7 +678,7 @@ class ComplexConv2D(ComplexConv):
         **kwargs)
 
 
-@keras_export('keras.layers.ComplexConv3D', 'keras.layers.ComplexConvolution3D')
+#@keras_export('keras.layers.ComplexConv3D', 'keras.layers.ComplexConvolution3D')
 class ComplexConv3D(ComplexConv):
   """3D convolution layer (e.g. spatial convolution over volumes).
   This layer creates a convolution kernel that is convolved
@@ -817,8 +817,8 @@ class ComplexConv3D(ComplexConv):
         **kwargs)
 
 
-@keras_export('keras.layers.ComplexConv1DTranspose',
-              'keras.layers.ComplexConvolution1DTranspose')
+#@keras_export('keras.layers.ComplexConv1DTranspose',
+#              'keras.layers.ComplexConvolution1DTranspose')
 class ComplexConv1DTranspose(ComplexConv1D):
   """Transposed convolution layer (sometimes called Deconvolution).
   The need for transposed convolutions generally arises
@@ -1056,8 +1056,8 @@ class ComplexConv1DTranspose(ComplexConv1D):
     return config
 
 
-@keras_export('keras.layers.ComplexConv2DTranspose',
-              'keras.layers.ComplexConvolution2DTranspose')
+#@keras_export('keras.layers.ComplexConv2DTranspose',
+#              'keras.layers.ComplexConvolution2DTranspose')
 class ComplexConv2DTranspose(ComplexConv2D):
   """Transposed convolution layer (sometimes called Deconvolution).
   The need for transposed convolutions generally arises
@@ -1351,8 +1351,8 @@ class ComplexConv2DTranspose(ComplexConv2D):
     return config
 
 
-@keras_export('keras.layers.ComplexConv3DTranspose',
-              'keras.layers.ComplexConvolution3DTranspose')
+#@keras_export('keras.layers.ComplexConv3DTranspose',
+#              'keras.layers.ComplexConvolution3DTranspose')
 class ComplexConv3DTranspose(ComplexConv3D):
   """Transposed convolution layer (sometimes called Deconvolution).
   The need for transposed convolutions generally arises
@@ -1653,7 +1653,7 @@ class ComplexConv3DTranspose(ComplexConv3D):
     config['output_padding'] = self.output_padding
     return config
 
-@keras_export('keras.layers.UpSampling1D')
+#@keras_export('keras.layers.UpSampling1D')
 class UpSampling1D(Layer):
   """Upsampling layer for 1D inputs.
   Repeats each temporal step `size` times along the time axis.
@@ -1704,7 +1704,7 @@ class UpSampling1D(Layer):
     return dict(list(base_config.items()) + list(config.items()))
 
 
-@keras_export('keras.layers.UpSampling2D')
+#@keras_export('keras.layers.UpSampling2D')
 class UpSampling2D(Layer):
   """Upsampling layer for 2D inputs.
   Repeats the rows and columns of the data
@@ -1802,7 +1802,7 @@ class UpSampling2D(Layer):
     return dict(list(base_config.items()) + list(config.items()))
 
 
-@keras_export('keras.layers.UpSampling3D')
+#@keras_export('keras.layers.UpSampling3D')
 class UpSampling3D(Layer):
   """Upsampling layer for 3D inputs.
   Repeats the 1st, 2nd and 3rd dimensions
@@ -1877,7 +1877,7 @@ class UpSampling3D(Layer):
     return dict(list(base_config.items()) + list(config.items()))
 
 
-@keras_export('keras.layers.ZeroPadding1D')
+#@keras_export('keras.layers.ZeroPadding1D')
 class ZeroPadding1D(Layer):
   """Zero-padding layer for 1D input (e.g. temporal sequence).
   Examples:
@@ -1938,7 +1938,7 @@ class ZeroPadding1D(Layer):
     return dict(list(base_config.items()) + list(config.items()))
 
 
-@keras_export('keras.layers.ZeroPadding2D')
+#@keras_export('keras.layers.ZeroPadding2D')
 class ZeroPadding2D(Layer):
   """Zero-padding layer for 2D input (e.g. picture).
   This layer can add rows and columns of zeros
@@ -2057,7 +2057,7 @@ class ZeroPadding2D(Layer):
     return dict(list(base_config.items()) + list(config.items()))
 
 
-@keras_export('keras.layers.ZeroPadding3D')
+#@keras_export('keras.layers.ZeroPadding3D')
 class ZeroPadding3D(Layer):
   """Zero-padding layer for 3D data (spatial or spatio-temporal).
   Examples:
@@ -2178,7 +2178,7 @@ class ZeroPadding3D(Layer):
     return dict(list(base_config.items()) + list(config.items()))
 
 
-@keras_export('keras.layers.Cropping1D')
+#@keras_export('keras.layers.Cropping1D')
 class Cropping1D(Layer):
   """Cropping layer for 1D input (e.g. temporal sequence).
   It crops along the time dimension (axis 1).
@@ -2233,7 +2233,7 @@ class Cropping1D(Layer):
     return dict(list(base_config.items()) + list(config.items()))
 
 
-@keras_export('keras.layers.Cropping2D')
+#@keras_export('keras.layers.Cropping2D')
 class Cropping2D(Layer):
   """Cropping layer for 2D input (e.g. picture).
   It crops along spatial dimensions, i.e. height and width.
@@ -2354,7 +2354,7 @@ class Cropping2D(Layer):
     return dict(list(base_config.items()) + list(config.items()))
 
 
-@keras_export('keras.layers.Cropping3D')
+#@keras_export('keras.layers.Cropping3D')
 class Cropping3D(Layer):
   """Cropping layer for 3D data (e.g. spatial or spatio-temporal).
     Examples:

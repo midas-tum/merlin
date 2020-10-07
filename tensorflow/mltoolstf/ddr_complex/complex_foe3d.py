@@ -1,7 +1,8 @@
 import tensorflow as tf
 
 from .regularizer import *
-from .complex_padconv3d import *
+from .complex_padconv import ComplexPadConv3D
+from .complex_padconv_2dt import ComplexPadConv2Dt
 from .complex_foe2d import FoERegularizer
 from optotf.activations import TrainableActivationKeras as TrainableActivation
 from .complex_layer import *
@@ -19,7 +20,7 @@ class MagnitudeFoE3d(FoERegularizer):
         super(MagnitudeFoE3d, self).__init__(config=config, file=file)
 
         # setup the modules
-        self.K1 = ComplexPadConv3d(**self.config["K1"])
+        self.K1 = ComplexPadConv3D(**self.config["K1"])
         self.f1_abs = TrainableActivation(**self.config["f1_abs"])
 
         # if not self.ckpt_state_dict is None:
@@ -39,7 +40,7 @@ class ComplexFoE3d(FoERegularizer):
         super(ComplexFoE3d, self).__init__(config=config, file=file)
 
         # setup the modules
-        self.K1 = ComplexPadConv3d(**self.config["K1"])
+        self.K1 = ComplexPadConv3D(**self.config["K1"])
         self.f1 = TrainableActivation(**self.config["f1"])
 
         # if not self.ckpt_state_dict is None:
@@ -56,7 +57,7 @@ class MagnitudeFoE2dt(FoERegularizer):
         super(MagnitudeFoE2dt, self).__init__(config=config, file=file)
 
         # setup the modules
-        self.K1 = ComplexPadConv2dt(**self.config["K1"])
+        self.K1 = ComplexPadConv2Dt(**self.config["K1"])
         self.f1_abs = TrainableActivation(**self.config["f1_abs"])
 
         # if not self.ckpt_state_dict is None:
@@ -76,7 +77,7 @@ class ComplexFoE2dt(FoERegularizer):
         super(ComplexFoE2dt, self).__init__(config=config, file=file)
 
         # setup the modules
-        self.K1 = ComplexPadConv2dt(**self.config["K1"])
+        self.K1 = ComplexPadConv2Dt(**self.config["K1"])
         self.f1 = TrainableActivation(**self.config["f1"])
 
         # if not self.ckpt_state_dict is None:
@@ -100,14 +101,12 @@ class MagnitudeFoETest(unittest.TestCase):
         config = {
             'dtype': 'complex',
             'K1': {
-                'in_channels': 1,
-                'out_channels': nf_in,
+                'filters': nf_in,
                 'kernel_size': (3, 5, 5),
                 'bound_norm': True,
                 'zero_mean': True,
             },
             'f1_abs': {
-                'num_channels': nf_in,
                 'vmin': 0,
                 'vmax': 2,
                 'num_weights': nw,
@@ -136,14 +135,12 @@ class ComplexFoETest(unittest.TestCase):
         config = {
             'dtype': 'complex',
             'K1': {
-                'in_channels': 1,
-                'out_channels': nf_in,
+                'filters': nf_in,
                 'kernel_size': (3,5,5),
                 'bound_norm': True,
                 'zero_mean': True,
             },
             'f1': {
-                'num_channels': nf_in,
                 'vmin': -vabs,
                 'vmax':  vabs,
                 'num_weights': nw,
@@ -156,6 +153,7 @@ class ComplexFoETest(unittest.TestCase):
         model = ComplexFoE3d(config)
 
         x = tf.random.normal((nBatch, D, M, N, 1))
+        model.build(x.shape)
         Kx = model(x)
         self.assertTrue(Kx.shape == x.shape)
 
@@ -175,15 +173,13 @@ class MagnitudeFoE2dtTest(unittest.TestCase):
         config = {
             'dtype': 'complex',
             'K1': {
-                'in_channels': nf_in,
-                'out_channels': nf_out,
-                'inter_channels': nf_inter,
+                'filters': nf_out,
+                'intermediate_filters': nf_inter,
                 'kernel_size': ksz,
                 'bound_norm': True,
                 'zero_mean': True,
             },
             'f1_abs': {
-                'num_channels': nf_out,
                 'vmin': 0,
                 'vmax': 2,
                 'num_weights': nw,
@@ -214,15 +210,13 @@ class ComplexFoE2dtTest(unittest.TestCase):
         config = {
             'dtype': 'complex',
             'K1': {
-                'in_channels': nf_in,
-                'out_channels': nf_out,
-                'inter_channels': nf_inter,
+                'filters': nf_out,
+                'intermediate_filters': nf_inter,
                 'kernel_size': ksz,
                 'bound_norm': True,
                 'zero_mean': True,
             },
             'f1': {
-                'num_channels': nf_out,
                 'vmin': -1,
                 'vmax': 1,
                 'num_weights': nw,
