@@ -9,7 +9,7 @@ from .complex_padconv_2dt import ComplexPadConv2Dt
 >>>>>>> add some more keras utils, 2D dc, kerasify padconv
 from .complex_foe2d import FoERegularizer
 from optotf.activations import TrainableActivationKeras as TrainableActivation
-from .complex_layer import *
+from mltoolstf.keras_utils.complex import *
 import unittest
 import numpy as np
 

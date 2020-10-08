@@ -1,6 +1,6 @@
 import tensorflow as tf
 import unittest
-from .complex_layer import *
+from mltoolstf.keras_utils.complex import *
 import numpy as np
 
 __all__ = ['cReLU',
@@ -12,6 +12,63 @@ __all__ = ['cReLU',
            'cStudentT2',
            'ModStudentT2'
          ]
+
+def get(identifier):
+    if identifier is None:
+        return Identity()
+    if isinstance(identifier, six.string_types):
+        identifier = str(identifier)
+        return deserialize(identifier)
+    elif callable(identifier):
+        return identifier
+    else:
+        raise TypeError(
+            'Could not interpret activation function identifier: {}'.format(
+                identifier))
+
+def deserialize(act):
+    if act == 'ModReLU':
+        return ModReLU()
+    elif act == 'cPReLU':
+        return cPReLU()
+    elif act == 'cReLU':
+        return cReLU()
+    elif act == 'ModPReLU':
+        return ModPReLU()
+    elif act == 'hard_sigmoid':
+        return HardSigmoid()
+    elif act == 'cardioid':
+        return Cardioid()
+    elif act is None or act == 'identity':
+        return Identity()
+    else:
+        raise ValueError(f"Selected activation '{act}' not implemented in complex activations")
+
+def serialize(act):
+    return act.__name__
+
+
+class HardSigmoid(tf.keras.layers.Layer):
+    def __init__(self, bias=0.1, trainable=True):
+        super().__init__()
+        self.bias_init = bias
+        self.trainable = trainable
+
+    @property
+    def __name__(self):
+        return 'hard_sigmoid'
+
+    def build(self, input_shape):
+        super().build(input_shape)
+        initializer = tf.keras.initializers.Constant(self.bias_init)
+        self.bias = self.add_weight('bias',
+                                      shape=(input_shape[-1]),
+                                      initializer=initializer,
+                                      )
+    def call(self, z):
+        return tf.cast(tf.keras.activations.hard_sigmoid(complex_abs(z) + self.bias), tf.complex64)
+    
+
 
 class cReLU(tf.keras.layers.Layer):
     def call(self, z):
@@ -31,7 +88,7 @@ class Identity(tf.keras.layers.Layer):
         return z
 
 class ModReLU(tf.keras.layers.Layer):
-    def __init__(self, bias=0.1, trainable=True):
+    def __init__(self, bias=0.0, trainable=True):
         super().__init__()
         self.bias_init = bias
         self.trainable = trainable
@@ -80,12 +137,19 @@ class cPReLU(tf.keras.layers.Layer):
         s = f"cPReLU: alpha_init={self.alpha_init}, trainable={self.trainable}"
         return s
 
+    @property
+    def __name__(self):
+        return 'cPReLU'
 class ModPReLU(tf.keras.layers.Layer):
     def __init__(self, alpha=0.1, bias=0, trainable=False):
         super().__init__()
         self.alpha_init = alpha
         self.bias_init = bias
         self.trainable = trainable
+
+    @property
+    def __name__(self):
+        return 'ModPReLU'
 
     def build(self, input_shape):
         super().build(input_shape)
@@ -130,6 +194,10 @@ class Cardioid(tf.keras.layers.Layer):
     def __str__(self):
         s = f"Cardioid: bias_init={self.bias_init}, trainable={self.trainable}"
         return s
+
+    @property
+    def __name__(self):
+        return 'cardioid'
 
 class Cardioid2(tf.keras.layers.Layer):
     def __init__(self, bias=2.0, trainable=True):
