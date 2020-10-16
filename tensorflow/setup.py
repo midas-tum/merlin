@@ -25,8 +25,8 @@ REQUIRED_PACKAGES = [
 setup(
     name='mltoolstf',
     version='0.1.0',
-    author="Kerstin Hammernik",
-    author_email="k.hammernik@imperial.ac.uk",
+    author="Kerstin Hammernik, Thomas Kuestner",
+    author_email="k.hammernik@imperial.ac.uk, thomas.kuestner@med.uni-tuebingen.de",
     packages=["mltoolstf",
               "mltoolstf.optim",
               "mltoolstf.keras_utils",
