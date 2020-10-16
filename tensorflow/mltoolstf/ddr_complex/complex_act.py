@@ -2,6 +2,7 @@ import tensorflow as tf
 import unittest
 from mltoolstf.keras_utils.complex import *
 import numpy as np
+import six
 
 __all__ = ['cReLU',
            'ModReLU',
@@ -10,7 +11,9 @@ __all__ = ['cReLU',
            'cStudentT',
            'ModStudentT',
            'cStudentT2',
-           'ModStudentT2'
+           'ModStudentT2',
+           'Identity',
+           'get'
          ]
 
 def get(identifier):
@@ -92,6 +95,10 @@ class ModReLU(tf.keras.layers.Layer):
         super().__init__()
         self.bias_init = bias
         self.trainable = trainable
+    
+    @property
+    def __name__(self):
+        return 'ModReLU'
 
     def build(self, input_shape):
         super().build(input_shape)

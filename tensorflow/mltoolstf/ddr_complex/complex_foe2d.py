@@ -1,16 +1,10 @@
 import tensorflow as tf
 
 from .regularizer import *
-<<<<<<< refs/remotes/origin/thomas_dev
-from .complex_conv2d import *
-from optotf.activations import TrainableActivation
-from .complex_layer import *
-=======
 from .complex_padconv import ComplexPadConv2D
 from .padconv import PadConv2D
 from optotf.activations import TrainableActivationKeras as TrainableActivation
 from mltoolstf.keras_utils import *
->>>>>>> add some more keras utils, 2D dc, kerasify padconv
 import unittest
 import numpy as np
 
@@ -58,9 +52,6 @@ class FoE2D(FoERegularizer):
         super(FoE2D, self).__init__(config=config, file=file)
 
         # setup the modules
-<<<<<<< refs/remotes/origin/thomas_dev
-        self.K1 = ComplexConv2d(**self.config["K1"])
-=======
         self.K1 = PadConv2D(**self.config["K1"])
         self.f1 = TrainableActivation(**self.config["f1"])
 
@@ -82,7 +73,6 @@ class PolarFoE2D(FoERegularizer):
 
         # setup the modules
         self.K1 = ComplexPadConv2D(**self.config["K1"])
->>>>>>> add some more keras utils, 2D dc, kerasify padconv
         self.f1_abs = TrainableActivation(**self.config["f1_abs"])
         self.f1_phi = TrainableActivation(**self.config["f1_phi"])
 
@@ -103,11 +93,7 @@ class MagnitudeFoE2D(FoERegularizer):
         super(MagnitudeFoE2D, self).__init__(config=config, file=file)
 
         # setup the modules
-<<<<<<< refs/remotes/origin/thomas_dev
-        self.K1 = ComplexConv2d(**self.config["K1"])
-=======
         self.K1 = ComplexPadConv2D(**self.config["K1"])
->>>>>>> add some more keras utils, 2D dc, kerasify padconv
         self.f1_abs = TrainableActivation(**self.config["f1_abs"])
 
         # if not self.ckpt_state_dict is None:
@@ -127,11 +113,7 @@ class ComplexFoE2D(FoERegularizer):
         super(ComplexFoE2D, self).__init__(config=config, file=file)
 
         # setup the modules
-<<<<<<< refs/remotes/origin/thomas_dev
-        self.K1 = ComplexConv2d(**self.config["K1"])
-=======
         self.K1 = ComplexPadConv2D(**self.config["K1"])
->>>>>>> add some more keras utils, 2D dc, kerasify padconv
         self.f1 = TrainableActivation(**self.config["f1"])
 
         # if not self.ckpt_state_dict is None:
