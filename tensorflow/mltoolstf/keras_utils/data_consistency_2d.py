@@ -129,7 +129,7 @@ class DCGD2D(tf.keras.layers.Layer):
         x = inputs[0]
         y = inputs[1]
         constants = inputs[2:]
-        return complex_scale(self.AH(self.A(x, *constants) - y, *constants), self.weight * scale)
+        return x - complex_scale(self.AH(self.A(x, *constants) - y, *constants), self.weight * scale)
 
 
 class DCPM2D(tf.keras.layers.Layer):

@@ -157,7 +157,7 @@ class ComplexPadConv(ComplexConv):
         # zero pad input
         pad_k = [w//2 for w in self.kernel_size]
         tf_pad = [[0,0,],] + \
-                 [[pad_k[i] + output_padding[i]//2, pad_k[i] + output_padding[i]//2 + np.mod(output_padding[i],2)] for i in range(self.rank)] + \
+                 [[pad_k[i] + output_padding[i]//2, pad_k[i] + output_padding[i]//2 + tf.math.mod(output_padding[i],2)] for i in range(self.rank)] + \
                  [[0,0,],]
         x = tf.pad(x, tf_pad)
        

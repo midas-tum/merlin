@@ -55,7 +55,7 @@ class CGClass(tf.keras.layers.Layer):
         self.AH = AH
 
     @tf_custom_gradient_method
-    def call(self, lambdaa, x, y, *constants):
+    def call(self, lambdaa, x, y, *constants, training=None):
         rhs = self.AH(y, *constants) + complex_scale(x, lambdaa)
 
         def fn(inputs):

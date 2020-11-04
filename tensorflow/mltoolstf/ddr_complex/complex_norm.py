@@ -12,15 +12,16 @@ class ComplexNormalizationBase(tf.keras.layers.Layer):
         self.channel_last = channel_last
         self.reduction_axes = []
 
-    def call(self, x):
-        ndim = tf.rank(x)
+    def build(self, input_shape):
+        ndim = len(input_shape)
         if self.channel_last:
             reduction_axes = list(range(1, ndim-1))
         else:
             reduction_axes = list(range(2, ndim))
-        reduction_axes += self.reduction_axes
+        self.reduction_axes += reduction_axes
 
-        return self.whiten2x2(x, reduction_axes)
+    def call(self, x):
+        return self.whiten2x2(x, self.reduction_axes)
     
     def whiten2x2(self, x, reduction_axes):
         # reduction_axes consider for N-d

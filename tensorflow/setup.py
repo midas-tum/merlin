@@ -31,13 +31,13 @@ setup(
               "mltoolstf.optim",
               "mltoolstf.keras_utils",
               "mltoolstf.ddr_complex",
-              "mltoolstf.ddr_complex.recurrent"
+              #"mltoolstf.ddr_complex.recurrent"
              ],
     package_dir={"mltoolstf": os.path.join('.', "mltoolstf"),
                  "mltoolstf.optim": os.path.join('.', "mltoolstf/optim"),
                  "mltoolstf.keras_utils": os.path.join('.', "mltoolstf/keras_utils"),
                  "mltoolstf.ddr_complex": os.path.join('.', "mltoolstf/ddr_complex"),
-                 "mltoolstf.ddr_complex.recurrent": os.path.join('.', "mltoolstf/ddr_complex/recurrent"),
+               #  "mltoolstf.ddr_complex.recurrent": os.path.join('.', "mltoolstf/ddr_complex/recurrent"),
     },
     install_requires=REQUIRED_PACKAGES
 )
