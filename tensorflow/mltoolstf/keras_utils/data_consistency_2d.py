@@ -1,5 +1,5 @@
 import tensorflow as tf
-import mltoolstf.ddr_complex as layers
+from mltoolstf import ddr_complex as layers
 from tensorflow.signal import fft2d, ifft2d, ifftshift, fftshift
 from .complex import complex_scale, complex_dot
 import tensorflow.keras.backend as K
