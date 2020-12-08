@@ -133,12 +133,14 @@ class DCGD2D(tf.keras.layers.Layer):
 
 
 class DCPM2D(tf.keras.layers.Layer):
-    def __init__(self, config, center=False, multicoil=True, name='dc-gd'):
+    def __init__(self, config, center=False, multicoil=True, name='dc-pm', **kwargs):
         super().__init__()
         if multicoil:
             A = MulticoilForwardOp(center)
             AH = MulticoilAdjointOp(center)
-            self.prox = CGClass(A, AH)
+            max_iter = kwargs.get('max_iter', 10)
+            tol = kwargs.get('tol', 1e-10)
+            self.prox = CGClass(A, AH, max_iter=max_iter, tol=tol)
         else:
             raise ValueError
 
@@ -163,7 +165,7 @@ class CgTest(unittest.TestCase):
     def testcg(self):
         K.set_floatx('float64')
         config = {'lambda' : {'init' : 1.0}}
-        dc = DCPM2D(config, center=True, multicoil=True)
+        dc = DCPM2D(config, center=True, multicoil=True, max_iter=50, tol=1e-12)
 
         shape=(5,10,10,1)
         kshape=(5,3,10,10)

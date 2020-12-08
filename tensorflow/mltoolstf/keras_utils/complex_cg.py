@@ -14,19 +14,11 @@ def tf_custom_gradient_method(f):
         # return self._tf_custom_gradient_wrappers[f](*args, **kwargs)
     return wrapped
 
-def cg(M, rhs):
+def cg(M, rhs, max_iter, tol):
     """
     Modified implementation of https://github.com/hkaggarwal/modl/blob/master/model.py
     M: system matrix - a function
     """
-    # this is mainly for the gradient check...
-    if tf.keras.backend.floatx() == 'float64':
-        max_iter = 50
-        tol = 1e-12
-    else:
-        max_iter = 10
-        tol = 1e-10
-
     cond = lambda i, rTr, *_: tf.logical_and( tf.less(i, max_iter), rTr > tol)
     def body(i, rTr, x, r, p):
         with tf.name_scope('cgBody'):
@@ -51,10 +43,12 @@ def cg(M, rhs):
     return out
 
 class CGClass(tf.keras.layers.Layer):
-    def __init__(self, A, AH):
+    def __init__(self, A, AH, max_iter=10, tol=1e-10):
         super().__init__()
         self.A = A
         self.AH = AH
+        self.max_iter = max_iter
+        self.tol = tol
 
     @tf_custom_gradient_method
     def call(self, lambdaa, x, y, *constants, training=None):
@@ -67,7 +61,7 @@ class CGClass(tf.keras.layers.Layer):
             def M(p):
                 return self.AH(self.A(p, *constants), *constants) + complex_scale(p, lambdaa)
 
-            out = cg(M, rhs)
+            out = cg(M, rhs, self.max_iter, self.tol)
             return out
 
         out = tf.map_fn(fn, (rhs, *constants),dtype=rhs.dtype,name='mapFn')
@@ -79,7 +73,7 @@ class CGClass(tf.keras.layers.Layer):
                 constants = inputs[1:]
                 def M(p):
                     return self.AH(self.A(p, *constants), *constants) + complex_scale(p, lambdaa)
-                out = cg(M, e)
+                out = cg(M, e, self.max_iter, self.tol)
                 return out
 
             Qe = tf.map_fn(fn_grad, (e, *constants), dtype=rhs.dtype, name='mapFnGrad')
