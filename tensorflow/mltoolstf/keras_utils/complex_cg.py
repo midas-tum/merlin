@@ -8,8 +8,10 @@ def tf_custom_gradient_method(f):
         if not hasattr(self, '_tf_custom_gradient_wrappers'):
             self._tf_custom_gradient_wrappers = {}
         if f not in self._tf_custom_gradient_wrappers:
-            self._tf_custom_gradient_wrappers[f] = tf.custom_gradient(lambda *a, **kw: f(self, *a, **kw))
-        return self._tf_custom_gradient_wrappers[f](*args, **kwargs)
+            self._tf_custom_gradient_wrappers[f] = tf.custom_gradient(lambda *a: f(self, *a)) # kwargs currently only supported in eager mode
+        #     self._tf_custom_gradient_wrappers[f] = tf.custom_gradient(lambda *a, **kw: f(self, *a, **kw))
+        return self._tf_custom_gradient_wrappers[f](*args)  # kwargs currently only supported in eager mode
+        # return self._tf_custom_gradient_wrappers[f](*args, **kwargs)
     return wrapped
 
 def cg(M, rhs):
@@ -25,7 +27,7 @@ def cg(M, rhs):
         max_iter = 10
         tol = 1e-10
 
-    cond = lambda i, rTr, *_: tf.logical_and( tf.less(i, max_iter), rTr>tol)
+    cond = lambda i, rTr, *_: tf.logical_and( tf.less(i, max_iter), rTr > tol)
     def body(i, rTr, x, r, p):
         with tf.name_scope('cgBody'):
             Ap = M(p)
@@ -35,7 +37,7 @@ def cg(M, rhs):
             rTrNew = tf.math.real(complex_dot(r, r))
             beta = rTrNew / rTr
             p = r + complex_scale(p, beta)
-        return i+1, rTrNew, x, r, p
+        return i + 1, rTrNew, x, r, p
 
     x = tf.zeros_like(rhs)
     i, r, p = 0, rhs, rhs
@@ -45,7 +47,7 @@ def cg(M, rhs):
                         body,
                         loopVar,
                         name='CGwhile',
-                        parallel_iterations=1)[2]
+                        parallel_iterations=5)[2]
     return out
 
 class CGClass(tf.keras.layers.Layer):
