@@ -39,7 +39,7 @@ def cg(M, rhs, max_iter, tol):
                         body,
                         loopVar,
                         name='CGwhile',
-                        parallel_iterations=5)[2]
+                        parallel_iterations=1)[2]
     return out
 
 class CGClass(tf.keras.layers.Layer):
