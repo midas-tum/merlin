@@ -32,9 +32,10 @@ class Experiment(object):
 
         # global
         self.parser = argparse.ArgumentParser()
-        self.parser.add_argument('--config', type=pathlib.Path, required=True, help='Path to the nufft/binning config')
+        self.parser.add_argument('--config', type=pathlib.Path, default='./config.yml', help='Path to the nufft/binning config')
         self.parser.add_argument('--experiment', type=str, required=True, help='Path to the nufft/binning config')
         self.parser.add_argument('--gpu', type=int, default=0, help='Path to the nufft/binning config')
+        self.parser.add_argument('--resume', action='store_true', default=False)
 
         self.config = config
 
@@ -48,15 +49,21 @@ class Experiment(object):
         assert not self.config
         self.args = self.parser.parse_args()
         self.config = loadYaml(self.args.config, self.args.experiment)
-        self.config['config'] = self.args.config
-        self.config['experiment'] = self.args.experiment
-        self.config['gpu'] = self.args.gpu
-
+        # self.config['config'] = self.args.config
+        # self.config['experiment'] = self.args.experiment
+        # self.config['gpu'] = self.args.gpu
+        # self.config['resume'] = self.args.resume
+            
         if 'exp_dir' in self.config:
             self.config['exp_dir'] = pathlib.Path(self.config['exp_dir'])
 
         if 'out_dir' in self.config:
             self.config['out_dir'] = pathlib.Path(self.config['out_dir'])
+
+        for arg in vars(self.args):
+            if arg in self.config:
+                print(f'Overriding {arg} from argparse')
+            self.config[arg] = getattr(self.args, arg)
 
     def __repr__(self):
         ppconfig = pprint.pformat(self.config, indent=4)
