@@ -3,7 +3,7 @@ import torch
 
 from .regularizer import *
 
-from .conv import *
+from .conv2d import *
 from optoth.activations import TrainableActivation
 
 

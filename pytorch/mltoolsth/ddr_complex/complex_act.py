@@ -6,6 +6,7 @@ import numpy as np
 from .complex_loss import *
 
 __all__ = ['cPReLU',
+            'cReLU',
            'ModReLU',
            'ModPReLU',
            'ComplexStudentT2',
@@ -27,6 +28,15 @@ class cPReLU(torch.nn.Module):
         act_re = self.prelu_re(z[...,0]).unsqueeze_(-1)
         act_im = self.prelu_im(z[...,1]).unsqueeze_(-1)
         return torch.cat([act_re, act_im], -1)
+
+class cReLU(torch.nn.Module):
+    def __init__(self, num_parameters):
+        super(cReLU, self).__init__()
+        self.relu = torch.nn.ReLU(inplace=True)
+
+    def forward(self, z):
+        assert z.shape[-1] == 2
+        return self.relu(z)
 
 class Identity(torch.nn.Module):
     def forward(self, z):

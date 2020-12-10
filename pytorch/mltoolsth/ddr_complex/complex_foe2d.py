@@ -3,7 +3,7 @@ import torch
 
 from .complex_regularizer import *
 
-from .complex_conv import *
+from .complex_conv2d import *
 from optoth.activations import TrainableActivation
 
 from mltoolsth.mytorch.complex import complex_angle, complex_abs, complex_normalization
@@ -58,7 +58,7 @@ class PolarFoE2D(FoERegularizer):
         super(PolarFoE2D, self).__init__(config=config, file=file)
 
         # setup the modules
-        self.K1 = ComplexConv2d(**self.config["K1"])
+        self.K1 = ComplexPadConv2d(**self.config["K1"])
         self.f1_abs = TrainableActivation(**self.config["f1_abs"])
         self.f1_phi = TrainableActivation(**self.config["f1_phi"])
 
@@ -95,7 +95,7 @@ class MagnitudeFoE2D(FoERegularizer):
         super(MagnitudeFoE2D, self).__init__(config=config, file=file)
 
         # setup the modules
-        self.K1 = ComplexConv2d(**self.config["K1"])
+        self.K1 = ComplexPadConv2d(**self.config["K1"])
         self.f1 = TrainableActivation(**self.config["f1_abs"])
 
         # if not self.ckpt_state_dict is None:
@@ -127,7 +127,7 @@ class ComplexFoE2D(FoERegularizer):
         super(ComplexFoE2D, self).__init__(config=config, file=file)
 
         # setup the modules
-        self.K1 = ComplexConv2d(**self.config["K1"])
+        self.K1 = ComplexPadConv2d(**self.config["K1"])
         self.f1 = TrainableActivation(**self.config["f1"])
 
         # if not self.ckpt_state_dict is None:
