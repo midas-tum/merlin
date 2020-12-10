@@ -7,35 +7,37 @@ from .complex_conv import *
 from optoth.activations import TrainableActivation
 
 from mltoolsth.mytorch.complex import complex_angle, complex_abs, complex_normalization
+from mltoolsth.torch_utils import *
 
 import numpy as np
 import unittest
+from .foe2d import FoE2D
 
-__all__ = ['MagnitudeFoE',
-           'PolarFoE',
-           'ComplexFoE',
-           'PseudoComplexFoE',
+__all__ = ['MagnitudeFoE2D',
+           'PolarFoE2D',
+           'ComplexFoE2D',
+           'Real2chFoE2D',
            'FoERegularizer']
 
 class FoERegularizer(ComplexRegularizer):
     def __init__(self, config=None, file=None):
         super(FoERegularizer, self).__init__()
 
-        if (config is None and file is None) or \
-            (not config is None and not file is None):
-            raise RuntimeError('specify EITHER a config dictionary OR a `.pth`-file!')
+        # if (config is None and file is None) or \
+        #     (not config is None and not file is None):
+        #     raise RuntimeError('specify EITHER a config dictionary OR a `.pth`-file!')
 
-        if not file is None:
-            if not file.endswith('.pth'):
-                raise ValueError('file needs to end with `.pth`!')
-            checkpoint = torch.load(file)
-            self.config = checkpoint['config']
-            self.ckpt_state_dict = checkpoint['model']
-            self.tau = checkpoint['tau']
-        else:
-            self.ckpt_state_dict = None
-            self.tau = 1.0
-            self.config = config
+        # if not file is None:
+        #     if not file.endswith('.pth'):
+        #         raise ValueError('file needs to end with `.pth`!')
+        #     checkpoint = torch.load(file)
+        #     self.config = checkpoint['config']
+        #     self.ckpt_state_dict = checkpoint['model']
+        #     self.tau = checkpoint['tau']
+        # else:
+        #     self.ckpt_state_dict = None
+        #     self.tau = 1.0
+        self.config = config
 
     def _transformation(self, x):
         return self.K1(x)
@@ -51,21 +53,21 @@ class FoERegularizer(ComplexRegularizer):
     def get_vis(self):
         raise NotImplementedError
 
-class PolarFoE(FoERegularizer):
+class PolarFoE2D(FoERegularizer):
     def __init__(self, config=None, file=None):
-        super(PolarFoE, self).__init__(config=config, file=file)
+        super(PolarFoE2D, self).__init__(config=config, file=file)
 
         # setup the modules
         self.K1 = ComplexConv2d(**self.config["K1"])
         self.f1_abs = TrainableActivation(**self.config["f1_abs"])
         self.f1_phi = TrainableActivation(**self.config["f1_phi"])
 
-        if not self.ckpt_state_dict is None:
-            self.load_state_dict(self.ckpt_state_dict)
+        # if not self.ckpt_state_dict is None:
+        #     self.load_state_dict(self.ckpt_state_dict)
 
     def _activation(self, x):
-        magn = self.f1_abs(complex_abs(x, eps=1e-12)) #/ x.shape[1]
-        angle = self.f1_phi(complex_angle(x, eps=1e-12))
+        magn = self.f1_abs(complex_abs(x, eps=1e-6)) #/ x.shape[1]
+        angle = self.f1_phi(complex_angle(x, eps=1e-6))
 
         re = magn * torch.cos(angle)
         im = magn * torch.sin(angle)
@@ -88,20 +90,20 @@ class PolarFoE(FoERegularizer):
 
         return kernels, (x, fx)
 
-class MagnitudeFoE(FoERegularizer):
+class MagnitudeFoE2D(FoERegularizer):
     def __init__(self, config=None, file=None):
-        super(MagnitudeFoE, self).__init__(config=config, file=file)
+        super(MagnitudeFoE2D, self).__init__(config=config, file=file)
 
         # setup the modules
         self.K1 = ComplexConv2d(**self.config["K1"])
         self.f1 = TrainableActivation(**self.config["f1_abs"])
 
-        if not self.ckpt_state_dict is None:
-            self.load_state_dict(self.ckpt_state_dict)
+        # if not self.ckpt_state_dict is None:
+        #     self.load_state_dict(self.ckpt_state_dict)
 
     def _activation(self, x):
-        magn = self.f1(complex_abs(x, eps=1e-12, keepdim=True)) / x.shape[1]
-        norm = complex_normalization(x, eps=1e-12)
+        magn = self.f1(complex_abs(x, eps=1e-6, keepdim=True)) / x.shape[1]
+        norm = complex_normalization(x, eps=1e-6)
         fx = magn * norm
         return fx
 
@@ -116,20 +118,20 @@ class MagnitudeFoE(FoERegularizer):
         fx = fxmagn * norm
         return kernels, (x, fx)
 
-class ComplexFoE(FoERegularizer):
+class ComplexFoE2D(FoERegularizer):
     """
     Fields of Experts regularizer used in the publication
     Effland, A. et al. "An optimal control approach to early stopping variational methods for image restoration". FoE 2019.
     """
     def __init__(self, config=None, file=None):
-        super(ComplexFoE, self).__init__(config=config, file=file)
+        super(ComplexFoE2D, self).__init__(config=config, file=file)
 
         # setup the modules
         self.K1 = ComplexConv2d(**self.config["K1"])
         self.f1 = TrainableActivation(**self.config["f1"])
 
-        if not self.ckpt_state_dict is None:
-            self.load_state_dict(self.ckpt_state_dict)
+        # if not self.ckpt_state_dict is None:
+        #     self.load_state_dict(self.ckpt_state_dict)
 
     def _activation(self, x):
         x_re = self.f1(x[...,0]) / x.shape[1]
@@ -144,28 +146,11 @@ class ComplexFoE(FoERegularizer):
 
         return kernels, (x, fx)
 
-class PseudoComplexFoE(FoERegularizer):
-    """
-    Fields of Experts regularizer used in the publication
-    Effland, A. et al. "An optimal control approach to early stopping variational methods for image restoration". FoE 2019.
-    """
-    def __init__(self, config=None, file=None):
-        super(PseudoComplexFoE, self).__init__(config=config, file=file)
-
-        # setup the modules
-        self.K1 = PseudoComplexConv2d(**self.config["K1"])
-        self.f1 = TrainableActivation(**self.config["f1"])
-
-        if not self.ckpt_state_dict is None:
-            self.load_state_dict(self.ckpt_state_dict)
-
-    def _activation(self, x):
-        return self.f1(x) / x.shape[1]
-
-    def get_vis(self):
-        kernels = {'K1.weight' : self.K1.weight}
-        x, fx = self.f1.draw()
-        return kernels, (x, fx)
+class Real2chFoE2D(FoE2D):
+    def grad(self, x):
+        xreal = complex2real(x)
+        xreal = super().grad(xreal)
+        return real2complex(xreal)
 
 class PolarFoETest(unittest.TestCase):
     def test_FoE_polar(self):
@@ -204,12 +189,12 @@ class PolarFoETest(unittest.TestCase):
             },
         }
 
-        model = PolarFoE(config).cuda()
+        model = PolarFoE2D(config).cuda()
 
         x = torch.randn(nBatch, 1, M, N, 2).cuda()
         Kx = model(x)
         self.assertTrue(Kx.shape == x.shape)
-        model.get_vis()
+        #model.get_vis()
 
 class MagnitudeFoETest(unittest.TestCase):
     def test_FoE_magnitude(self):
@@ -239,12 +224,12 @@ class MagnitudeFoETest(unittest.TestCase):
             },
         }
 
-        model = MagnitudeFoE(config).cuda()
+        model = MagnitudeFoE2D(config).cuda()
 
         x = torch.randn(nBatch, 1, M, N, 2).cuda()
         Kx = model(x)
         self.assertTrue(Kx.shape == x.shape)
-        model.get_vis()
+        #model.get_vis()
 
 class ComplexFoETest(unittest.TestCase):
     def test_FoE_complex(self):
@@ -275,12 +260,12 @@ class ComplexFoETest(unittest.TestCase):
             },
         }
 
-        model = ComplexFoE(config).cuda()
+        model = ComplexFoE2D(config).cuda()
 
         x = torch.randn(nBatch, 1, M, N, 2).cuda()
         Kx = model(x)
         self.assertTrue(Kx.shape == x.shape)
-        model.get_vis()
+        #model.get_vis()
 
 class PseudoComplexFoETest(unittest.TestCase):
     def test_FoE_pseudo_complex(self):
@@ -294,7 +279,7 @@ class PseudoComplexFoETest(unittest.TestCase):
         config = {
             'dtype': 'complex',
             'K1': {
-                'in_channels': 1,
+                'in_channels': 2,
                 'out_channels': nf_in,
                 'kernel_size': 11,
                 'bound_norm': True,
@@ -311,13 +296,13 @@ class PseudoComplexFoETest(unittest.TestCase):
             },
         }
 
-        model = PseudoComplexFoE(config).cuda()
+        model = Real2chFoE2D(config).cuda()
 
-        x = torch.randn(nBatch, 2, M, N).cuda()
+        x = torch.randn(nBatch, 1, M, N, 2).cuda()
         Kx = model(x)
 
         self.assertTrue(Kx.shape == x.shape)
-        model.get_vis() 
+        #model.get_vis() 
 
 if __name__ == "__main__":
     unittest.test()

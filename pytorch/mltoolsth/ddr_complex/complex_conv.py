@@ -18,12 +18,12 @@ __all__ = ['ComplexConv2d',
            'PseudoComplexConv2d']
 
 class ComplexConvRealWeight2d(torch.nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, invariant=False,
+    def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  stride=1, dilation=1, groups=1, bias=False, 
                  zero_mean=False, bound_norm=False):
         super(ComplexConvRealWeight2d, self).__init__()
 
-        self.conv = Conv2d(in_channels, out_channels, kernel_size, invariant,
+        self.conv = Conv2d(in_channels, filters, kernel_size, invariant,
                  stride, dilation, groups, bias, zero_mean, bound_norm)
 
     def forward(self, x):
@@ -37,19 +37,19 @@ class ComplexConvRealWeight2d(torch.nn.Module):
         return torch.cat([KTx_re.unsqueeze_(-1), KTx_im.unsqueeze_(-1)], dim=-1)
 
 class ComplexConv2d(torch.nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, invariant=False,
+    def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  stride=1, dilation=1, groups=1, bias=False, 
                  zero_mean=False, bound_norm=False):
         super(ComplexConv2d, self).__init__()
 
         self.in_channels = in_channels
-        self.out_channels = out_channels
+        self.filters = filters
         self.kernel_size = kernel_size
         self.invariant = invariant
         self.stride = stride
         self.dilation = dilation
         self.groups = groups
-        self.bias = torch.nn.Parameter(torch.zeros(2, out_channels)) if bias else None
+        self.bias = torch.nn.Parameter(torch.zeros(2, filters)) if bias else None
         self.zero_mean = zero_mean
         self.bound_norm = bound_norm
         self.padding = 0
@@ -57,10 +57,10 @@ class ComplexConv2d(torch.nn.Module):
         # add the parameter
         if self.invariant:
             assert self.kernel_size == 3
-            self.weight = torch.nn.Parameter(torch.empty(self.out_channels, self.in_channels, 1,  3, 2))
+            self.weight = torch.nn.Parameter(torch.empty(self.filters, self.in_channels, 1,  3, 2))
             self.register_buffer('mask', torch.from_numpy(np.asarray([1,4,4], dtype=np.float32)[None, None, None, :, None]))
         else:
-            self.weight = torch.nn.Parameter(torch.empty(self.out_channels, self.in_channels, self.kernel_size,  self.kernel_size, 2))
+            self.weight = torch.nn.Parameter(torch.empty(self.filters, self.in_channels, self.kernel_size,  self.kernel_size, 2))
             self.register_buffer('mask', torch.from_numpy(np.ones((self.kernel_size, self.kernel_size), dtype=np.float32)[None, None, :, :, None]))
         # insert them using a normal distribution
         #torch.nn.init.normal_(self.weight.data, 0.0, np.sqrt(1/np.prod(in_channels*kernel_size**2)))
@@ -97,11 +97,11 @@ class ComplexConv2d(torch.nn.Module):
 
     def get_weight(self):
         if self.invariant:
-            weight = torch.empty(self.out_channels, self.in_channels, self.kernel_size, self.kernel_size, 2, device=self.weight.device)
+            weight = torch.empty(self.filters, self.in_channels, self.kernel_size, self.kernel_size, 2, device=self.weight.device)
             weight[:,:,1,1,:] = self.weight[:,:,0,0,:]
-            weight[:,:,::2,::2,:] = self.weight[:,:,0,2,:].view(self.out_channels,self.in_channels,1,1,2)
-            weight[:,:,1::2,::2,:] = self.weight[:,:,0,1,:].view(self.out_channels,self.in_channels,1,1,2)
-            weight[:,:,::2,1::2,:] = self.weight[:,:,0,1,:].view(self.out_channels,self.in_channels,1,1,2)
+            weight[:,:,::2,::2,:] = self.weight[:,:,0,2,:].view(self.filters,self.in_channels,1,1,2)
+            weight[:,:,1::2,::2,:] = self.weight[:,:,0,1,:].view(self.filters,self.in_channels,1,1,2)
+            weight[:,:,::2,1::2,:] = self.weight[:,:,0,1,:].view(self.filters,self.in_channels,1,1,2)
         else:
             weight = self.weight
         return weight
@@ -220,7 +220,7 @@ class ComplexConv2d(torch.nn.Module):
         return x
 
     def extra_repr(self):
-        s = "({out_channels}, {in_channels}, {kernel_size}), invariant={invariant}"
+        s = "({filters}, {in_channels}, {kernel_size}), invariant={invariant}"
         if self.stride != 1:
             s += ", stride={stride}"
         if self.dilation != 1:
@@ -238,11 +238,11 @@ class ComplexConv2d(torch.nn.Module):
 class PseudoComplexConv2d(ComplexConv2d):
     def get_weight(self):
         if self.invariant:
-            weight = torch.empty(self.out_channels, self.in_channels, self.kernel_size, self.kernel_size, 2, device=self.weight.device)
+            weight = torch.empty(self.filters, self.in_channels, self.kernel_size, self.kernel_size, 2, device=self.weight.device)
             weight[:,:,1,1,:] = self.weight[:,:,0,0,:]
-            weight[:,:,::2,::2,:] = self.weight[:,:,0,2,:].view(self.out_channels,self.in_channels,1,1,2)
-            weight[:,:,1::2,::2,:] = self.weight[:,:,0,1,:].view(self.out_channels,self.in_channels,1,1,2)
-            weight[:,:,::2,1::2,:] = self.weight[:,:,0,1,:].view(self.out_channels,self.in_channels,1,1,2)
+            weight[:,:,::2,::2,:] = self.weight[:,:,0,2,:].view(self.filters,self.in_channels,1,1,2)
+            weight[:,:,1::2,::2,:] = self.weight[:,:,0,1,:].view(self.filters,self.in_channels,1,1,2)
+            weight[:,:,::2,1::2,:] = self.weight[:,:,0,1,:].view(self.filters,self.in_channels,1,1,2)
         else:
             weight = self.weight
         weight = weight.permute(0,1,4,2,3)
@@ -295,10 +295,10 @@ class PseudoComplexConv2d(ComplexConv2d):
         return x
 
 class ComplexConvScale2d(ComplexConv2d):
-    def __init__(self, in_channels, out_channels, kernel_size=3, invariant=False,
+    def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  groups=1, stride=2, bias=False, zero_mean=False, bound_norm=False):
         super(ComplexConvScale2d, self).__init__(
-            in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, 
+            in_channels=in_channels, filters=filters, kernel_size=kernel_size, 
             invariant=invariant, stride=stride, dilation=1, groups=groups, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
 
@@ -317,16 +317,16 @@ class ComplexConvScale2d(ComplexConv2d):
             weight = weight.reshape(-1, 1, self.kernel_size, self.kernel_size)
             for i in range(self.stride//2): 
                 weight = torch.nn.functional.conv2d(weight, self.blur, padding=4)
-            weight = weight.reshape(self.out_channels, self.in_channels, 2, self.kernel_size+2*self.stride, self.kernel_size+2*self.stride)
+            weight = weight.reshape(self.filters, self.in_channels, 2, self.kernel_size+2*self.stride, self.kernel_size+2*self.stride)
             weight = weight.permute(0, 1, 3, 4, 2)
         return weight
 
 
 class ComplexConvScaleTranspose2d(ComplexConvScale2d):
-    def __init__(self, in_channels, out_channels, kernel_size=3, invariant=False,
+    def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  groups=1, stride=2, bias=False, zero_mean=False, bound_norm=False):
         super(ComplexConvScaleTranspose2d, self).__init__(
-            in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, 
+            in_channels=in_channels, filters=filters, kernel_size=kernel_size, 
             invariant=invariant, groups=groups, stride=stride, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
         

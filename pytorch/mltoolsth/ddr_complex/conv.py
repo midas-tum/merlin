@@ -6,19 +6,19 @@ import numpy as np
 __all__ = ['Conv2d', 'ConvScale2d', 'ConvScaleTranspose2d']
 
 class Conv2d(torch.nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size=3, invariant=False,
+    def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  stride=1, dilation=1, groups=1, bias=False, 
                  zero_mean=False, bound_norm=False, pad=True):
         super(Conv2d, self).__init__()
 
         self.in_channels = in_channels
-        self.out_channels = out_channels
+        self.filters = filters
         self.kernel_size = kernel_size
         self.invariant = invariant
         self.stride = stride
         self.dilation = dilation
         self.groups = groups
-        self.bias = torch.nn.Parameter(torch.zeros(out_channels)) if bias else None
+        self.bias = torch.nn.Parameter(torch.zeros(filters)) if bias else None
         self.zero_mean = zero_mean
         self.bound_norm = bound_norm
         self.padding = 0
@@ -27,10 +27,10 @@ class Conv2d(torch.nn.Module):
         # add the parameter
         if self.invariant:
             assert self.kernel_size == 3
-            self.weight = torch.nn.Parameter(torch.empty(out_channels, in_channels, 1,  3))
+            self.weight = torch.nn.Parameter(torch.empty(filters, in_channels, 1,  3))
             self.register_buffer('mask', torch.from_numpy(np.asarray([1,4,4], dtype=np.float32)[None, None, None, :]))
         else:
-            self.weight = torch.nn.Parameter(torch.empty(out_channels, in_channels, self.kernel_size,  self.kernel_size))
+            self.weight = torch.nn.Parameter(torch.empty(filters, in_channels, self.kernel_size,  self.kernel_size))
             self.register_buffer('mask', torch.from_numpy(np.ones((self.kernel_size, self.kernel_size), dtype=np.float32)[None, None, :, :]))
         # insert them using a normal distribution
         torch.nn.init.normal_(self.weight.data, 0.0, np.sqrt(1/np.prod(in_channels*kernel_size**2)))
@@ -61,11 +61,11 @@ class Conv2d(torch.nn.Module):
 
     def get_weight(self):
         if self.invariant:
-            weight = torch.empty(self.out_channels, self.in_channels, self.kernel_size, self.kernel_size, device=self.weight.device)
+            weight = torch.empty(self.filters, self.in_channels, self.kernel_size, self.kernel_size, device=self.weight.device)
             weight[:,:,1,1] = self.weight[:,:,0,0]
-            weight[:,:,::2,::2] = self.weight[:,:,0,2].view(self.out_channels,self.in_channels,1,1)
-            weight[:,:,1::2,::2] = self.weight[:,:,0,1].view(self.out_channels,self.in_channels,1,1)
-            weight[:,:,::2,1::2] = self.weight[:,:,0,1].view(self.out_channels,self.in_channels,1,1)
+            weight[:,:,::2,::2] = self.weight[:,:,0,2].view(self.filters,self.in_channels,1,1)
+            weight[:,:,1::2,::2] = self.weight[:,:,0,1].view(self.filters,self.in_channels,1,1)
+            weight[:,:,::2,1::2] = self.weight[:,:,0,1].view(self.filters,self.in_channels,1,1)
         else:
             weight = self.weight
         return weight
@@ -101,7 +101,7 @@ class Conv2d(torch.nn.Module):
         return x
 
     def extra_repr(self):
-        s = "({out_channels}, {in_channels}, {kernel_size}), invariant={invariant}"
+        s = "({filters}, {in_channels}, {kernel_size}), invariant={invariant}"
         if self.stride != 1:
             s += ", stride={stride}"
         if self.dilation != 1:
@@ -118,10 +118,10 @@ class Conv2d(torch.nn.Module):
 
 
 class ConvScale2d(Conv2d):
-    def __init__(self, in_channels, out_channels, kernel_size=3, invariant=False,
+    def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  groups=1, stride=2, bias=False, zero_mean=False, bound_norm=False):
         super(ConvScale2d, self).__init__(
-            in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, 
+            in_channels=in_channels, filters=filters, kernel_size=kernel_size, 
             invariant=invariant, stride=stride, dilation=1, groups=groups, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
 
@@ -139,15 +139,15 @@ class ConvScale2d(Conv2d):
             weight = weight.reshape(-1, 1, self.kernel_size, self.kernel_size)
             for i in range(self.stride//2): 
                 weight = torch.nn.functional.conv2d(weight, self.blur, padding=4)
-            weight = weight.reshape(self.out_channels, self.in_channels, self.kernel_size+2*self.stride, self.kernel_size+2*self.stride)
+            weight = weight.reshape(self.filters, self.in_channels, self.kernel_size+2*self.stride, self.kernel_size+2*self.stride)
         return weight
 
 
 class ConvScaleTranspose2d(ConvScale2d):
-    def __init__(self, in_channels, out_channels, kernel_size=3, invariant=False,
+    def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  groups=1, stride=2, bias=False, zero_mean=False, bound_norm=False):
         super(ConvScaleTranspose2d, self).__init__(
-            in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size, 
+            in_channels=in_channels, filters=filters, kernel_size=kernel_size, 
             invariant=invariant, groups=groups, stride=stride, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
 
