@@ -117,6 +117,8 @@ class DCGD2D(tf.keras.layers.Layer):
             self.AH = AdjointOp(center)
 
         self.train_scale = config['lambda']['train_scale'] if 'train_scale' in config['lambda'] else 1
+    
+    def build(self, input_shape):
         self._weight = self.add_weight(name='weight',
                                      shape=(1,),
                                      constraint=tf.keras.constraints.NonNeg(),
@@ -145,6 +147,8 @@ class DCPM2D(tf.keras.layers.Layer):
             raise ValueError
 
         self.train_scale = config['lambda']['train_scale'] if 'train_scale' in config['lambda'] else 1
+
+    def build(self, input_shape):
         self._weight = self.add_weight(name='weight',
                                      shape=(1,),
                                      constraint=tf.keras.constraints.NonNeg(),
