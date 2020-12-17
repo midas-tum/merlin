@@ -45,16 +45,22 @@ def numpy_to_torch_float(arr):
     return numpy_to_torch(arr)
     
 class ToTorchIO():
-    def __init__(self, input_keys, output_keys, device=None):
+    def __init__(self, input_keys, output_keys):
         self.input_keys = input_keys
         self.output_keys = output_keys
-        self.device = device
 
     def __call__(self, sample):
         inputs = []
         outputs = []
         for key in self.input_keys:
-            inputs.append(numpy_to_torch_float(sample[key]).cuda())
+            inputs.append(numpy_to_torch_float(sample[key]))
         for key in self.output_keys:
-            outputs.append(numpy_to_torch_float(sample[key]).cuda())
+            outputs.append(numpy_to_torch_float(sample[key]))
         return inputs, outputs
+
+class ToTorchCuda():
+    def __call__(self, inputs):
+        if isinstance(inputs, list):
+            return [inp.cuda() for inp in inputs]
+        else:
+            return inputs.cuda()
