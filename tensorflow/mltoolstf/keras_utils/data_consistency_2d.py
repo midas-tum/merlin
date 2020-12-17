@@ -116,14 +116,11 @@ class DCGD2D(tf.keras.layers.Layer):
             self.A = ForwardOp(center)
             self.AH = AdjointOp(center)
 
-        self.weight_config = config
         self.train_scale = config['lambda']['train_scale'] if 'train_scale' in config['lambda'] else 1
-    
-    def build(self, input_shape):
         self._weight = self.add_weight(name='weight',
                                      shape=(1,),
                                      constraint=tf.keras.constraints.NonNeg(),
-                                     initializer=tf.keras.initializers.Constant(self.weight_config['lambda']['init']))
+                                     initializer=tf.keras.initializers.Constant(config['lambda']['init']))
     @property
     def weight(self):
         return self._weight * self.train_scale
@@ -147,14 +144,11 @@ class DCPM2D(tf.keras.layers.Layer):
         else:
             raise ValueError
 
-        self.weight_config = config
         self.train_scale = config['lambda']['train_scale'] if 'train_scale' in config['lambda'] else 1
-
-    def build(self, input_shape):
         self._weight = self.add_weight(name='weight',
                                      shape=(1,),
                                      constraint=tf.keras.constraints.NonNeg(),
-                                     initializer=tf.keras.initializers.Constant(self.weight_config['lambda']['init']))
+                                     initializer=tf.keras.initializers.Constant(config['lambda']['init']))
 
     @property
     def weight(self):

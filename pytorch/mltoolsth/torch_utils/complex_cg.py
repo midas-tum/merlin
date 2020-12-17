@@ -4,6 +4,11 @@ import mltoolsth.mytorch as mytorch
 
 class ComplexCG(torch.autograd.Function):
     @staticmethod
+    def set_ops(ctx, A, AH):
+        ctx.A = A
+        ctx.AH = AH
+
+    @staticmethod
     def complexDot(data1, data2):
         mult = mytorch.complex.complex_mult_conj(data1, data2)
         re, im = torch.unbind(mult, dim=-1)
