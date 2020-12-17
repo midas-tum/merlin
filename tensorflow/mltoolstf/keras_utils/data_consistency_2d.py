@@ -1,5 +1,5 @@
 import tensorflow as tf
-import mltoolstf.ddr_complex as layers
+from mltoolstf import ddr_complex as layers
 from tensorflow.signal import fft2d, ifft2d, ifftshift, fftshift
 from .complex import complex_scale, complex_dot
 import tensorflow.keras.backend as K
@@ -129,16 +129,18 @@ class DCGD2D(tf.keras.layers.Layer):
         x = inputs[0]
         y = inputs[1]
         constants = inputs[2:]
-        return complex_scale(self.AH(self.A(x, *constants) - y, *constants), self.weight * scale)
+        return x - complex_scale(self.AH(self.A(x, *constants) - y, *constants), self.weight * scale)
 
 
 class DCPM2D(tf.keras.layers.Layer):
-    def __init__(self, config, center=False, multicoil=True, name='dc-gd'):
+    def __init__(self, config, center=False, multicoil=True, name='dc-pm', **kwargs):
         super().__init__()
         if multicoil:
             A = MulticoilForwardOp(center)
             AH = MulticoilAdjointOp(center)
-            self.prox = CGClass(A, AH)
+            max_iter = kwargs.get('max_iter', 10)
+            tol = kwargs.get('tol', 1e-10)
+            self.prox = CGClass(A, AH, max_iter=max_iter, tol=tol)
         else:
             raise ValueError
 
@@ -163,7 +165,7 @@ class CgTest(unittest.TestCase):
     def testcg(self):
         K.set_floatx('float64')
         config = {'lambda' : {'init' : 1.0}}
-        dc = DCPM2D(config, center=True, multicoil=True)
+        dc = DCPM2D(config, center=True, multicoil=True, max_iter=50, tol=1e-12)
 
         shape=(5,10,10,1)
         kshape=(5,3,10,10)

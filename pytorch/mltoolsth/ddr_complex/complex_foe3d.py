@@ -4,7 +4,7 @@ import torch
 from .complex_regularizer import *
 
 from .complex_conv3d import *
-from .complex_foe import FoERegularizer
+from .complex_foe2d import FoERegularizer
 from optoth.activations import TrainableActivation
 from mltoolsth.mytorch.complex import complex_angle, complex_abs, complex_normalization
 

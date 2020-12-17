@@ -13,7 +13,9 @@ __all__ = ['cReLU',
            'cStudentT2',
            'ModStudentT2',
            'Identity',
-           'get'
+           'get',
+           'Cardioid',
+           'Cardioid2'
          ]
 
 def get(identifier):
@@ -315,13 +317,13 @@ class ModStudentT(tf.keras.layers.Layer):
     def build(self, input_shape):
         super().build(input_shape)
         initializer_beta = tf.keras.initializers.Constant(self.beta_init)
-        self.beta = self.add_weight('beta',
+        self.beta = self.add_weight(name='beta',
                                       shape=(input_shape[-1]),
                                       initializer=initializer_beta,
                                       trainable=self.trainable
                                       )
         initializer_alpha = tf.keras.initializers.Constant(self.alpha_init)
-        self.alpha = self.add_weight('alpha',
+        self.alpha = self.add_weight(name='alpha',
                                       shape=(input_shape[-1]),
                                       initializer=initializer_alpha,
                                       trainable=self.trainable
@@ -440,7 +442,7 @@ class TestActivation2(unittest.TestCase):
     def test_cStudentT2(self):
         self._test(cStudentT2, {'alpha':0.1, 'trainable':True}, [5, 32])
 
-    def test_CardioidT2(self):
+    def test_Cardioid2(self):
         self._test(Cardioid2, {'bias':0.1, 'trainable':True}, [5, 32])
 
 if __name__ == "__main__":
