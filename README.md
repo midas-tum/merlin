@@ -1,4 +1,4 @@
-# mltools
+# MERLIN - Machine Enhanced Reconstruction Learning and Interpretation Networks
 
 This repository contains machine learning (ML) tools for both pytorch and tensorflow:
 - `optim`: Custom optimizer such as BlockAdam
@@ -6,9 +6,8 @@ This repository contains machine learning (ML) tools for both pytorch and tensor
 
 ## Requirements
 ```
-git clone https://github.com/khammernik/optox.git
+git clone https://github.com/midas-tum/optox.git
 cd optox
-git checkout pad3d
 ```
 follow build instructions on the github.
 

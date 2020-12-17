@@ -23,21 +23,21 @@ REQUIRED_PACKAGES = [
 ]
 
 setup(
-    name='mltoolstf',
-    version='0.1.0',
+    name='merlintf',
+    version='0.2.0',
     author="Kerstin Hammernik, Thomas Kuestner",
     author_email="k.hammernik@imperial.ac.uk, thomas.kuestner@med.uni-tuebingen.de",
-    packages=["mltoolstf",
-              "mltoolstf.optim",
-              "mltoolstf.keras_utils",
-              "mltoolstf.ddr_complex",
-              #"mltoolstf.ddr_complex.recurrent"
+    packages=["merlintf",
+              "merlintf.optim",
+              "merlintf.keras_utils",
+              "merlintf.ddr_complex",
+              #"merlintf.ddr_complex.recurrent"
              ],
-    package_dir={"mltoolstf": os.path.join('.', "mltoolstf"),
-                 "mltoolstf.optim": os.path.join('.', "mltoolstf/optim"),
-                 "mltoolstf.keras_utils": os.path.join('.', "mltoolstf/keras_utils"),
-                 "mltoolstf.ddr_complex": os.path.join('.', "mltoolstf/ddr_complex"),
-                 #"mltoolstf.ddr_complex.recurrent": os.path.join('.', "mltoolstf/ddr_complex/recurrent"),
+    package_dir={"merlintf": os.path.join('.', "merlintf"),
+                 "merlintf.optim": os.path.join('.', "merlintf/optim"),
+                 "merlintf.keras_utils": os.path.join('.', "merlintf/keras_utils"),
+                 "merlintf.ddr_complex": os.path.join('.', "merlintf/ddr_complex"),
+                 #"merlintf.ddr_complex.recurrent": os.path.join('.', "merlintf/ddr_complex/recurrent"),
     },
     install_requires=REQUIRED_PACKAGES
 )
