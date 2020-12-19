@@ -16,3 +16,10 @@ follow build instructions on the github.
 chmod 700 install.sh
 ./install.sh
 ```
+
+## Verification
+Run unittests to ensure proper working of sub-modules
+```
+cd tensorflow
+python3 -m unittest merlintf.ddr_complex.complex_pool
+```
