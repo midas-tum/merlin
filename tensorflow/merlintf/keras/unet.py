@@ -74,7 +74,7 @@ class UNet:
             self.n_filter_last_layer = 1
             self.conv_separable = conv_separable  # use separable 3D+1D convolution
             self.kernel_out = [1, 1, 1]
-        elif n_dim == 3:  # channels x (complex) x X x Y
+        elif n_dim == 2:  # channels x (complex) x X x Y
             self.input_shape = input_shape
             self.kspace_input_shape = kspace_input_shape
             self.mask_shape = mask_shape
