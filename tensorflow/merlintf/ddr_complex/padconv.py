@@ -7,8 +7,7 @@ from tensorflow.python.keras.layers.convolutional import Conv
 import numpy as np
 import unittest
 
-import optotf.pad2d
-import optotf.pad3d
+import optotf.pad
 
 __all__ = ['PadConv2D',
            'PadConv3D',
@@ -109,17 +108,17 @@ class PadConv(Conv):
 
     def _pad(self, rank, inputs, pad, mode):
         if rank == 2:
-            return optotf.pad2d.pad2d(inputs, pad, mode=mode)
+            return optotf.pad.pad2d(inputs, pad, mode=mode)
         elif rank == 3:
-            return optotf.pad3d.pad3d(inputs, pad, mode=mode)
+            return optotf.pad.pad3d(inputs, pad, mode=mode)
         else:
             raise ValueError("pad does only exist for 2D and 3D")
 
     def _pad_transpose(self, rank, inputs, pad, mode):
         if rank == 2:
-            return optotf.pad2d.pad2d_transpose(inputs, pad, mode=mode)
+            return optotf.pad.pad2d_transpose(inputs, pad, mode=mode)
         elif rank == 3:
-            return optotf.pad3d.pad3d_transpose(inputs, pad, mode=mode)
+            return optotf.pad.pad3d_transpose(inputs, pad, mode=mode)
         else:
             raise ValueError("pad does only exist for 2D and 3D")
 
