@@ -30,14 +30,14 @@ setup(
     packages=["merlintf",
               "merlintf.optim",
               "merlintf.keras_utils",
+              "merlintf.keras",
               "merlintf.ddr_complex",
-              #"merlintf.ddr_complex.recurrent"
              ],
     package_dir={"merlintf": os.path.join('.', "merlintf"),
                  "merlintf.optim": os.path.join('.', "merlintf/optim"),
                  "merlintf.keras_utils": os.path.join('.', "merlintf/keras_utils"),
+                 "merlintf.keras": os.path.join('.', "merlintf/keras"),
                  "merlintf.ddr_complex": os.path.join('.', "merlintf/ddr_complex"),
-                 #"merlintf.ddr_complex.recurrent": os.path.join('.', "merlintf/ddr_complex/recurrent"),
     },
     install_requires=REQUIRED_PACKAGES
 )
