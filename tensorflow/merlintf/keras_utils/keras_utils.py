@@ -2,7 +2,7 @@
 import os
 import datetime
 import tensorflow as tf
-import merlin
+import merlinpy as merlin
 import gc
 
 class ToKerasIO():
@@ -17,6 +17,12 @@ class ToKerasIO():
         for key in self.output_keys:
             outputs.append(sample[key])
         return inputs, outputs
+
+def iscomplextf(x):
+    if x.dtype == tf.complex64 or x.dtype == tf.complex128:
+          return True
+    else:
+          return False
 
 def get_callbacks(validation_generator, model, logdir, flip_images = False):
     # Reshape the image for the Summary API.
