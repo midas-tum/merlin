@@ -118,9 +118,10 @@ class DataGenerator(tf.keras.utils.Sequence):
 
         print('done')
 
-    def self.load_file(self, filename):
+    def load_file(self, filename):
         # data extension specific loading
-        x = ....
+        # x = ....
+        return None
 
     def _data_augmentation(self, X, acc):  # X: complex-valued: Time x X x Y x Z
         'Data augmentation subsampling - specific to trajectory'
@@ -135,7 +136,7 @@ class DataGenerator(tf.keras.utils.Sequence):
         elif self.sampling_trajectory == 'PI':  # TODO
             mask[:, :, ::np.random.choice(self.accelerations), :] = 1
             kspace_sub = np.multiply(kspace, mask)
-            img_sub =
+            img_sub = None # TODO
         elif self.sampling_trajectory == 'radial':  # TODO
             mask = []
             kspace_sub = []
