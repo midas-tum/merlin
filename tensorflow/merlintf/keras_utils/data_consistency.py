@@ -6,19 +6,56 @@ import unittest
 import numpy as np
 
 class DCGD(tf.keras.layers.Layer):
-    def __init__(self, A, AH, weight_init=1.0, weight_scale=1.0, name='dc-gd', **kwargs):
+    def __init__(self, A, AH, weight_init=1.0, weight_scale=1.0, 
+                    map_fn_batch=False, name='dc-gd', **kwargs):
+        """Gradient Descent Data Consistency (DCGD) for a given pair of
+           forward/adjoint operators A/AH.
+
+        Args:
+            A (function handle): Forward operator
+            AH (function handle): Adjoint operator
+            weight_init (float, optional): Initialization for data term weight.
+                Defaults to 1.0.
+            weight_scale (float, optional): Scale that is multiplied to weight. 
+                Might be helpful to make training of the weight faster.
+                Defaults to 1.0.
+            map_fn_batch (bool, optional): Run the operators A/AH on each sample
+                of the batch separately. Defaults to False.
+            name (str, optional): Name of the layer. Defaults to 'dc-gd'.
+        """
         super().__init__()
-        self.A = A
-        self.AH = AH
+
+        if map_fn_batch:
+            def A_call(x, *constants):
+                def A_fn(inputs):
+                    return A(*inputs)
+                out = tf.map_fn(A_fn, (x, *constants),
+                            name='mapForward', 
+                            fn_output_signature=x.dtype)
+                return out
+
+            def AH_call(x, *constants):
+                def AH_fn(inputs):
+                    return AH(*inputs)
+                out = tf.map_fn(AH_fn, (x, *constants), 
+                            name='mapAdjoint',
+                            fn_output_signature=x.dtype)
+                return out
+
+            self.A = A_call
+            self.AH = AH_call
+        else:
+            self.A = A
+            self.AH = AH
 
         self.weight_init = weight_init
         self.weight_scale = weight_scale
     
     def build(self, input_shape):
         self._weight = self.add_weight(name='weight',
-                                     shape=(1,),
-                                     constraint=tf.keras.constraints.NonNeg(),
-                                     initializer=tf.keras.initializers.Constant(self.weight_init))
+                shape=(1,),
+                constraint=tf.keras.constraints.NonNeg(),
+                initializer=tf.keras.initializers.Constant(self.weight_init))
     @property
     def weight(self):
         return self._weight * self.weight_scale
@@ -27,11 +64,27 @@ class DCGD(tf.keras.layers.Layer):
         x = inputs[0]
         y = inputs[1]
         constants = inputs[2:]
-        return x - complex_scale(self.AH(self.A(x, *constants) - y, *constants), self.weight * scale)
+        return x - complex_scale(self.AH(self.A(x, *constants) - y, *constants), 
+                                 self.weight * scale)
 
 
 class DCPM(tf.keras.layers.Layer):
-    def __init__(self, A, AH, weight_init=1.0, weight_scale=1.0, name='dc-pm', **kwargs):
+    """Proximal Mapping Data Consistency (DCPM) for a given pair of
+        forward/adjoint operators A/AH. Runs the conjugate gradient algorithm to
+        solve the proximal mapping, see Aggarwal et al. (2018) for more details.
+
+    Args:
+        A (function handle): Forward operator
+        AH (function handle): Adjoint operator
+        weight_init (float, optional): Initialization for data term weight.
+            Defaults to 1.0.
+        weight_scale (float, optional): Scale that is multiplied to weight. 
+            Might be helpful to make training of the weight faster.
+            Defaults to 1.0.
+        name (str, optional): Name of the layer. Defaults to 'dc-pm'.
+    """
+    def __init__(self, A, AH, weight_init=1.0, weight_scale=1.0, name='dc-pm', 
+                **kwargs):
         super().__init__()
         self.A = A
         self.AH = AH
@@ -44,9 +97,9 @@ class DCPM(tf.keras.layers.Layer):
 
     def build(self, input_shape):
         self._weight = self.add_weight(name='weight',
-                                     shape=(1,),
-                                     constraint=tf.keras.constraints.NonNeg(),
-                                     initializer=tf.keras.initializers.Constant(self.weight_init))
+                shape=(1,),
+                constraint=tf.keras.constraints.NonNeg(),
+                initializer=tf.keras.initializers.Constant(self.weight_init))
 
     @property
     def weight(self):
@@ -59,6 +112,7 @@ class DCPM(tf.keras.layers.Layer):
         lambdaa = 1.0 / tf.math.maximum(self.weight * scale, 1e-9)
         return self.prox(lambdaa, x, y, *constants)
 
+# unittests
 class CgTest(unittest.TestCase):
     def testcg(self):
         K.set_floatx('float64')
@@ -72,10 +126,13 @@ class CgTest(unittest.TestCase):
 
         shape=(5,10,10,1)
         kshape=(5,3,10,10)
-        x = tf.complex(tf.random.normal(shape, dtype=tf.float64), tf.random.normal(shape, dtype=tf.float64))
-        y = tf.complex(tf.random.normal(kshape, dtype=tf.float64), tf.random.normal(kshape, dtype=tf.float64))
+        x = tf.complex(tf.random.normal(shape, dtype=tf.float64), 
+                       tf.random.normal(shape, dtype=tf.float64))
+        y = tf.complex(tf.random.normal(kshape, dtype=tf.float64),
+                       tf.random.normal(kshape, dtype=tf.float64))
         mask = tf.ones(kshape, dtype=tf.float64)
-        smaps = tf.complex(tf.random.normal(kshape, dtype=tf.float64), tf.random.normal(kshape, dtype=tf.float64))
+        smaps = tf.complex(tf.random.normal(kshape, dtype=tf.float64), 
+                           tf.random.normal(kshape, dtype=tf.float64))
 
         tf_a = tf.Variable(np.array([1.1]), trainable=True, dtype=tf.float64)
         tf_b = tf.Variable(np.array([1.1]), trainable=True, dtype=tf.float64)
@@ -84,7 +141,8 @@ class CgTest(unittest.TestCase):
         epsilon = 1e-5
 
         def compute_loss(a, b):
-            arg = dc([x*tf.complex(a, tf.zeros_like(a)), y, mask, smaps], scale=1/b) # take 1/b
+            arg = dc([x * tf.complex(a, tf.zeros_like(a)), y, mask, smaps], 
+                     scale=1/b) # take 1/b
             return 0.5 * tf.math.real(tf.reduce_sum(tf.math.conj(arg) * arg))
 
         with tf.GradientTape() as g:

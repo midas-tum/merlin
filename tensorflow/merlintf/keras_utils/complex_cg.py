@@ -3,6 +3,11 @@ import tensorflow as tf
 from .complex import complex_scale, complex_dot
 
 def tf_custom_gradient_method(f):
+    """
+    Decorator. Allows to implement custom gradient for a class 
+    call function. Args are fully supported. Kwargs are only supported in eager
+    mode.
+    """
     @functools.wraps(f)
     def wrapped(self, *args, **kwargs):
         if not hasattr(self, '_tf_custom_gradient_wrappers'):
@@ -16,8 +21,18 @@ def tf_custom_gradient_method(f):
 
 def cg(M, rhs, max_iter, tol):
     """
-    Modified implementation of https://github.com/hkaggarwal/modl/blob/master/model.py
-    M: system matrix - a function
+    Conjugate gradient (CG) algorithm.
+    Modified version of https://github.com/hkaggarwal/modl/blob/master/model.py
+
+    Args:
+        M (function handle): system matrix
+        rhs (tensor): Right-hand-side of the linear system of equations that is
+            solved.
+        max_iter (int): Maximal number of iterations for the CG algorithm.
+        tol (float): Stopping criterion for the CG algorithm.
+
+    Returns:
+        Tensor: Result of the CG
     """
     cond = lambda i, rTr, *_: tf.logical_and( tf.less(i, max_iter), rTr > tol)
     def body(i, rTr, x, r, p):
@@ -43,28 +58,46 @@ def cg(M, rhs, max_iter, tol):
     return out
 
 class CGClass(tf.keras.layers.Layer):
-    def __init__(self, A, AH, max_iter=10, tol=1e-10):
+    def __init__(self, A, AH, max_iter=10, tol=1e-10, parallel_iterations=None):
+        """Run the conjugate gradient (CG) algorithm on a given pair of forward/
+           adjoint operators A/AH
+
+        Args:
+            A (function handle): Forward operator
+            AH (function handle): Adjoint operator
+            max_iter (int, optional): Maximal number of iterations for the CG 
+                algorithm. Defaults to 10.
+            tol (float, optional): Stopping criterion for the CG algorithm. 
+                Defaults to 1e-10.
+            parallel_iterations (int, optional): Number of iterations that the 
+                map functions run in parallel. Defaults to None.
+        """
         super().__init__()
         self.A = A
         self.AH = AH
         self.max_iter = max_iter
         self.tol = tol
+        self.parallel_iterations = parallel_iterations
 
     @tf_custom_gradient_method
     def call(self, lambdaa, x, y, *constants, training=None):
-        rhs = self.AH(y, *constants) + complex_scale(x, lambdaa)
-
         def fn(inputs):
-            rhs = inputs[0]
-            constants = inputs[1:]
+            x = inputs[0]
+            y = inputs[1]
+            constants = inputs[2:]
+            rhs = self.AH(y, *constants) + complex_scale(x, lambdaa)
 
             def M(p):
-                return self.AH(self.A(p, *constants), *constants) + complex_scale(p, lambdaa)
+                return self.AH(self.A(p, *constants), *constants) + \
+                       complex_scale(p, lambdaa)
 
             out = cg(M, rhs, self.max_iter, self.tol)
-            return out
+            return out, rhs
 
-        out = tf.map_fn(fn, (rhs, *constants),dtype=rhs.dtype,name='mapFn')
+        out, rhs = tf.map_fn(fn, (x, y, *constants), 
+                            fn_output_signature=(x.dtype, x.dtype),
+                            name='mapFn',
+                            parallel_iterations=self.parallel_iterations)
 
         def grad(e):
             #lambdaa = variables[0]
@@ -72,13 +105,17 @@ class CGClass(tf.keras.layers.Layer):
                 e = inputs[0]
                 constants = inputs[1:]
                 def M(p):
-                    return self.AH(self.A(p, *constants), *constants) + complex_scale(p, lambdaa)
-                out = cg(M, e, self.max_iter, self.tol)
-                return out
+                    return self.AH(self.A(p, *constants), *constants) + \
+                           complex_scale(p, lambdaa)
+                Qe = cg(M, e, self.max_iter, self.tol)
+                QQe = cg(M, Qe, self.max_iter, self.tol)
+                return Qe, QQe
 
-            Qe = tf.map_fn(fn_grad, (e, *constants), dtype=rhs.dtype, name='mapFnGrad')
-            QQe = tf.map_fn(fn_grad, (Qe, *constants), dtype=rhs.dtype, name='mapFnGrad2')
-            
+            Qe, QQe = tf.map_fn(fn_grad, (e, *constants),
+                            fn_output_signature=(x.dtype, x.dtype), 
+                            name='mapFnGrad', 
+                            parallel_iterations=self.parallel_iterations)
+
             dx = complex_scale(Qe, lambdaa)
             dlambdaa = tf.reduce_sum(complex_dot(Qe, x, axis=tf.range(1,tf.rank(x)))) - \
                        tf.reduce_sum(complex_dot(QQe, rhs, axis=tf.range(1,tf.rank(x))))
