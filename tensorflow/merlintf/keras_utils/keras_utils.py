@@ -24,6 +24,10 @@ def iscomplextf(x):
     else:
           return False
 
+def random_complex(shape, dtype=tf.float64):
+    return tf.complex(tf.random.normal(shape, dtype=dtype), 
+                      tf.random.normal(shape, dtype=dtype))
+
 def get_callbacks(validation_generator, model, logdir, flip_images = False):
     # Reshape the image for the Summary API.
     inputs, outputs = validation_generator.__getitem__(0)
