@@ -1,5 +1,5 @@
 import tensorflow as tf
-from merlintf.keras_utils.complex import *
+import merlintf
 import unittest
 
 class MagnitudeMaxPool(tf.keras.layers.Layer):
@@ -18,7 +18,7 @@ class MagnitudeMaxPool(tf.keras.layers.Layer):
             batched_shape = [x.shape[0]*x.shape[1], x.shape[2], x.shape[3], x.shape[4]]
             x = tf.reshape(x, batched_shape)
 
-        xabs = complex_abs(x)
+        xabs = merlintf.complex_abs(x)
         _, idx = tf.nn.max_pool_with_argmax(
     xabs, self.ksize, self.strides, self.padding, include_batch_in_index=True)
         x_pool = tf.reshape(tf.gather(tf.reshape(x,shape= [-1,]),idx), shape=idx.shape)
@@ -34,7 +34,7 @@ class TestMagnitudePool(unittest.TestCase):
         pool = MagnitudeMaxPool(2, 2)
 
         y = pool(x)
-        magn = complex_abs(y)
+        magn = merlintf.complex_abs(y)
 
     def test2d(self):
         self._test([2, 2, 2, 1])

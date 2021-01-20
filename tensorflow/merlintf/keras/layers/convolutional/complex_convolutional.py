@@ -26,7 +26,6 @@ import tensorflow as tf
 from tensorflow.python.eager import context
 from tensorflow.python.framework import tensor_shape
 #from tensorflow.python.keras import activations
-from . import complex_act as activations
 from tensorflow.python.keras import backend
 from tensorflow.python.keras import constraints
 from tensorflow.python.keras import initializers
@@ -47,10 +46,13 @@ from tensorflow.python.keras.utils import tf_utils
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import nn
 from tensorflow.python.ops import nn_ops
-from . import complex_conv as complex_nn_ops
 from tensorflow.python.util.tf_export import keras_export
 # pylint: disable=g-classes-have-attributes
 import unittest
+
+from merlintf.keras.layers.convolutional import complex_conv as complex_nn_ops
+from merlintf.keras.layers import complex_act as activations
+import merlintf
 
 class ComplexConv(Layer):
   """Abstract N-D convolution layer (private, used as implementation base).
@@ -2552,9 +2554,9 @@ class ComplexConv2DTest(unittest.TestCase):
         shape = [nBatch, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = merlintf.random_normal_complex(shape, tf.float32)
         Kx = model(x)
-        print(Kx.shape)
+        #print(Kx.shape)
 
     def test1(self):
         self._test_fwd(ComplexConvolution2D, 3, 2, 1, None, 'same')
@@ -2576,9 +2578,9 @@ class ComplexConv3DTest(unittest.TestCase):
         shape = [nBatch, D, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = merlintf.random_normal_complex(shape, tf.float32)
         Kx = model(x)
-        print(Kx.shape)
+        #print(Kx.shape)
 
     def test1(self):
         self._test_fwd(ComplexConvolution3D, 3, 2, 1, None, 'same')
@@ -2601,7 +2603,7 @@ class ComplexConv1DTest(unittest.TestCase):
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
         x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
         Kx = model(x)
-        print(Kx.shape)
+        #print(Kx.shape)
 
     def test1(self):
         self._test_fwd(ComplexConvolution1D, 3, 2, 1, None, 'same')
@@ -2614,9 +2616,9 @@ class ComplexConv1DTest(unittest.TestCase):
         shape = [nBatch, N, nf_in]
 
         model = UpSampling1D(size=2)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = merlintf.random_normal_complex(shape, tf.float32)
         Kx = model(x)
-        print(Kx.shape)
+        #print(Kx.shape)
 
 if __name__ == "__main__":
     unittest.test()

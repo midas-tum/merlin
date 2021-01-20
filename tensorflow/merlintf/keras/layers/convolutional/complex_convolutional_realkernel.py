@@ -26,8 +26,7 @@ import tensorflow as tf
 from tensorflow.python.eager import context
 from tensorflow.python.framework import tensor_shape
 #from tensorflow.python.keras import activations
-from . import complex_act as activations
-from tensorflow.python.keras import backend
+#from tensorflow.python.keras import backend
 from tensorflow.python.keras import constraints
 from tensorflow.python.keras import initializers
 from tensorflow.python.keras import regularizers
@@ -35,15 +34,17 @@ from tensorflow.python.keras.engine.base_layer import Layer
 from tensorflow.python.keras.engine.input_spec import InputSpec
 # pylint: enable=unused-import
 from tensorflow.python.keras.utils import conv_utils
-from tensorflow.python.keras.utils import tf_utils
+#from tensorflow.python.keras.utils import tf_utils
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import nn
 from tensorflow.python.ops import nn_ops
-from . import complex_conv as complex_nn_ops
-from tensorflow.python.util.tf_export import keras_export
+#from tensorflow.python.util.tf_export import keras_export
 # pylint: disable=g-classes-have-attributes
 import unittest
 
+from merlintf.keras.layers.convolutional import complex_conv as complex_nn_ops
+from merlintf.keras.layers import complex_act as activations
+import merlintf
 class ComplexConvRealWeight(Layer):
   """Abstract N-D convolution layer (private, used as implementation base).
   This layer creates a convolution kernel that is convolved
@@ -262,13 +263,18 @@ class ComplexConvRealWeight(Layer):
         if output_rank is not None and output_rank > 2 + self.rank:
 
           def _apply_fn(o):
-            return nn.bias_add(o, self.bias, data_format=self._tf_data_format)
+                outputs_re = nn.bias_add(tf.math.real(o), self.bias, data_format=self._tf_data_format)
+                outputs_im = nn.bias.add(tf.math.imag(o), self.bias, data_format=self._tf_data_format)
+                return tf.complex(outputs_re, outputs_im)
 
           outputs = nn_ops.squeeze_batch_dims(
               outputs, _apply_fn, inner_rank=self.rank + 1)
         else:
-          outputs = nn.bias_add(
-              outputs, self.bias, data_format=self._tf_data_format)
+          outputs_re = nn.bias_add(
+              tf.math.real(outputs), self.bias, data_format=self._tf_data_format)
+          outputs_im = nn.bias_add(
+              tf.math.imag(outputs), self.bias, data_format=self._tf_data_format)
+          return tf.complex(outputs_re, outputs_im)
 
     if self.activation is not None:
       return self.activation(outputs)
@@ -908,11 +914,15 @@ class ComplexConvRealWeight2DTranspose(ComplexConvRealWeight2D):
       outputs.set_shape(out_shape)
 
     if self.use_bias:
-      outputs = nn.bias_add(
-          outputs,
+      outputs_re = nn.bias_add(
+          tf.math.real(outputs),
           self.bias,
           data_format=conv_utils.convert_data_format(self.data_format, ndim=4))
-
+      outputs_im = nn.bias_add(
+          tf.math.imag(outputs),
+          self.bias,
+          data_format=conv_utils.convert_data_format(self.data_format, ndim=4))
+      outputs = tf.complex(outputs_re, outputs_im)
     if self.activation is not None:
       return self.activation(outputs)
     return outputs
@@ -1136,7 +1146,7 @@ class ComplexConvRealWeight3DTranspose(ComplexConvRealWeight3D):
     if self.use_bias:
       self.bias = self.add_weight(
           'bias',
-          shape=(self.filters, 2, ),
+          shape=(self.filters, ),
           initializer=self.bias_initializer,
           regularizer=self.bias_regularizer,
           constraint=self.bias_constraint,
@@ -1206,10 +1216,15 @@ class ComplexConvRealWeight3DTranspose(ComplexConvRealWeight3D):
       outputs.set_shape(out_shape)
 
     if self.use_bias:
-      outputs = nn.bias_add(
-          outputs,
+      outputs_re = nn.bias_add(
+          tf.math.real(outputs),
           self.bias,
           data_format=conv_utils.convert_data_format(self.data_format, ndim=4))
+      outputs_im = nn.bias_add(
+          tf.math.imag(outputs),
+          self.bias,
+          data_format=conv_utils.convert_data_format(self.data_format, ndim=4))
+      outputs = tf.complex(outputs_re, outputs_im)
 
     if self.activation is not None:
       return self.activation(outputs)
@@ -1271,9 +1286,9 @@ class ComplexConv2DTest(unittest.TestCase):
         shape = [nBatch, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = merlintf.random_normal_complex(shape, tf.float32)
         Kx = model(x)
-        print(Kx.shape)
+        #print(Kx.shape)
 
     def test1(self):
         self._test_fwd(ComplexConvRealWeight2D, 3, 2, 1, None, 'same')
@@ -1295,9 +1310,9 @@ class ComplexConv3DTest(unittest.TestCase):
         shape = [nBatch, D, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = merlintf.random_normal_complex(shape, tf.float32)
         Kx = model(x)
-        print(Kx.shape)
+        #print(Kx.shape)
 
     def test1(self):
         self._test_fwd(ComplexConvRealWeight3D, 3, 2, 1, None, 'same')

@@ -1,7 +1,7 @@
 import tensorflow as tf
-from .complex import complex_scale
 import tensorflow.keras.backend as K
-from .complex_cg import CGClass
+import merlintf
+from merlintf.keras.layers.complex_cg import CGClass
 import unittest
 import numpy as np
 
@@ -67,7 +67,7 @@ class DCGD(tf.keras.layers.Layer):
         x = inputs[0]
         y = inputs[1]
         constants = inputs[2:]
-        return x - complex_scale(self.AH(self.A(x, *constants) - y, *constants), 
+        return x - merlintf.complex_scale(self.AH(self.A(x, *constants) - y, *constants), 
                                  self.weight * scale)
 
 
@@ -122,7 +122,7 @@ class CgTest(unittest.TestCase):
     def testcg(self):
         K.set_floatx('float64')
 
-        from merlintf.keras_utils import mri
+        from merlintf.keras.layers import mri
         
         A = mri.MulticoilForwardOp(center=True)
         AH = mri.MulticoilAdjointOp(center=True)

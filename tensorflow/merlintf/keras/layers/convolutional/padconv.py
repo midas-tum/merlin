@@ -216,6 +216,7 @@ class PadConv2D(PadConv):
         kernel_constraint=constraints.get(kernel_constraint),
         bias_constraint=constraints.get(bias_constraint),
         zero_mean=zero_mean,
+        bound_norm=bound_norm,
         pad=pad,
         **kwargs)
 
@@ -539,7 +540,7 @@ class PadConv2DTest(unittest.TestCase):
         nf_in = 1
         nf_out = 32
         
-        model = PadConv2D(nf_out, kernel_size=3)
+        model = PadConv2D(nf_out, kernel_size=3, zero_mean=True, bound_norm=True)
         model.build((None, None, None, nf_in))
         np_weight = model.weights[0].numpy()
         reduction_dim = model.weights[0].reduction_dim
@@ -548,7 +549,6 @@ class PadConv2DTest(unittest.TestCase):
         self.assertTrue(np.max(np.abs(weight_mean)) < 1e-6)
 
         weight_norm = np.sqrt(np.sum(np.conj(np_weight) * np_weight, axis=reduction_dim))
-
         self.assertTrue(np.max(np.abs(weight_norm-1)) < 1e-6)
 
     def _test_grad(self, conv_fun, kernel_size, strides, dilation_rate, padding):
@@ -586,7 +586,7 @@ class PadConv3DTest(unittest.TestCase):
         nf_in = 1
         nf_out = 32
         
-        model = PadConv3D(nf_out, kernel_size=3)
+        model = PadConv3D(nf_out, kernel_size=3, zero_mean=True, bound_norm=True)
         model.build((None, None, None, None, nf_in))
         np_weight = model.weights[0].numpy()
         reduction_dim = model.weights[0].reduction_dim

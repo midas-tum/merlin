@@ -6,20 +6,20 @@ from tensorflow.python.keras import regularizers
 import numpy as np
 import unittest
 
-from .complex_init import complex_initializer
-from .complex_conv import (
+from merlintf.keras.layers.complex_init import complex_initializer
+from merlintf.keras.layers.convolutional.complex_conv import (
     complex_conv2d_real_weight_transpose,
     complex_conv3d_real_weight_transpose,
     complex_conv2d_real_weight,
     complex_conv3d_real_weight,
 )
 
-from .complex_pad import (
+from merlintf.keras.layers.complex_pad import (
     complex_pad,
     complex_pad_transpose,
 )
 
-from .complex_convolutional_realkernel import ComplexConvRealWeight
+from merlintf.keras.layers.convolutional.complex_convolutional_realkernel import ComplexConvRealWeight
 
 __all__ = ['ComplexPadConvRealWeight2D',
            'ComplexPadConvRealWeight3D',
@@ -30,7 +30,7 @@ Experimental pad conv class for Variational Networks
 Dilations and Stridings are NOT fully supported!
 """
 
-class ComplexPadConvRealWeight(tf.keras.layers.Layer):
+class ComplexPadConvRealWeight(ComplexConvRealWeight):
     def __init__(self,
             rank,
             filters,

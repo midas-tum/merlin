@@ -1,6 +1,6 @@
 import tensorflow as tf
 import unittest
-from merlintf.keras_utils.complex import *
+import merlintf
 import numpy as np
 import six
 
@@ -71,7 +71,7 @@ class HardSigmoid(tf.keras.layers.Layer):
                                       initializer=initializer,
                                       )
     def call(self, z):
-        return tf.cast(tf.keras.activations.hard_sigmoid(complex_abs(z) + self.bias), tf.complex64)
+        return tf.cast(tf.keras.activations.hard_sigmoid(merlintf.complex_abs(z) + self.bias), tf.complex64)
     
 
 
@@ -110,7 +110,7 @@ class ModReLU(tf.keras.layers.Layer):
                                       initializer=initializer,
                                       )
     def call(self, z):
-        return tf.cast(tf.keras.activations.relu(complex_abs(z) + self.bias), tf.complex64) * complex_norm(z)
+        return tf.cast(tf.keras.activations.relu(merlintf.complex_abs(z) + self.bias), tf.complex64) * merlintf.complex_norm(z)
 
     def __str__(self):
         s = f"ModReLU: bias_init={self.bias_init}, trainable={self.trainable}"
@@ -173,8 +173,8 @@ class ModPReLU(tf.keras.layers.Layer):
                                       initializer=initializer_alpha,
                                       )
     def call(self, z):
-        act = tf.maximum(0.0, complex_abs(z) + self.bias) + self.alpha * tf.minimum(0.0, complex_abs(z) + self.bias)
-        return tf.cast(act, tf.complex64) * complex_norm(z)
+        act = tf.maximum(0.0, merlintf.complex_abs(z) + self.bias) + self.alpha * tf.minimum(0.0, merlintf.complex_abs(z) + self.bias)
+        return tf.cast(act, tf.complex64) * merlintf.complex_norm(z)
 
     def __str__(self):
         s = f"ModPReLU: alpha_init={self.alpha_init}, bias_init={self.bias_init}, trainable={self.trainable}"
@@ -195,7 +195,7 @@ class Cardioid(tf.keras.layers.Layer):
                                       trainable=self.trainable,
                                       )
     def call(self, z):
-        phase = complex_angle(z)
+        phase = merlintf.complex_angle(z)
         cos = tf.cast(tf.math.cos(phase), tf.complex64) 
 
         return 0.5 * (1 + cos) * z
@@ -223,9 +223,9 @@ class Cardioid2(tf.keras.layers.Layer):
                                       trainable=self.trainable,
                                       )
     def call(self, z):
-        phase = complex_angle(z)
+        phase = merlintf.complex_angle(z)
         sin = tf.cast(tf.math.sin(phase), tf.complex64) 
-        mz = tf.cast(complex_abs(z), tf.complex64)
+        mz = tf.cast(merlintf.complex_abs(z), tf.complex64)
         cos = tf.cast(tf.math.cos(phase), tf.complex64) 
 
         fx = 0.5 * (1 + cos) * z
@@ -333,8 +333,8 @@ class ModStudentT(tf.keras.layers.Layer):
         return tf.math.log(d) / (2 * self.alpha)
 
     def call(self, z):
-        act = self._calc(complex_abs(z) + self.beta)
-        return tf.cast(act, tf.complex64) * complex_norm(z)
+        act = self._calc(merlintf.complex_abs(z) + self.beta)
+        return tf.cast(act, tf.complex64) * merlintf.complex_norm(z)
 
     def __str__(self):
         s = f"ModStudentT: alpha_init={self.alpha_init}, beta_init={self.beta_init}, trainable={self.trainable}"
@@ -372,8 +372,8 @@ class ModStudentT2(tf.keras.layers.Layer):
         return tf.cast(self._alpha, tf.complex64)
 
     def call(self, z):
-        mz = tf.cast(complex_abs(z), tf.complex64)
-        nz = complex_norm(z)
+        mz = tf.cast(merlintf.complex_abs(z), tf.complex64)
+        nz = merlintf.complex_norm(z)
 
         d = 1 + self.alpha * (mz + self.beta)**2
         

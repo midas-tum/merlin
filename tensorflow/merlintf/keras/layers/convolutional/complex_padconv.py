@@ -6,20 +6,21 @@ from tensorflow.python.keras import regularizers
 import numpy as np
 import unittest
 
-from .complex_init import complex_initializer
-from .complex_conv import (
+from merlintf.keras.layers.complex_init import complex_initializer
+from merlintf.keras.layers.convolutional.complex_conv import (
     complex_conv2d_transpose,
     complex_conv3d_transpose,
     complex_conv2d_real_weight,
     complex_conv3d_real_weight,
 )
 
-from .complex_pad import (
+from merlintf.keras.layers.complex_pad import (
     complex_pad,
     complex_pad_transpose,
 )
 
-from .complex_convolutional import ComplexConv
+from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv
+import merlintf
 
 __all__ = ['ComplexPadConv2D',
            'ComplexPadConv3D',
@@ -542,12 +543,13 @@ class ComplexPadConv2DTest(unittest.TestCase):
         nf_in = 1
         nf_out = 32
         
-        model = ComplexPadConv2D(nf_out, kernel_size=3)
+        model = ComplexPadConv2D(nf_out, kernel_size=3, zero_mean=True)
         model.build((None, None, None, nf_in))
         np_weight = model.weights[0].numpy()
         reduction_dim = model.weights[0].reduction_dim
 
-        weight_mean = np.mean(np_weight, axis=reduction_dim)
+        weight_mean = np.mean(np_weight, axis=reduction_dim[:-1])
+
         self.assertTrue(np.max(np.abs(weight_mean)) < 1e-6)
 
         weight_norm = np.sqrt(np.sum(np.conj(np_weight) * np_weight, axis=reduction_dim))
@@ -556,14 +558,14 @@ class ComplexPadConv2DTest(unittest.TestCase):
 
     def _test_grad(self, conv_fun, kernel_size, strides, dilation_rate, padding):
         nBatch = 5
-        M = 256
-        N = 256
+        M = 128
+        N = 128
         nf_in = 10
         nf_out = 32
         shape = [nBatch, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=True)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = merlintf.random_normal_complex(shape, tf.float32)
 
         with tf.GradientTape() as g:
             g.watch(x)
@@ -589,29 +591,30 @@ class ComplexPadConv3DTest(unittest.TestCase):
         nf_in = 1
         nf_out = 32
         
-        model = ComplexPadConv3D(nf_out, kernel_size=3)
+        model = ComplexPadConv3D(nf_out, kernel_size=3, zero_mean=True)
         model.build((None, None, None, None, nf_in))
         np_weight = model.weights[0].numpy()
         reduction_dim = model.weights[0].reduction_dim
+        
+        weight_mean = np.mean(np_weight, axis=reduction_dim[:-1])
 
-        weight_mean = np.mean(np_weight, axis=reduction_dim)
         self.assertTrue(np.max(np.abs(weight_mean)) < 1e-6)
-
+        
         weight_norm = np.sqrt(np.sum(np.conj(np_weight) * np_weight, axis=reduction_dim))
 
         self.assertTrue(np.max(np.abs(weight_norm-1)) < 1e-6)
 
     def _test_grad(self, conv_fun, kernel_size, strides, dilation_rate, padding):
         nBatch = 5
-        M = 256
-        N = 256
+        M = 128
+        N = 128
         D = 10
         nf_in = 2
         nf_out = 16
         shape = [nBatch, D, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=True)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = merlintf.random_normal_complex(shape, tf.float32)
 
         with tf.GradientTape() as g:
             g.watch(x)
@@ -636,14 +639,14 @@ class ComplexPadConv3DTest(unittest.TestCase):
 class ComplexPadConvScaleTest(unittest.TestCase):
     def test_grad(self):
         nBatch = 5
-        M = 256
-        N = 256
+        M = 128
+        N = 128
         nf_in = 10
         nf_out = 32
         shape = [nBatch, M, N, nf_in]
 
         model = ComplexPadConvScale2D(nf_out, kernel_size=3, strides=2)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = merlintf.random_normal_complex(shape, tf.float32)
         #model2 = ComplexPadConvScale2DTranspose(nf_out, kernel_size=3, strides=2)
 
         with tf.GradientTape() as g:

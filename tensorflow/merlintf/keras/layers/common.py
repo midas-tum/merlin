@@ -1,6 +1,6 @@
 import tensorflow as tf
 import unittest
-import merlintf.keras_utils
+import merlintf
 import numpy as np
 
 __all__ = ['Scalar']
@@ -28,7 +28,7 @@ class Scalar(tf.keras.layers.Layer):
         return self._weight * self.scale
         
     def call(self, inputs):
-        if merlintf.keras_utils.iscomplextf(inputs):
-            return merlintf.keras_utils.complex_scale(inputs, self.weight)
+        if merlintf.iscomplextf(inputs):
+            return merlintf.complex_scale(inputs, self.weight)
         else:
             return self.weight * inputs
