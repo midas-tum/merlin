@@ -6,7 +6,7 @@ import unittest
 import numpy as np
 
 class DCGD(tf.keras.layers.Layer):
-    def __init__(self, A, AH, weight_init=1.0, weight_scale=1.0, 
+    def __init__(self, A, AH, weight_init=1.0, weight_scale=1.0, trainable=True,
                     map_fn_batch=False, name='dc-gd', **kwargs):
         """Gradient Descent Data Consistency (DCGD) for a given pair of
            forward/adjoint operators A/AH.
@@ -50,12 +50,15 @@ class DCGD(tf.keras.layers.Layer):
 
         self.weight_init = weight_init
         self.weight_scale = weight_scale
+        self.weight_trainable = trainable
     
     def build(self, input_shape):
         self._weight = self.add_weight(name='weight',
                 shape=(1,),
                 constraint=tf.keras.constraints.NonNeg(),
-                initializer=tf.keras.initializers.Constant(self.weight_init))
+                initializer=tf.keras.initializers.Constant(self.weight_init),
+                trainable=self.weight_trainable)
+
     @property
     def weight(self):
         return self._weight * self.weight_scale
@@ -83,7 +86,7 @@ class DCPM(tf.keras.layers.Layer):
             Defaults to 1.0.
         name (str, optional): Name of the layer. Defaults to 'dc-pm'.
     """
-    def __init__(self, A, AH, weight_init=1.0, weight_scale=1.0, name='dc-pm', 
+    def __init__(self, A, AH, weight_init=1.0, weight_scale=1.0, trainable=True, name='dc-pm', 
                 **kwargs):
         super().__init__()
         self.A = A
@@ -94,12 +97,14 @@ class DCPM(tf.keras.layers.Layer):
 
         self.weight_init = weight_init
         self.weight_scale = weight_scale
+        self.weight_trainable = trainable
 
     def build(self, input_shape):
         self._weight = self.add_weight(name='weight',
                 shape=(1,),
                 constraint=tf.keras.constraints.NonNeg(),
-                initializer=tf.keras.initializers.Constant(self.weight_init))
+                initializer=tf.keras.initializers.Constant(self.weight_init),
+                trainable=self.weight_trainable)
 
     @property
     def weight(self):
