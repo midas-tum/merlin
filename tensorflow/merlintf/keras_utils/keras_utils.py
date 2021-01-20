@@ -24,7 +24,7 @@ def iscomplextf(x):
     else:
           return False
 
-def random_complex(shape, dtype=tf.float64):
+def random_normal_complex(shape, dtype=tf.float64):
     return tf.complex(tf.random.normal(shape, dtype=dtype), 
                       tf.random.normal(shape, dtype=dtype))
 
