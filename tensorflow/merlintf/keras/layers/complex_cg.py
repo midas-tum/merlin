@@ -1,6 +1,6 @@
 import functools
 import tensorflow as tf
-from .complex import complex_scale, complex_dot
+import merlintf
 
 def tf_custom_gradient_method(f):
     """
@@ -38,17 +38,17 @@ def cg(M, rhs, max_iter, tol):
     def body(i, rTr, x, r, p):
         with tf.name_scope('cgBody'):
             Ap = M(p)
-            alpha = rTr / tf.math.real(complex_dot(p, Ap))
-            x = x + complex_scale(p, alpha)
-            r = r - complex_scale(Ap, alpha)
-            rTrNew = tf.math.real(complex_dot(r, r))
+            alpha = rTr / tf.math.real(merlintf.complex_dot(p, Ap))
+            x = x + merlintf.complex_scale(p, alpha)
+            r = r - merlintf.complex_scale(Ap, alpha)
+            rTrNew = tf.math.real(merlintf.complex_dot(r, r))
             beta = rTrNew / rTr
-            p = r + complex_scale(p, beta)
+            p = r + merlintf.complex_scale(p, beta)
         return i + 1, rTrNew, x, r, p
 
     x = tf.zeros_like(rhs)
     i, r, p = 0, rhs, rhs
-    rTr = tf.math.real(complex_dot(r, r))
+    rTr = tf.math.real(merlintf.complex_dot(r, r))
     loopVar = i, rTr, x, r, p
     out = tf.while_loop(cond,
                         body,
@@ -85,11 +85,11 @@ class CGClass(tf.keras.layers.Layer):
             x = inputs[0]
             y = inputs[1]
             constants = inputs[2:]
-            rhs = self.AH(y, *constants) + complex_scale(x, lambdaa)
+            rhs = self.AH(y, *constants) + merlintf.complex_scale(x, lambdaa)
 
             def M(p):
                 return self.AH(self.A(p, *constants), *constants) + \
-                       complex_scale(p, lambdaa)
+                       merlintf.complex_scale(p, lambdaa)
 
             out = cg(M, rhs, self.max_iter, self.tol)
             return out, rhs
@@ -106,7 +106,7 @@ class CGClass(tf.keras.layers.Layer):
                 constants = inputs[1:]
                 def M(p):
                     return self.AH(self.A(p, *constants), *constants) + \
-                           complex_scale(p, lambdaa)
+                           merlintf.complex_scale(p, lambdaa)
                 Qe = cg(M, e, self.max_iter, self.tol)
                 QQe = cg(M, Qe, self.max_iter, self.tol)
                 return Qe, QQe
@@ -116,9 +116,9 @@ class CGClass(tf.keras.layers.Layer):
                             name='mapFnGrad', 
                             parallel_iterations=self.parallel_iterations)
 
-            dx = complex_scale(Qe, lambdaa)
-            dlambdaa = tf.reduce_sum(complex_dot(Qe, x, axis=tf.range(1,tf.rank(x)))) - \
-                       tf.reduce_sum(complex_dot(QQe, rhs, axis=tf.range(1,tf.rank(x))))
+            dx = merlintf.complex_scale(Qe, lambdaa)
+            dlambdaa = tf.reduce_sum(merlintf.complex_dot(Qe, x, axis=tf.range(1,tf.rank(x)))) - \
+                       tf.reduce_sum(merlintf.complex_dot(QQe, rhs, axis=tf.range(1,tf.rank(x))))
             dlambdaa = tf.math.real(dlambdaa)
             return [dlambdaa, dx, None] + [None for _ in constants]
 

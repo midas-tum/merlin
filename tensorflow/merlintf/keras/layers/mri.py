@@ -1,6 +1,6 @@
 import tensorflow as tf
-from .fft import FFT2, FFT2c, IFFT2, IFFT2c
-from .complex import complex_scale, complex_dot
+from merlintf.keras.layers.fft import FFT2, FFT2c, IFFT2, IFFT2c
+import merlintf
 
 class Smaps(tf.keras.layers.Layer):
     def call(self, img, smaps):
@@ -12,7 +12,7 @@ class SmapsAdj(tf.keras.layers.Layer):
 
 class MaskKspace(tf.keras.layers.Layer):
     def call(self, kspace, mask):
-        return complex_scale(kspace, mask)
+        return merlintf.complex_scale(kspace, mask)
 
 class ForwardOp(tf.keras.layers.Layer):
     def __init__(self, center=False):
