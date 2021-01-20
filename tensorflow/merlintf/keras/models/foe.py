@@ -1,19 +1,36 @@
 import tensorflow as tf
-
-from .regularizer import *
-from .complex_padconv import ComplexPadConv2D, ComplexPadConv3D
-from .complex_padconv_2dt import ComplexPadConv2Dt
-from .padconv import PadConv2D, PadConv3D
+import merlintf
+from merlintf.keras.layers import ComplexPadConv2D, ComplexPadConv3D
+from merlintf.keras.layers import ComplexPadConv2Dt
+from merlintf.keras.layers import PadConv2D, PadConv3D
 from optotf.activations import TrainableActivationKeras as TrainableActivation
-from merlintf.keras_utils import *
+
 import unittest
 import numpy as np
 
-__all__ = ['MagnitudeFoE',
+__all__ = ['Regularizer',
+           'MagnitudeFoE',
            'PolarFoE',
            'ComplexFoE',
            'FoE',
            'Real2chFoE']
+
+class Regularizer(tf.keras.Model):
+    """
+    Basic regularization function
+    """
+
+    def __init__(self):
+        super(Regularizer, self).__init__()
+
+    def call(self, x):
+        return self.grad(x)
+
+    def energy(self, x):
+        raise NotImplementedError
+
+    def grad(self, x):
+        raise NotImplementedError
 
 class FoEBase(Regularizer):
     def __init__(self, config=None):
@@ -52,9 +69,9 @@ class FoE(FoEBase):
 
 class Real2chFoE(FoE):
     def grad(self, x):
-        xreal = complex2real(x)
+        xreal = merlintf.complex2real(x)
         xreal = super().grad(xreal)
-        return real2complex(xreal)
+        return merlintf.real2complex(xreal)
 
 class PolarFoE(FoEBase):
     def __init__(self, config=None):
@@ -74,8 +91,8 @@ class PolarFoE(FoEBase):
         self.f1_phi = TrainableActivation(**self.config["f1_phi"])
 
     def _activation(self, x):
-        magn = self.f1_abs(complex_abs(x)) #/ x.shape[-1]
-        angle = self.f1_phi(complex_angle(x))
+        magn = self.f1_abs(merlintf.complex_abs(x)) #/ x.shape[-1]
+        angle = self.f1_phi(merlintf.complex_angle(x))
 
         re = magn * tf.math.cos(angle)
         im = magn * tf.math.sin(angle)
@@ -99,10 +116,10 @@ class MagnitudeFoE(FoEBase):
         self.f1_abs = TrainableActivation(**self.config["f1_abs"])
 
     def _activation(self, x):
-        magn = self.f1_abs(complex_abs(x))
+        magn = self.f1_abs(merlintf.complex_abs(x))
         magn /= tf.cast(tf.shape(x)[-1], magn.dtype)
-        xn = complex_norm(x)
-        return complex_scale(xn, magn)
+        xn = merlintf.complex_norm(x)
+        return merlintf.complex_scale(xn, magn)
 
 class ComplexFoE(FoEBase):
     """
@@ -180,9 +197,9 @@ class PolarFoETest(unittest.TestCase):
         model = PolarFoE(config)
 
         if dim == 2:
-            x = random_normal_complex((nBatch, M, N, 1), tf.float64)
+            x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
         elif dim == 3 or dim == '2dt':
-            x = random_normal_complex((nBatch, D, M, N, 1), tf.float64)
+            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
         
@@ -230,9 +247,9 @@ class MagnitudeFoETest(unittest.TestCase):
         model = MagnitudeFoE(config)
 
         if dim == 2:
-            x = random_normal_complex((nBatch, M, N, 1), tf.float64)
+            x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
         elif dim == 3 or dim == '2dt':
-            x = random_normal_complex((nBatch, D, M, N, 1), tf.float64)
+            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')        
         
@@ -280,9 +297,9 @@ class ComplexFoETest(unittest.TestCase):
         model = ComplexFoE(config)
 
         if dim == 2:
-            x = random_normal_complex((nBatch, M, N, 1), tf.float64)
+            x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
         elif dim == 3 or dim == '2dt':
-            x = random_normal_complex((nBatch, D, M, N, 1), tf.float64)
+            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
 
@@ -327,9 +344,9 @@ class Real2chFoETest(unittest.TestCase):
         model = Real2chFoE(config)
 
         if dim == 2:
-            x = random_normal_complex((nBatch, M, N, 1), tf.float64)
+            x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
         elif dim == 3 or dim == '2dt':
-            x = random_normal_complex((nBatch, D, M, N, 1), tf.float64)
+            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
         
@@ -374,9 +391,9 @@ class RealFoETest(unittest.TestCase):
         model = FoE(config)
 
         if dim == 2:
-            x = tf.random.normal((nBatch, M, N, 1), dtype=tf.float64)
+            x = tf.random.normal((nBatch, M, N, 1), dtype=tf.float32)
         elif dim == 3 or dim == '2dt':
-            x = tf.random.normal((nBatch, D, M, N, 1), dtype=tf.float64)
+            x = tf.random.normal((nBatch, D, M, N, 1), dtype=tf.float32)
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
         

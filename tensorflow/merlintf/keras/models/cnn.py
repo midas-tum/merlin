@@ -1,6 +1,5 @@
 import tensorflow as tf
-import merlintf.ddr_complex as layers
-import merlintf.keras_utils as keras_utils
+import merlintf
   
 class ComplexCNN(tf.keras.Model):
     def __init__(self, dim=2, nf=64, ksz=3, num_layer=5, 
@@ -9,9 +8,9 @@ class ComplexCNN(tf.keras.Model):
         super().__init__(name=name)
         # get correct conv operator
         if dim == 2:
-            conv_layer = layers.ComplexConv2D
+            conv_layer = merlintf.keras.layers.ComplexConv2D
         elif dim == 3:
-            conv_layer = layers.ComplexConv3D
+            conv_layer = merlintf.keras.layers.ComplexConv3D
         else:
             raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
 
@@ -61,7 +60,7 @@ class Real2chCNN(tf.keras.Model):
                                     activation=None))
 
     def call(self, inputs):
-        x = keras_utils.complex2real(inputs)
+        x = merlintf.complex2real(inputs)
         for op in self.ops:
             x = op(x)
-        return keras_utils.real2complex(x)
+        return merlintf.real2complex(x)
