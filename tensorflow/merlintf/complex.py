@@ -23,3 +23,13 @@ def real2complex(z, channel_last=True):
     stack_dim = -1 if channel_last else 1
     (real, imag) = tf.split(z, 2, axis=stack_dim)
     return tf.complex(real, imag)
+
+def iscomplextf(x):
+    if x.dtype == tf.complex64 or x.dtype == tf.complex128:
+          return True
+    else:
+          return False
+
+def random_normal_complex(shape, dtype=tf.float64):
+    return tf.complex(tf.random.normal(shape, dtype=dtype), 
+                      tf.random.normal(shape, dtype=dtype))

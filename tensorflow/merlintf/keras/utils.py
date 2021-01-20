@@ -2,8 +2,10 @@
 import os
 import datetime
 import tensorflow as tf
-import merlinpy as merlin
+import merlinpy
 import gc
+
+center_crop = merlinpy.center_crop
 
 class ToKerasIO():
     def __init__(self, input_keys, output_keys):
@@ -18,16 +20,6 @@ class ToKerasIO():
             outputs.append(sample[key])
         return inputs, outputs
 
-def iscomplextf(x):
-    if x.dtype == tf.complex64 or x.dtype == tf.complex128:
-          return True
-    else:
-          return False
-
-def random_normal_complex(shape, dtype=tf.float64):
-    return tf.complex(tf.random.normal(shape, dtype=dtype), 
-                      tf.random.normal(shape, dtype=dtype))
-
 def get_callbacks(validation_generator, model, logdir, flip_images = False):
     # Reshape the image for the Summary API.
     inputs, outputs = validation_generator.__getitem__(0)
@@ -40,11 +32,11 @@ def get_callbacks(validation_generator, model, logdir, flip_images = False):
     else:
       target = outputs
 
-    noisy = merlin.utils.center_crop(noisy, target.shape[-3:-1], channel_last=True)
+    noisy = center_crop(noisy, target.shape[-3:-1], channel_last=True)
 
     def log_images(epoch, logs):
       prediction = model.predict(inputs)
-      prediction = merlin.utils.center_crop(prediction, target.shape[-3:-1], channel_last=True)
+      prediction = center_crop(prediction, target.shape[-3:-1], channel_last=True)
 
       # Creates a file writer for the log directory.
       file_writer = tf.summary.create_file_writer(logdir)
