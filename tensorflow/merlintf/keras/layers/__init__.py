@@ -2,6 +2,11 @@ from merlintf.keras.layers.convolutional.complex_convolutional import ComplexCon
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv2DTranspose
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv3D
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv3DTranspose
+from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConvolution
+from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConvolutionTranspose
+from merlintf.keras.layers.convolutional.complex_convolutional import UpSampling
+from merlintf.keras.layers.convolutional.complex_convolutional import ZeroPadding
+from merlintf.keras.layers.convolutional.complex_convolutional import Cropping
 from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConv2D
 from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConv3D
 from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConvScale2D
@@ -15,6 +20,8 @@ from merlintf.keras.layers.convolutional.padconv import PadConvScale2D
 from merlintf.keras.layers.convolutional.padconv import PadConvScale3D
 from merlintf.keras.layers.convolutional.padconv import PadConvScale2DTranspose
 from merlintf.keras.layers.convolutional.padconv import PadConvScale3DTranspose
+from merlintf.keras.layers.complex_pool import MagnitudeMaxPooling
+from merlintf.keras.layer.complex_act import Activation
 from merlintf.keras.layers.data_consistency import DCGD
 from merlintf.keras.layers.data_consistency import DCPM
 from merlintf.keras.layers.common import Scalar
