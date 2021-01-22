@@ -18,7 +18,7 @@ __all__ = ['cReLU',
            'Cardioid2'
          ]
 
-def get(identifier):
+def Activation(identifier):
     if identifier is None:
         return Identity()
     if isinstance(identifier, six.string_types):
