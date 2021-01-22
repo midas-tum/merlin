@@ -54,6 +54,88 @@ from merlintf.keras.layers.convolutional import complex_conv as complex_nn_ops
 from merlintf.keras.layers import complex_act as activations
 import merlintf
 
+def ComplexConvolution(identifier):
+    if isinstance(identifier, six.string_types):
+        identifier = 'ComplexConvolution' + str(identifier).upper()
+        return deserialize(identifier)
+    elif callable(identifier):
+        return identifier
+    else:
+        raise TypeError('Could not interpret convolution function identifier: {}'.format(identifier))
+
+def ComplexConvolutionTranspose(identifier):
+    if isinstance(identifier, six.string_types):
+        identifier = 'ComplexConvolution' + str(identifier).upper() + 'Transpose'
+        return deserialize(identifier)
+    elif callable(identifier):
+        return identifier
+    else:
+        raise TypeError('Could not interpret convolution function identifier: {}'.format(identifier))
+
+def UpSampling(identifier):
+    if isinstance(identifier, six.string_types):
+        identifier = 'UpSampling' + str(identifier).upper()
+        return deserialize(identifier)
+    elif callable(identifier):
+        return identifier
+    else:
+        raise TypeError('Could not interpret upsampling function identifier: {}'.format(identifier))
+
+def ZeroPadding(identifier):
+    if isinstance(identifier, six.string_types):
+        identifier = 'ZeroPadding' + str(identifier).upper()
+        return deserialize(identifier)
+    elif callable(identifier):
+        return identifier
+    else:
+        raise TypeError('Could not interpret zeropadding function identifier: {}'.format(identifier))
+
+def Cropping(identifier):
+    if isinstance(identifier, six.string_types):
+        identifier = 'Cropping' + str(identifier).upper()
+        return deserialize(identifier)
+    elif callable(identifier):
+        return identifier
+    else:
+        raise TypeError('Could not interpret cropping function identifier: {}'.format(identifier))
+
+def deserialize(op):
+    if op == 'ComplexConv1D' or op == 'ComplexConvolution1D':
+        return ComplexConv1D
+    elif op == 'ComplexConv2D' or op == 'ComplexConvolution2D':
+        return ComplexConv2D
+    elif op == 'ComplexConv3D' or op == 'ComplexConvolution3D':
+        return ComplexConv3D
+    elif op == 'ComplexConv1DTranspose' or op == 'ComplexConvolution1DTranspose':
+        return ComplexConv1DTranspose
+    elif op == 'ComplexConv2DTranspose' or op == 'ComplexConvolution2DTranspose':
+        return ComplexConv2DTranspose
+    elif op == 'ComplexConv3DTranspose' or op == 'ComplexConvolution3DTranspose':
+        return ComplexConv3DTranspose
+    elif op == 'UpSampling1D':
+        return UpSampling1D
+    elif op == 'UpSampling2D':
+        return UpSampling2D
+    elif op == 'UpSampling3D':
+        return UpSampling3D
+    elif op == 'ZeroPadding1D':
+        return ZeroPadding1D
+    elif op == 'ZeroPadding2D':
+        return ZeroPadding2D
+    elif op == 'ZeroPadding3D':
+        return ZeroPadding3D
+    elif op == 'Cropping1D':
+        return Cropping1D
+    elif op == 'Cropping2D':
+        return Cropping2D
+    elif op == 'Cropping3D':
+        return Cropping3D
+    else:
+        raise ValueError(f"Selected operation '{conv}' not implemented in complex convolutional")
+
+def serialize(func):
+    return func.__name__
+
 class ComplexConv(Layer):
   """Abstract N-D convolution layer (private, used as implementation base).
   This layer creates a convolution kernel that is convolved
