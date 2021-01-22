@@ -5,16 +5,16 @@ import unittest
 import numpy as np
 
 class ComplexUNet(tf.keras.Model):
-    def __init__(self, dim=2, nf=64, ksz=3, num_layer_per_level=2, num_level=4,
+    def __init__(self, dim='2D', nf=64, ksz=3, num_layer_per_level=2, num_level=4,
                        activation='ModReLU', use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
                        name='ComplexUNet', **kwargs):
         """
         Builds the 2D/2D+t/3D/3D+t/4D UNet model
         input parameter:
-        dim                         operating dimension
-        nf                          number of filters at the base level, dyadic increase
-        ksz                         kernel size
+        dim                         [string] operating dimension
+        nf                          [integer, tuple] number of filters at the base level, dyadic increase
+        ksz                         [integer, tuple] kernel size
         num_layer_per_level         number of convolutional layers per encocer/decoder level
         num_level                   amount of encoder/decoder stages (excluding bottleneck layer), network depth
         activation                  activation function
@@ -26,26 +26,17 @@ class ComplexUNet(tf.keras.Model):
         super().__init__(name=name)
 
         # get correct conv operator
-        if dim == 2:  # 2D
-            conv_layer = merlintf.keras.layers.ComplexConv2D
-        elif dim == 2.5:  # 2D+t
-            raise RuntimeError(f"Convlutions for dim={dim} not implemented yet!")
-        elif dim == 3:  # 3D
-            conv_layer = merlintf.keras.layers.ComplexConv3D
-        elif dim == 3.5:  # 3D+t
-            raise RuntimeError(f"Convlutions for dim={dim} not implemented yet!")
-        else:
-            raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
+        conv_layer = merlintf.keras.layers.ComplexConvolution(dim)
 
         # get normalitzation operator
         activation_last = activation
         if normalization == 'BN':
             norm_layer = merlintf.keras.layers.ComplexBatchNormalization
-            activation_layer = merlintf.keras.layers.complex_act.get(activation)
+            activation_layer = merlintf.keras.layers.Activation(activation)
             activation = ''
         elif normalization == 'IN':
             norm_layer = merlintf.keras.layers.ComplexInstanceNormalization
-            activation_layer = merlintf.keras.layers.complex_act.get(activation)
+            activation_layer = merlintf.keras.layers.Activation(activation)
             activation = ''
         elif normalization == 'none':
             norm_layer = None
@@ -55,7 +46,7 @@ class ComplexUNet(tf.keras.Model):
 
         # get downsampling operator
         if downsampling == 'mp':
-            down_layer = merlintf.keras.layers.MagnitudeMaxPool  # TODO: check if working for all dimensions
+            down_layer = merlintf.keras.layers.MagnitudeMaxPooling(dim)
             strides = [1] * num_layer_per_level
         elif downsampling == 'st':
             down_layer = None
@@ -65,18 +56,9 @@ class ComplexUNet(tf.keras.Model):
 
         # get upsampling operator
         if upsampling == 'us':
-            up_layer = merlintf.keras.layers.UpSampling  # TODO for dimensions and working for complex
+            up_layer = merlintf.keras.layers.UpSampling(dim)  # TODO check if working for complex
         elif upsampling == 'tc':
-            if dim == 2:  # 2D
-                up_layer = merlintf.keras.layers.ComplexConv2DTranspose
-            elif dim == 2.5:  # 2D+t
-                raise RuntimeError(f"Convlutions for dim={dim} not implemented yet!")
-            elif dim == 3:  # 3D
-                up_layer = merlintf.keras.layers.ComplexConv3DTranspose
-            elif dim == 3.5:  # 3D+t
-                raise RuntimeError(f"Convlutions for dim={dim} not implemented yet!")
-            else:
-                raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
+            up_layer = merlintf.keras.layers.ComplexConvolutionTranspose(dim)
         else:
             raise RuntimeError(f"Upsampling operation {upsampling} not implemented!")
 
@@ -164,3 +146,35 @@ class ComplexUNet(tf.keras.Model):
             # output convolution
             x = self.ops[3](x)
             return x
+
+
+class ComplexUNetTest(unittest.TestCase):
+    def test_UNet_complex_2d(self):
+        self._test_UNet_complex('2D', 64, (3, 3))
+
+    def test_FoE_real_3d(self):
+        self._test_UNet_complex('3D', 32, (3, 5, 5))
+
+    def _test_UNet_complex(self, dim, nf, ksz):
+        nBatch = 5
+        D = 20
+        M = 128
+        N = 128
+        nf_in = 10
+        nw = 31
+
+        model = ComplexUNet(dim, nf, ksz)
+
+        if dim == '2D':
+            x = tf.random.normal((nBatch, M, N, 1), dtype=tf.float32)
+        elif dim == '3D' or dim == '2Dt':
+            x = tf.random.normal((nBatch, D, M, N, 1), dtype=tf.float32)
+        else:
+            raise RuntimeError(f'No implementation for dim {dim} available!')
+
+        Kx = model(x)
+        self.assertTrue(Kx.shape == x.shape)
+
+
+if __name__ == "__main__":
+    unittest.test()
