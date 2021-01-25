@@ -33,6 +33,7 @@ setup(
               "merlintf.keras.layers",
               "merlintf.keras.layers.convolutional",
               "merlintf.keras.models",
+              "merlintf.keras.optimizers",
              ],
     package_dir={"merlintf": os.path.join('.', "merlintf"),
                  "merlintf.optim": os.path.join('.', "merlintf/optim"),
@@ -40,6 +41,7 @@ setup(
                  "merlintf.keras.layers": os.path.join('.', "merlintf/keras/layers"),
                  "merlintf.keras.layers.convolutional": os.path.join('.', "merlintf/keras/layers/convolutional"),
                  "merlintf.keras.models": os.path.join('.', "merlintf/keras/models"),
+                 "merlintf.keras.optimizers": os.path.join('.', "merlintf/keras/optimizers"),
     },
     install_requires=REQUIRED_PACKAGES
 )

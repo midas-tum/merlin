@@ -194,9 +194,9 @@ class BlockAdamOptimizer(optimizer.Optimizer):
       m_t = scatter_add(m, indices, m_scaled_g_values)
     # v_t = beta2 * v + (1 - beta2) * (g_t * g_t)
     if hasattr(var, 'reduction_dim'):
-        grad_reduced = math_ops.reduce_sum(grad**2, var.reduction_dim, True)
+        grad_reduced = math_ops.reduce_sum(math_ops.conj(grad)*grad, var.reduction_dim, True)
     else:
-        grad_reduced = grad**2
+        grad_reduced = math_ops.conj(grad)*grad
 
     v = self.get_slot(var, "v")
     v_scaled_g_values = grad_reduced * (1 - beta2_t)
