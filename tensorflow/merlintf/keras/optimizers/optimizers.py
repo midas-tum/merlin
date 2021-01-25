@@ -42,12 +42,6 @@ from tensorflow.python.training import optimizer as tf_optimizer_module
 from tensorflow.python.training import training_util
 from tensorflow.python.training.tracking import base as trackable
 from tensorflow.python.util.tf_export import keras_export
-from tensorflow.python.keras.optimizers import SGD
-from tensorflow.python.keras.optimizers import Adagrad
-from tensorflow.python.keras.optimizers import Adadelta
-from tensorflow.python.keras.optimizers import Adam
-from tensorflow.python.keras.optimizers import Adamax
-from tensorflow.python.keras.optimizers import Nadam
 from tensorflow.python.keras.optimizers import serialize
 from tensorflow.python.keras.optimizers import get
 from tensorflow.python.keras.optimizers import deserialize_keras_object
