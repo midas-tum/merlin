@@ -93,7 +93,8 @@ class DCPM(tf.keras.layers.Layer):
         self.AH = AH
         max_iter = kwargs.get('max_iter', 10)
         tol = kwargs.get('tol', 1e-10)
-        self.prox = CGClass(A, AH, max_iter=max_iter, tol=tol)
+        parallel_iterations = kwargs.get('parallel_iterations', 1)
+        self.prox = CGClass(A, AH, max_iter=max_iter, tol=tol, parallel_iterations=parallel_iterations)
 
         self.weight_init = weight_init
         self.weight_scale = weight_scale
