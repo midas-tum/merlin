@@ -46,18 +46,22 @@ class Real2chCNN(tf.keras.Model):
         else:
             raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
 
+        kernel_initializer = kwargs.pop('kernel_initializer', 'glorot_uniform')
+
         # create layers
         self.ops = []
-        for _ in range(num_layer):
+        for _ in range(num_layer-1):
             self.ops.append(conv_layer(nf, ksz,
                                         use_bias=use_bias,
                                         activation=activation,
+                                        kernel_initializer=kernel_initializer,
                                         padding='same',))
 
         self.ops.append(conv_layer(2, ksz,
                                     use_bias=False,
                                     padding='same',
-                                    activation=None))
+                                    activation=None,
+                                    kernel_initializer=kernel_initializer))
 
     def call(self, inputs):
         x = merlintf.complex2real(inputs)
