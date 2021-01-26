@@ -1,9 +1,9 @@
 import torch
-import optoth
+import optoth.pad
 
 def complex_pad3d(x, pad_sp_x, pad_sp_y, pad_t, mode='symmetric'):
-    xp_re = optoth.pad3d.pad3d(x[...,0].contiguous(), (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode=mode)
-    xp_im = optoth.pad3d.pad3d(x[...,1].contiguous(), (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode=mode)
+    xp_re = optoth.pad.pad3d(x[...,0].contiguous(), (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode=mode)
+    xp_im = optoth.pad.pad3d(x[...,1].contiguous(), (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode=mode)
 
     new_shape = list(xp_re.shape)
     new_shape.append(2)
@@ -30,7 +30,7 @@ class Testpad3dFunction(unittest.TestCase):
         x = torch.randn(S, C, D, M, N, dtype=dtype, device=cuda).requires_grad_(True)
         p = torch.randn(S, C, D+pad[4]+pad[5], M+pad[2]+pad[3], N+pad[0]+pad[1], dtype=dtype, device=cuda).requires_grad_(True)
 
-        Ax = optoth.pad3d.pad3d(x, pad, mode)
+        Ax = optoth.pad.pad3d(x, pad, mode)
         ATp = torch.autograd.grad(Ax, x, p)[0]
 
         lhs = (Ax * p).sum().item()
@@ -41,7 +41,7 @@ class Testpad3dFunction(unittest.TestCase):
         print('forward: dtype={} diff: {}'.format(dtype, np.abs(lhs - rhs)))
         self.assertTrue(np.abs(lhs - rhs) < 1e-3)
 
-        Ap = optoth.pad3d.pad3d_transpose(p, pad, mode)
+        Ap = optoth.pad.pad3d_transpose(p, pad, mode)
         ATx = torch.autograd.grad(Ap, p, x)[0]
 
         lhs = (Ap * x).sum().item()
