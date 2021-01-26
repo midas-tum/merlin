@@ -1,5 +1,5 @@
 import torch
-import optoth.pad3d
+import optoth.pad
 
 import numpy as np
 

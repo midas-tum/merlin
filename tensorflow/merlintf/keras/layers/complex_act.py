@@ -32,13 +32,13 @@ def Activation(identifier):
                 identifier))
 
 def deserialize(act):
-    if act == 'ModReLU':
+    if act == 'ModReLU' or act == 'modrelu':
         return ModReLU()
-    elif act == 'cPReLU':
+    elif act == 'cPReLU' or act == 'cprelu':
         return cPReLU()
-    elif act == 'cReLU':
+    elif act == 'cReLU' or act == 'crelu':
         return cReLU()
-    elif act == 'ModPReLU':
+    elif act == 'ModPReLU' or act == 'modprelu':
         return ModPReLU()
     elif act == 'hard_sigmoid':
         return HardSigmoid()

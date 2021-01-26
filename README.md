@@ -1,7 +1,21 @@
 # MERLIN - Machine Enhanced Reconstruction Learning and Interpretation Networks
 
 This repository contains machine learning (ML) tools for pytorch, tensorflow, python.
-Pytorch and Tensorflow contain following folders:
+Tensorflow `merlintf.keras` contains following folders
+- `layers` basic building blocks, focusing on complex valued operations
+    - Complex-valued convolutions
+    - Complex-valued activations
+    - FFT operations
+    - Data consistency
+    - ...
+- `models` several layers are put together into networks for complex-valued processing (2-channel-real networks, complex networks)
+    - Convolutional Neural Network
+    - Fields-of-Experts regularizer
+    - UNet
+- `optimizers` contains custom optimizers
+
+
+Pytorch `merlinth` contains following folders (not restructured yet):
 - `optim`: Custom optimizer such as BlockAdam
 - `ddr_complex`: Data-driven regularizer following [this repository](https://github.com/VLOGroup/tdv), extended to complex-valued layers
 
@@ -28,7 +42,7 @@ chmod 700 install.sh
 Run unittests to ensure proper working of sub-modules
 ```
 cd tensorflow
-python3 -m unittest merlintf.ddr_complex.complex_pool
+python3 -m unittest merlintf.keras.layers.complex_pool
 ```
 
 ## Common mistakes and best practices in writing own keras modules and layers

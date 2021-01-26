@@ -1,6 +1,5 @@
 import torch
 import torch.nn.functional as F
-import optoth.pad2d
 
 import numpy as np
 

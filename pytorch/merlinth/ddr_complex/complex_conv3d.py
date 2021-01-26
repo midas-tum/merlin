@@ -1,7 +1,7 @@
 
 import torch
 import torch.nn.functional as F
-import optoth.pad3d
+import optoth.pad
 
 import numpy as np
 
@@ -100,7 +100,7 @@ class Conv3d(torch.nn.Module):
         pad_t = weight.shape[-3]//2
 
         if pad_sp_x > 0 or pad_sp_y > 0 or pad_t > 0:
-            x = optoth.pad3d.pad3d(x, (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
+            x = optoth.pad.pad3d(x, (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
 
         # compute the convolution
         return torch.nn.functional.conv3d(x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
@@ -129,7 +129,7 @@ class Conv3d(torch.nn.Module):
 
         # compute the convolution
         if pad_sp_x > 0 or pad_sp_y > 0 or pad_t > 0:
-            x = optoth.pad3d.pad3d_transpose(x, (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
+            x = optoth.pad.pad3d_transpose(x, (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
         return x
 
     def extra_repr(self):
@@ -277,8 +277,8 @@ class ComplexConv3d(torch.nn.Module):
         return torch.cat([convT_re.unsqueeze_(-1), convT_im.unsqueeze_(-1)], -1)
 
     def complex_pad3d(self, x, pad_sp_x, pad_sp_y, pad_t):
-        xp_re = optoth.pad3d.pad3d(x[...,0].contiguous(), (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
-        xp_im = optoth.pad3d.pad3d(x[...,1].contiguous(), (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
+        xp_re = optoth.pad.pad3d(x[...,0].contiguous(), (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
+        xp_im = optoth.pad.pad3d(x[...,1].contiguous(), (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
 
         new_shape = list(xp_re.shape)
         new_shape.append(2)
@@ -289,8 +289,8 @@ class ComplexConv3d(torch.nn.Module):
         return xp
 
     def complex_pad3d_transpose(self, x, pad_sp_x, pad_sp_y, pad_t):
-        xp_re = optoth.pad3d.pad3d_transpose(x[...,0].contiguous(), (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
-        xp_im = optoth.pad3d.pad3d_transpose(x[...,1].contiguous(), (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
+        xp_re = optoth.pad.pad3d_transpose(x[...,0].contiguous(), (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
+        xp_im = optoth.pad.pad3d_transpose(x[...,1].contiguous(), (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
 
         new_shape = list(xp_re.shape)
         new_shape.append(2)

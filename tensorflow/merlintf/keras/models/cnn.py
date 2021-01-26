@@ -1,6 +1,6 @@
 import tensorflow as tf
 import merlintf
-  
+import unittest
 class ComplexCNN(tf.keras.Model):
     def __init__(self, dim=2, nf=64, ksz=3, num_layer=5, 
                        activation='ModReLU', use_bias=True,
@@ -46,21 +46,98 @@ class Real2chCNN(tf.keras.Model):
         else:
             raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
 
+        kernel_initializer = kwargs.pop('kernel_initializer', 'glorot_uniform')
+
         # create layers
         self.ops = []
-        for _ in range(num_layer):
+        for _ in range(num_layer-1):
             self.ops.append(conv_layer(nf, ksz,
                                         use_bias=use_bias,
                                         activation=activation,
+                                        kernel_initializer=kernel_initializer,
                                         padding='same',))
 
         self.ops.append(conv_layer(2, ksz,
                                     use_bias=False,
                                     padding='same',
-                                    activation=None))
+                                    activation=None,
+                                    kernel_initializer=kernel_initializer))
 
     def call(self, inputs):
         x = merlintf.complex2real(inputs)
         for op in self.ops:
             x = op(x)
         return merlintf.real2complex(x)
+
+
+class Real2chCNNTest(unittest.TestCase):
+    def test_cnn_real2ch_2d(self):
+        self._test_cnn_real2ch(2, 3)
+
+    def test_cnn_real2ch_2d_2(self):
+        self._test_cnn_real2ch(2, (3,5))
+
+    def test_cnn_real2ch_3d(self):
+        self._test_cnn_real2ch(3, (3, 5, 5))
+
+    def _test_cnn_real2ch(self, dim, ksz):
+        nBatch = 5
+        D = 20
+        M = 128
+        N = 128
+
+        config = {
+            'dim': dim,
+            'nf': 64,
+            'ksz': ksz,
+            'num_layer': 5,
+            'activation': 'relu'
+        }
+
+        model = Real2chCNN(**config)
+
+        if dim == 2:
+            x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
+        elif dim == 3 or dim == '2dt':
+            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
+        else:
+            raise RuntimeError(f'No implementation for dim {dim} available!')
+        
+        Kx = model(x)
+        self.assertTrue(Kx.shape == x.shape)
+
+class ComplexCNNTest(unittest.TestCase):
+    def test_cnn_complex_2d(self):
+        self._test_cnn_complex(2, 3, 'crelu')
+
+    def test_cnn_complex_2d_2(self):
+        self._test_cnn_complex(2, (3,5), 'ModReLU')
+
+    def test_cnn_complex_3d(self):
+        self._test_cnn_complex(3, (3, 5, 5), 'ModReLU')
+
+    def _test_cnn_complex(self, dim, ksz, activation):
+        nBatch = 5
+        D = 20
+        M = 128
+        N = 128
+
+        config = {
+            'dim': dim,
+            'nf': 64,
+            'ksz': ksz,
+            'num_layer': 5,
+            'activation': activation
+        }
+
+        model = ComplexCNN(**config)
+
+        if dim == 2:
+            x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
+        elif dim == 3 or dim == '2dt':
+            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
+        else:
+            raise RuntimeError(f'No implementation for dim {dim} available!')
+        
+        Kx = model(x)
+        self.assertTrue(Kx.shape == x.shape)
