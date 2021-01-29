@@ -28,11 +28,13 @@ def deserialize(op):
         raise ValueError(f"Selected operation '{conv}' not implemented in complex convolutional")
 
 class MagnitudeMaxPool(tf.keras.layers.Layer):
-    def __init__(self, pool_size, strides, padding='SAME'):
+    def __init__(self, pool_size, strides=None, padding='SAME'):
         super(MagnitudeMaxPool, self).__init__()
         #assert isinstance(ksize, int)
         #assert isinstance(strides, int)
         self.pool_size = pool_size
+        if strides is None:
+            strides = pool_size
         self.strides = strides
         self.padding =  padding
 
@@ -45,19 +47,19 @@ class MagnitudeMaxPool(tf.keras.layers.Layer):
         return x_pool
 
 class MagnitudeMaxPool1D(MagnitudeMaxPool):
-    def __init__(self, pool_size, strides, padding='SAME'):
+    def __init__(self, pool_size, strides=None, padding='SAME'):
         super(MagnitudeMaxPool1D, self).__init__(pool_size, strides, padding)
 
 class MagnitudeMaxPool2D(MagnitudeMaxPool):
-    def __init__(self, pool_size, strides, padding='SAME'):
+    def __init__(self, pool_size, strides=None, padding='SAME'):
         super(MagnitudeMaxPool2D, self).__init__(pool_size, strides, padding)
 
 class MagnitudeMaxPool3D(MagnitudeMaxPool):
-    def __init__(self, pool_size, strides, padding='SAME'):
+    def __init__(self, pool_size, strides=None, padding='SAME'):
         super(MagnitudeMaxPool3D, self).__init__(pool_size, strides, padding)
 
 class MagnitudeMaxPool2Dt(MagnitudeMaxPool):
-    def __init__(self, pool_size, strides, padding='SAME'):
+    def __init__(self, pool_size, strides=None, padding='SAME'):
         super(MagnitudeMaxPool2Dt, self).__init__(pool_size, strides, padding)
 
     def call(self, x):
