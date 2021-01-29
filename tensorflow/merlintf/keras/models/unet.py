@@ -4,17 +4,18 @@ import merlintf
 import unittest
 import numpy as np
 
-class ComplexUNet(tf.keras.Model):
-    def __init__(self, dim='2D', nf=64, ksz=3, num_layer_per_level=2, num_level=4,
-                       activation='ModReLU', use_bias=True,
+class UNet(tf.keras.Model):
+    def __init__(self, dim='2D', nf=64, ksz=3, dsz=2, num_layer_per_level=2, num_level=4,
+                       activation='relu', use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
-                       name='ComplexUNet', **kwargs):
+                       name='UNet', **kwargs):
         """
-        Builds the 2D/2D+t/3D/3D+t/4D UNet model
+        Abstract class for 2D/2D+t/3D/3D+t/4D UNet model
         input parameter:
         dim                         [string] operating dimension
         nf                          [integer, tuple] number of filters at the base level, dyadic increase
         ksz                         [integer, tuple] kernel size
+        dsz                         [integer, tuple] downsampling/upsampling operator size
         num_layer_per_level         number of convolutional layers per encocer/decoder level
         num_level                   amount of encoder/decoder stages (excluding bottleneck layer), network depth
         activation                  activation function
@@ -25,156 +26,301 @@ class ComplexUNet(tf.keras.Model):
         """
         super().__init__(name=name)
 
-        # get correct conv operator
-        conv_layer = merlintf.keras.layers.ComplexConvolution(dim)
+        # validate input dimensions
+        self.ksz = merlintf.keras.utils.validate_input_dimension(dim, ksz)
+        self.dsz = merlintf.keras.utils.validate_input_dimension(dim, dsz)
 
-        # get normalitzation operator
-        activation_last = activation
+        self.num_level = num_level
+        self.num_layer_per_level = num_layer_per_level
+        self.nf = nf
+        self.use_bias = use_bias
+        self.activation = activation
+        self.normalization = normalization
+        self.downsampling = downsampling
+        self.upsampling = upsampling
+
+    def create_layers(self):
+        # ------------- #
+        # create layers #
+        # ------------- #
+        self.ops = []
+        # encoder
+        stage = []
+        for ilevel in range(self.num_level):
+            level = []
+            for ilayer in range(self.num_layer_per_level):
+                level.append(self.conv_layer(self.nf * (2**ilevel), self.ksz,
+                                           strides=self.strides[ilayer],
+                                           use_bias=self.use_bias,
+                                           activation=self.activation,
+                                           padding='same'))
+                level.append(self.norm_layer)
+                level.append(self.activation_layer)
+
+            if self.downsampling == 'mp':
+                level.append(self.down_layer(pool_size=self.dsz))
+            else:
+                level.append(self.down_layer)
+            stage.append(level)
+        self.ops.append(stage)
+
+        # bottleneck
+        stage = []
+        for ilayer in range(self.num_layer_per_level):
+            stage.append(self.conv_layer(self.nf * (2 ** (self.num_level)), self.ksz,
+                                       strides=self.strides[ilayer],
+                                       use_bias=self.use_bias,
+                                       activation=self.activation,
+                                       padding='same'))
+            stage.append(self.norm_layer)
+            stage.append(self.activation_layer)
+        if self.upsampling == 'us':
+            stage.append(self.up_layer(dsz))
+        elif self.upsampling == 'tc':
+            stage.append(self.up_layer(self.nf * (2 ** (self.num_level-1)), self.ksz,
+                                       strides=self.dsz,
+                                       use_bias=self.use_bias,
+                                       activation=self.activation,
+                                       padding='same'))
+        self.ops.append(stage)
+
+        # decoder
+        stage = []
+        for ilevel in range(self.num_level-1, -1, -1):
+            level = []
+            for ilayer in range(self.num_layer_per_level):
+                level.append(self.conv_layer(self.nf * (2 ** ilevel), self.ksz,
+                                           strides=1,
+                                           use_bias=self.use_bias,
+                                           activation=self.activation,
+                                           padding='same'))
+                level.append(self.norm_layer)
+                level.append(self.activation_layer)
+
+            if ilevel > 0:
+                if self.upsampling == 'us':
+                    level.append(self.up_layer(self.dsz))
+                elif self.upsampling == 'tc':
+                    level.append(self.up_layer(self.nf * (2 ** (ilevel-1)), self.ksz,
+                                          strides=self.dsz,
+                                          use_bias=self.use_bias,
+                                          activation=self.activation,
+                                          padding='same'))
+            stage.append(level)
+        self.ops.append(stage)
+
+        # output convolution
+        self.ops.append(self.conv_layer(self.out_cha, 1, strides=1,
+                                           use_bias=self.use_bias,
+                                           activation=self.activation_last,
+                                           padding='same'))
+
+    def call(self, inputs):
+        x = inputs
+        xforward = []
+        # encoder
+        for ilevel in range(self.num_level):
+            for iop, op in enumerate(self.ops[0][ilevel]):
+                if iop == len(self.ops[0][ilevel]) - 1:
+                    xforward.append(x)
+                if op is not None:
+                    x = op(x)
+
+        # bottleneck
+        for op in self.ops[1]:
+            if op is not None:
+                x = op(x)
+
+        # decoder
+        for ilevel in range(self.num_level - 1, -1, -1):
+            x = tf.keras.layers.concatenate([x, xforward[ilevel]])
+            for op in self.ops[2][self.num_level - 1 - ilevel]:
+                if op is not None:
+                    x = op(x)
+
+        # output convolution
+        x = self.ops[3](x)
+        return x
+
+class Real2chUNet(UNet):
+    def __init__(self, dim='2D', nf=64, ksz=3, dsz=2, num_layer_per_level=2, num_level=4,
+                       activation='relu', use_bias=True,
+                       normalization='none', downsampling='mp', upsampling='tc',
+                       name='Real2chUNet', **kwargs):
+        """
+        Builds the real-valued 2D/2D+t/3D/3D+t/4D UNet model
+        """
+        super().__init__(dim, nf, ksz, dsz, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name)
+
+        # get correct conv operator
+        if dim == '2D':
+            self.conv_layer = tf.keras.layers.Conv2D
+        elif dim == '3D':
+            self.conv_layer = tf.keras.layers.Conv3D
+        else:
+            raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
+
+        # output convolution
+        self.activation_last = activation
+        self.out_cha = 2
+
+        # get normalization operator
         if normalization == 'BN':
-            norm_layer = merlintf.keras.layers.ComplexBatchNormalization
-            activation_layer = merlintf.keras.layers.Activation(activation)
-            activation = ''
+            self.norm_layer = tf.keras.layers.BatchNormalization
+            self.activation_layer = tf.keras.layers.Activation(activation)
+            self.activation = ''
         elif normalization == 'IN':
-            norm_layer = merlintf.keras.layers.ComplexInstanceNormalization
-            activation_layer = merlintf.keras.layers.Activation(activation)
-            activation = ''
+            self.norm_layer = tf.keras.layers.InstanceNormalization
+            self.activation_layer = tf.keras.layers.Activation(activation)
+            self.activation = ''
         elif normalization == 'none':
-            norm_layer = None
-            activation_layer = None
+            self.norm_layer = None
+            self.activation_layer = None
+            self.activation = activation
         else:
             raise RuntimeError(f"Normalization for {normalization} not implemented!")
 
         # get downsampling operator
         if downsampling == 'mp':
-            down_layer = merlintf.keras.layers.MagnitudeMaxPooling(dim)
-            strides = [1] * num_layer_per_level
+            if dim == '2D':
+                self.down_layer = tf.keras.layers.MaxPool2D
+            elif dim == '3D':
+                self.down_layer = tf.keras.layers.MaxPool3D
+            else:
+                raise RuntimeError(f"MaxPooling for dim={dim} not implemented!")
+            self.strides = [1] * num_layer_per_level
         elif downsampling == 'st':
-            down_layer = None
-            strides = [1] * (num_layer_per_level-1) + [2]
+            self.down_layer = None
+            self.strides = [1] * (num_layer_per_level - 1) + [2]
         else:
             raise RuntimeError(f"Downsampling operation {downsampling} not implemented!")
 
         # get upsampling operator
         if upsampling == 'us':
-            up_layer = merlintf.keras.layers.UpSampling(dim)  # TODO check if working for complex
+            if dim == '2D':
+                self.up_layer = tf.keras.layers.UpSampling2D
+            elif dim == '3D':
+                self.up_layer = tf.keras.layers.UpSampling3D
+            else:
+                raise RuntimeError(f"Upsampling for dim={dim} not implemented!")
         elif upsampling == 'tc':
-            up_layer = merlintf.keras.layers.ComplexConvolutionTranspose(dim)
+            if dim == '2D':
+                self.up_layer = tf.keras.layers.Conv2DTranspose
+            elif dim == '3D':
+                self.up_layer = tf.keras.layers.Conv3DTranspose
+            else:
+                raise RuntimeError(f"Transposed convlutions for dim={dim} not implemented!")
         else:
             raise RuntimeError(f"Upsampling operation {upsampling} not implemented!")
 
-        self.num_level = num_level
-        self.num_layer_per_level = num_layer_per_level
-        # create layers
-        self.ops = []
-        # encoder
-        stage = []
-        for ilevel in range(num_level):
-            level = []
-            for ilayer in range(num_layer_per_level):
-                level.append(conv_layer(nf * (2**ilevel), ksz,
-                                           stride=strides[ilayer],
-                                           use_bias=use_bias,
-                                           activation=activation,
-                                           padding='same'))
-                level.append(norm_layer)
-                level.append(activation_layer)
+        super().create_layers()
 
-            level.append(down_layer)
-            stage.ops.append(level)
-        self.ops.append(stage)
+    def call(self, inputs):
+        x = merlintf.complex2real(inputs)
+        x = super().call(x)
+        return merlintf.real2complex(x)
 
-        # bottleneck
-        stage = []
-        for ilayer in range(num_layer_per_level):
-            stage.append(conv_layer(nf * (2 ** (num_level+1)), ksz,
-                                       stride=strides[ilayer],
-                                       use_bias=use_bias,
-                                       activation=activation,
-                                       padding='same'))
-            stage.append(norm_layer)
-            stage.append(activation_layer)
-        stage.append(up_layer)
-        self.ops.append(stage)
+class ComplexUNet(UNet):
+    def __init__(self, dim='2D', nf=64, ksz=3, dsz=2, num_layer_per_level=2, num_level=4,
+                       activation='ModReLU', use_bias=True,
+                       normalization='none', downsampling='mp', upsampling='tc',
+                       name='ComplexUNet', **kwargs):
+        """
+        Builds the complex-valued 2D/2D+t/3D/3D+t/4D UNet model
+        """
+        super().__init__(dim, nf, ksz, dsz, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name)
 
-        # decoder
-        stage = []
-        for ilevel in range(num_level, -1, -1):
-            level = []
-            for ilayer in range(num_layer_per_level):
-                level.append(conv_layer(nf * (2 ** ilevel), ksz,
-                                           stride=1,
-                                           use_bias=use_bias,
-                                           activation=activation,
-                                           padding='same'))
-                level.append(norm_layer)
-                level.append(activation_layer)
-
-            if ilevel > 0:
-                level.append(up_layer)
-            stage.append(level)
-        self.ops.append(stage)
+        # get correct conv operator
+        self.conv_layer = merlintf.keras.layers.ComplexConvolution(dim)
 
         # output convolution
-        self.ops.append(conv_layer(1, 1, stride=1,
-                                           use_bias=use_bias,
-                                           activation=activation_last,
-                                           padding='same')))
+        self.activation_last = activation
+        self.out_cha = 1
 
-        def call(self, inputs):
-            x = inputs
-            xforward = []
-            # encoder
-            for ilevel in range(self.num_level):
-                for iop, op in enumerate(self.ops[0][ilevel]):
-                    if op is not None:
-                        x = op(x)
-                    if iop == len(self.ops[0][ilevel])-1:
-                        xforward.append(x)
+        # get normalization operator
+        if normalization == 'BN':
+            self.norm_layer = merlintf.keras.layers.ComplexBatchNormalization
+            self.activation_layer = merlintf.keras.layers.Activation(activation)
+            self.activation = ''
+        elif normalization == 'IN':
+            self.norm_layer = merlintf.keras.layers.ComplexInstanceNormalization
+            self.activation_layer = merlintf.keras.layers.Activation(activation)
+            self.activation = ''
+        elif normalization == 'none':
+            self.norm_layer = None
+            self.activation_layer = None
+            self.activation = activation
+        else:
+            raise RuntimeError(f"Normalization for {normalization} not implemented!")
 
-            # bottleneck
-            for op in self.ops[1]
-                if op is not None:
-                    x = op(x)
+        # get downsampling operator
+        if downsampling == 'mp':
+            self.down_layer = merlintf.keras.layers.MagnitudeMaxPooling(dim)
+            self.strides = [1] * num_layer_per_level
+        elif downsampling == 'st':
+            self.down_layer = None
+            self.strides = [1] * (num_layer_per_level-1) + [2]
+        else:
+            raise RuntimeError(f"Downsampling operation {downsampling} not implemented!")
 
-            # decoder
-            for ilevel in range(self.num_level, -1, -1):
-                x = tf.keras.layer.concatenate([x, xforward[ilevel]])
-                for op in self.ops[2][self.num_level-ilevel]:
-                    if op is not None:
-                        x = op(x)
+        # get upsampling operator
+        if upsampling == 'us':
+            self.up_layer = merlintf.keras.layers.UpSampling(dim)  # TODO check if working for complex
+        elif upsampling == 'tc':
+            self.up_layer = merlintf.keras.layers.ComplexConvolutionTranspose(dim)
+        else:
+            raise RuntimeError(f"Upsampling operation {upsampling} not implemented!")
 
-            # output convolution
-            x = self.ops[3](x)
-            return x
+        super().create_layers()
 
 
 class ComplexUNetTest(unittest.TestCase):
+    def test_UNet_2chreal_2d(self):
+        self._test_UNet('2D', 64, (3, 3), complex_network=False, complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), complex_network=False, complex_input=True)
+
     def test_UNet_complex_2d(self):
-        self._test_UNet_complex('2D', 64, (3, 3))
+        self._test_UNet('2D', 64, (3, 3), complex_network=True, complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), complex_network=True, complex_input=True)
 
-    def test_FoE_real_3d(self):
-        self._test_UNet_complex('3D', 32, (3, 5, 5))
+    def test_UNet_2chreal_3d(self):
+        self._test_UNet('3D', 32, (3, 3, 3), complex_network=False, complex_input=False)
+        self._test_UNet('3D', 32, (3, 3, 3), complex_network=False, complex_input=True)
 
-    def _test_UNet_complex(self, dim, nf, ksz):
+    #def test_UNet_complex_3d(self):
+    #    self._test_UNet('3D', 32, (3, 3, 3), complex_network=True, complex_input=False)
+    #    self._test_UNet('3D', 32, (3, 3, 3), complex_network=True, complex_input=True)
+
+    def _test_UNet(self, dim, nf, ksz, complex_network=True, complex_input=True):
+        gpus = tf.config.experimental.list_physical_devices('GPU')
+        tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
+        tf.config.experimental.set_memory_growth(gpus[0], True)
+
         nBatch = 5
-        D = 20
+        D = 32
         M = 128
         N = 128
-        nf_in = 10
-        nw = 31
 
-        model = ComplexUNet(dim, nf, ksz)
+        if complex_network:
+            model = ComplexUNet(dim, nf, ksz)
+        else:
+            model = Real2chUNet(dim, nf, ksz)
 
         if dim == '2D':
-            x = tf.random.normal((nBatch, M, N, 1), dtype=tf.float32)
+            if complex_input:
+                x = merlintf.random_normal_complex((nBatch, M, N, 1), dtype=tf.float32)
+            else:
+                x = tf.random.normal((nBatch, M, N, 1), dtype=tf.float32)
         elif dim == '3D' or dim == '2Dt':
-            x = tf.random.normal((nBatch, D, M, N, 1), dtype=tf.float32)
+            if complex_input:
+                x = merlintf.random_normal_complex((nBatch, D, M, N, 1), dtype=tf.float32)
+            else:
+                x = tf.random.normal((nBatch, D, M, N, 1), dtype=tf.float32)
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
 
         Kx = model(x)
         self.assertTrue(Kx.shape == x.shape)
-
 
 if __name__ == "__main__":
     unittest.test()
