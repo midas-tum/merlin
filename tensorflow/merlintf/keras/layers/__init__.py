@@ -25,3 +25,9 @@ from merlintf.keras.layers.complex_act import Activation
 from merlintf.keras.layers.data_consistency import DCGD
 from merlintf.keras.layers.data_consistency import DCPM
 from merlintf.keras.layers.common import Scalar
+from merlintf.keras.layers.mri import MulticoilForwardOp
+from merlintf.keras.layers.mri import MulticoilAdjointOp
+from merlintf.keras.layers.fft import FFT2
+from merlintf.keras.layers.fft import FFT2c
+from merlintf.keras.layers.fft import IFFT2
+from merlintf.keras.layers.fft import IFFT2c

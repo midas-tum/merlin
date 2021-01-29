@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from .conv2d import Conv2d
 from .complex_init import *
-import optoth.pad2d
+import optoth.pad
 
 import numpy as np
 
@@ -243,8 +243,8 @@ class ComplexPadConv2d(torch.nn.Module):
         return torch.cat([convT_re.unsqueeze_(-1), convT_im.unsqueeze_(-1)], -1)
 
     def complex_pad2d(self, x, pad):
-        xp_re = optoth.pad2d.pad2d(x[...,0].contiguous(), (pad,pad,pad,pad), mode='symmetric')
-        xp_im = optoth.pad2d.pad2d(x[...,1].contiguous(), (pad,pad,pad,pad), mode='symmetric')
+        xp_re = optoth.pad.pad2d(x[...,0].contiguous(), (pad,pad,pad,pad), mode='symmetric')
+        xp_im = optoth.pad.pad2d(x[...,1].contiguous(), (pad,pad,pad,pad), mode='symmetric')
 
         new_shape = list(xp_re.shape)
         new_shape.append(2)
@@ -255,8 +255,8 @@ class ComplexPadConv2d(torch.nn.Module):
         return xp
 
     def complex_pad2d_transpose(self, x, pad):
-        xp_re = optoth.pad2d.pad2d_transpose(x[...,0].contiguous(), (pad,pad,pad,pad), mode='symmetric')
-        xp_im = optoth.pad2d.pad2d_transpose(x[...,1].contiguous(), (pad,pad,pad,pad), mode='symmetric')
+        xp_re = optoth.pad.pad2d_transpose(x[...,0].contiguous(), (pad,pad,pad,pad), mode='symmetric')
+        xp_im = optoth.pad.pad2d_transpose(x[...,1].contiguous(), (pad,pad,pad,pad), mode='symmetric')
 
         new_shape = list(xp_re.shape)
         new_shape.append(2)
@@ -335,7 +335,7 @@ class PseudoComplexPadConv2d(ComplexPadConv2d):
         # then pad
         pad = weight.shape[-1]//2
         if pad > 0:
-            x = optoth.pad2d.pad2d(x, (pad,pad,pad,pad), mode='symmetric')
+            x = optoth.pad.pad2d(x, (pad,pad,pad,pad), mode='symmetric')
 
         # compute the convolution
         return torch.nn.functional.conv2d(x,
@@ -371,7 +371,7 @@ class PseudoComplexPadConv2d(ComplexPadConv2d):
 
         pad = weight.shape[-1]//2
         if pad > 0:
-            x = optoth.pad2d.pad2d_transpose(x, (pad,pad,pad,pad), mode='symmetric')
+            x = optoth.pad.pad2d_transpose(x, (pad,pad,pad,pad), mode='symmetric')
         return x
 
 class ComplexPadConvScale2d(ComplexPadConv2d):
