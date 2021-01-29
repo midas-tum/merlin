@@ -1,4 +1,3 @@
-
 import os
 import datetime
 import tensorflow as tf
@@ -19,6 +18,23 @@ class ToKerasIO():
         for key in self.output_keys:
             outputs.append(sample[key])
         return inputs, outputs
+
+def validate_input_dimension(dim, param):
+    if dim == '2D':
+        n_dim = 2
+    elif dim == '3D':
+        n_dim = 3
+    elif dim == '2Dt':
+        n_dim = 3
+    elif dim == '3Dt':
+        n_dim = 4
+    if isinstance(param, tuple) or isinstance(param, list):
+        if not len(param) == n_dim:
+            raise RuntimeError("Parameter dimensions {} do not match requested dimensions {}!".format(len(param), n_dim))
+        else:
+            return param
+    else:
+        return tuple([param for _ in range(n_dim)])
 
 def get_callbacks(validation_generator, model, logdir, flip_images = False):
     # Reshape the image for the Summary API.
