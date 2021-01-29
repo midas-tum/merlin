@@ -55,9 +55,9 @@ class FoEBase(Regularizer):
 class FoE(FoEBase):
     def __init__(self, config=None):
         super().__init__(config=config)
-        if config['dim'] == 2:
+        if config['dim'] == '2D':
                 self.K1 = PadConv2D(**self.config["K1"])
-        elif config['dim'] == 3:
+        elif config['dim'] == '3D':
             self.K1 = PadConv3D(**self.config["K1"])
         else:
             raise RuntimeError(f"FoE regularizer not defined for {config['dim']}!")
@@ -78,11 +78,11 @@ class PolarFoE(FoEBase):
         super(PolarFoE, self).__init__(config=config)
 
         # setup the modules
-        if config['dim'] == 2:
+        if config['dim'] == '2D':
             self.K1 = ComplexPadConv2D(**self.config["K1"])
-        elif config['dim'] == 3:
+        elif config['dim'] == '3D':
             self.K1 = ComplexPadConv3D(**self.config['K1'])
-        elif config['dim'] == '2dt':
+        elif config['dim'] == '2Dt':
             self.K1 = ComplexPadConv2Dt(**self.config["K1"])
         else:
             raise RuntimeError(f"FoE regularizer not defined for {config['dim']}!")
@@ -104,11 +104,11 @@ class MagnitudeFoE(FoEBase):
         super(MagnitudeFoE, self).__init__(config=config)
 
         # setup the modules
-        if config['dim'] == 2:
+        if config['dim'] == '2D':
             self.K1 = ComplexPadConv2D(**self.config["K1"])
-        elif config['dim'] == 3:
+        elif config['dim'] == '3D':
             self.K1 = ComplexPadConv3D(**self.config['K1'])
-        elif config['dim'] == '2dt':
+        elif config['dim'] == '2Dt':
             self.K1 = ComplexPadConv2Dt(**self.config["K1"])
         else:
             raise RuntimeError(f"FoE regularizer not defined for {config['dim']}!")
@@ -130,11 +130,11 @@ class ComplexFoE(FoEBase):
         super(ComplexFoE, self).__init__(config=config)
 
         # setup the modules
-        if config['dim'] == 2:
+        if config['dim'] == '2D':
             self.K1 = ComplexPadConv2D(**self.config["K1"])
-        elif config['dim'] == 3:
+        elif config['dim'] == '3D':
             self.K1 = ComplexPadConv3D(**self.config['K1'])
-        elif config['dim'] == '2dt':
+        elif config['dim'] == '2Dt':
             self.K1 = ComplexPadConv2Dt(**self.config["K1"])
         else:
             raise RuntimeError(f"FoE regularizer not defined for {config['dim']}!")
@@ -196,9 +196,9 @@ class PolarFoETest(unittest.TestCase):
 
         model = PolarFoE(config)
 
-        if dim == 2:
+        if dim == '2D':
             x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
-        elif dim == 3 or dim == '2dt':
+        elif dim == '3D' or dim == '2Dt':
             x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
@@ -214,7 +214,7 @@ class MagnitudeFoETest(unittest.TestCase):
         self._test_FoE_magnitude(3, (3, 5, 5))
 
     def test_FoE_magnitude_2dt(self):
-        self._test_FoE_magnitude('2dt', (5, 7, 7))
+        self._test_FoE_magnitude('2Dt', (5, 7, 7))
 
     def _test_FoE_magnitude(self, dim, kernel_size):
         nBatch = 5
@@ -241,14 +241,14 @@ class MagnitudeFoETest(unittest.TestCase):
                 'init_scale': 0.01,
             },
         }
-        if dim == '2dt':
+        if dim == '2Dt':
             config['K1'].update({'intermediate_filters' : nf_in})
 
         model = MagnitudeFoE(config)
 
-        if dim == 2:
+        if dim == '2D':
             x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
-        elif dim == 3 or dim == '2dt':
+        elif dim == '3D' or dim == '2Dt':
             x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')        
@@ -291,14 +291,14 @@ class ComplexFoETest(unittest.TestCase):
                 'init_scale': 0.01,
             },
         }
-        if dim == '2dt':
+        if dim == '2Dt':
             config['K1'].update({'intermediate_filters' : nf_in})
 
         model = ComplexFoE(config)
 
-        if dim == 2:
+        if dim == '2D':
             x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
-        elif dim == 3 or dim == '2dt':
+        elif dim == '3D' or dim == '2Dt':
             x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
@@ -338,14 +338,14 @@ class Real2chFoETest(unittest.TestCase):
                 'init_scale': 0.01,
             },
         }
-        if dim == '2dt':
+        if dim == '2Dt':
             config['K1'].update({'intermediate_filters' : nf_in})
 
         model = Real2chFoE(config)
 
-        if dim == 2:
+        if dim == '2D':
             x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
-        elif dim == 3 or dim == '2dt':
+        elif dim == '3D' or dim == '2Dt':
             x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
@@ -385,14 +385,14 @@ class RealFoETest(unittest.TestCase):
                 'init_scale': 0.01,
             },
         }
-        if dim == '2dt':
+        if dim == '2Dt':
             config['K1'].update({'intermediate_filters' : nf_in})
 
         model = FoE(config)
 
-        if dim == 2:
+        if dim == '2D':
             x = tf.random.normal((nBatch, M, N, 1), dtype=tf.float32)
-        elif dim == 3 or dim == '2dt':
+        elif dim == '3D' or dim == '2Dt':
             x = tf.random.normal((nBatch, D, M, N, 1), dtype=tf.float32)
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
