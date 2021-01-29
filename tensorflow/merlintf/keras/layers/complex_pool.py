@@ -28,39 +28,39 @@ def deserialize(op):
         raise ValueError(f"Selected operation '{conv}' not implemented in complex convolutional")
 
 class MagnitudeMaxPool(tf.keras.layers.Layer):
-    def __init__(self, ksize, strides, padding='SAME'):
+    def __init__(self, pool_size, strides, padding='SAME'):
         super(MagnitudeMaxPool, self).__init__()
         #assert isinstance(ksize, int)
         #assert isinstance(strides, int)
-        self.ksize = ksize
+        self.pool_size = pool_size
         self.strides = strides
         self.padding =  padding
 
-    def call(self, x, ):
+    def call(self, x):
         xabs = merlintf.complex_abs(x)
         _, idx = tf.nn.max_pool_with_argmax(
-    xabs, self.ksize, self.strides, self.padding, include_batch_in_index=True)
+    xabs, self.pool_size, self.strides, self.padding, include_batch_in_index=True)
         x_pool = tf.reshape(tf.gather(tf.reshape(x,shape= [-1,]),idx), shape=idx.shape)
 
         return x_pool
 
 class MagnitudeMaxPool1D(MagnitudeMaxPool):
-    def __init__(self, ksize, strides, padding='SAME'):
-        super(MagnitudeMaxPool1D, self).__init__(ksize, strides, padding)
+    def __init__(self, pool_size, strides, padding='SAME'):
+        super(MagnitudeMaxPool1D, self).__init__(pool_size, strides, padding)
 
 class MagnitudeMaxPool2D(MagnitudeMaxPool):
-    def __init__(self, ksize, strides, padding='SAME'):
-        super(MagnitudeMaxPool2D, self).__init__(ksize, strides, padding)
+    def __init__(self, pool_size, strides, padding='SAME'):
+        super(MagnitudeMaxPool2D, self).__init__(pool_size, strides, padding)
 
 class MagnitudeMaxPool3D(MagnitudeMaxPool):
-    def __init__(self, ksize, strides, padding='SAME'):
-        super(MagnitudeMaxPool3D, self).__init__(ksize, strides, padding)
+    def __init__(self, pool_size, strides, padding='SAME'):
+        super(MagnitudeMaxPool3D, self).__init__(pool_size, strides, padding)
 
 class MagnitudeMaxPool2Dt(MagnitudeMaxPool):
-    def __init__(self, ksize, strides, padding='SAME'):
-        super(MagnitudeMaxPool2Dt, self).__init__(ksize, strides, padding)
+    def __init__(self, pool_size, strides, padding='SAME'):
+        super(MagnitudeMaxPool2Dt, self).__init__(pool_size, strides, padding)
 
-    def call(self, x, ):
+    def call(self, x):
         orig_shape = x.shape
         rank = tf.rank(x)
         batched_shape = [x.shape[0]*x.shape[1], x.shape[2], x.shape[3], x.shape[4]]
@@ -68,7 +68,7 @@ class MagnitudeMaxPool2Dt(MagnitudeMaxPool):
 
         xabs = merlintf.complex_abs(x)
         _, idx = tf.nn.max_pool_with_argmax(
-    xabs, self.ksize, self.strides, self.padding, include_batch_in_index=True)
+    xabs, self.pool_size, self.strides, self.padding, include_batch_in_index=True)
         x_pool = tf.reshape(tf.gather(tf.reshape(x,shape= [-1,]),idx), shape=idx.shape)
 
         pooled_shape = [orig_shape[0], orig_shape[1], x_pool.shape[1], x_pool.shape[2], orig_shape[-1]]
@@ -76,9 +76,9 @@ class MagnitudeMaxPool2Dt(MagnitudeMaxPool):
         return x_pool
 
 class TestMagnitudePool(unittest.TestCase):
-    def _test(self, shape, ksize=2, strides=2):
+    def _test(self, shape, pool_size=2, strides=2):
         x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        pool = MagnitudeMaxPool(ksize, strides)
+        pool = MagnitudeMaxPool(pool_size, strides)
 
         y = pool(x)
         magn = merlintf.complex_abs(y)
