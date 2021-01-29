@@ -18,6 +18,9 @@ __all__ = ['cReLU',
            'Cardioid2'
          ]
 
+def get(identifier):
+    return Activation(identifier)
+
 def Activation(identifier):
     if identifier is None:
         return Identity()
