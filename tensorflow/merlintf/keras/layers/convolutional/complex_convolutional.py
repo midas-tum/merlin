@@ -1872,9 +1872,13 @@ class UpSampling2D(Layer):
           [input_shape[0], height, width, input_shape[3]])
 
   def call(self, inputs):
-    return backend.resize_images(
-        inputs, self.size[0], self.size[1], self.data_format,
+        x_re = backend.resize_images(
+        tf.math.real(inputs), self.size[0], self.size[1], self.data_format,
         interpolation=self.interpolation)
+        x_im = backend.resize_images(
+        tf.math.imag(inputs), self.size[0], self.size[1], self.data_format,
+        interpolation=self.interpolation)
+        return tf.complex(x_re, x_im)
 
   def get_config(self):
     config = {
