@@ -4,6 +4,7 @@ from tensorflow.python.keras import initializers
 from tensorflow.python.keras import regularizers
 
 from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConv3D, ComplexPadConvScale3D
+from merlintf.keras.utils import validate_input_dimension
 
 import numpy as np
 import unittest
@@ -38,6 +39,10 @@ class ComplexPadConv2Dt(tf.keras.layers.Layer):
             conv_module = ComplexPadConvScale3D
         else:
             conv_module = ComplexPadConv3D
+        
+        kernel_size = validate_input_dimension('2Dt', kernel_size)
+        strides = validate_input_dimension('2Dt', strides)
+        dilation_rate = validate_input_dimension('2Dt', dilation_rate)
 
         self.conv_xy = conv_module(
         filters=intermediate_filters,
@@ -92,7 +97,7 @@ class ComplexPadConv2Dt(tf.keras.layers.Layer):
         return xT_sp
 
 class ComplexPadConv2dtTest(unittest.TestCase):
-    def test_grad(self):
+    def _test_grad(self, ksz):
         nBatch = 5
         M = 128
         N = 128
@@ -100,7 +105,9 @@ class ComplexPadConv2dtTest(unittest.TestCase):
         nf_in = 2
         nf_out = 32
         shape = [nBatch, D, M, N, nf_in]
-        ksz = (3,5,5)
+        
+        ksz = validate_input_dimension('2Dt', ksz)
+
         nf_inter = np.ceil((nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
         model = ComplexPadConv2Dt(nf_out, nf_inter, kernel_size=ksz)
         x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
@@ -117,6 +124,12 @@ class ComplexPadConv2dtTest(unittest.TestCase):
         x_bwd = KHKx.numpy()
 
         self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
+
+    def test_grad_tuple(self):
+        self._test_grad((3,5,5))
+
+    def test_grad_int(self):
+        self._test_grad(3)
 
     def test_adjoint(self):
         nBatch = 5
