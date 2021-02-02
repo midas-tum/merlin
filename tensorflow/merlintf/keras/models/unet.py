@@ -5,7 +5,7 @@ import unittest
 import numpy as np
 
 class UNet(tf.keras.Model):
-    def __init__(self, dim='2D', nf=64, ksz=3, dsz=2, num_layer_per_level=2, num_level=4,
+    def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
                        activation='relu', use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
                        name='UNet', **kwargs):
@@ -13,9 +13,9 @@ class UNet(tf.keras.Model):
         Abstract class for 2D/2D+t/3D/3D+t/4D UNet model
         input parameter:
         dim                         [string] operating dimension
-        nf                          [integer, tuple] number of filters at the base level, dyadic increase
-        ksz                         [integer, tuple] kernel size
-        dsz                         [integer, tuple] downsampling/upsampling operator size
+        filters                     [integer, tuple] number of filters at the base level, dyadic increase
+        kernel_size                 [integer, tuple] kernel size
+        pool_size                   [integer, tuple] downsampling/upsampling operator size
         num_layer_per_level         number of convolutional layers per encocer/decoder level
         num_level                   amount of encoder/decoder stages (excluding bottleneck layer), network depth
         activation                  activation function
@@ -27,12 +27,12 @@ class UNet(tf.keras.Model):
         super().__init__(name=name)
 
         # validate input dimensions
-        self.ksz = merlintf.keras.utils.validate_input_dimension(dim, ksz)
-        self.dsz = merlintf.keras.utils.validate_input_dimension(dim, dsz)
+        self.kernel_size = merlintf.keras.utils.validate_input_dimension(dim, kernel_size)
+        self.pool_size = merlintf.keras.utils.validate_input_dimension(dim, pool_size)
 
         self.num_level = num_level
         self.num_layer_per_level = num_layer_per_level
-        self.nf = nf
+        self.filters = filters
         self.use_bias = use_bias
         self.activation = activation
         self.normalization = normalization
@@ -49,7 +49,7 @@ class UNet(tf.keras.Model):
         for ilevel in range(self.num_level):
             level = []
             for ilayer in range(self.num_layer_per_level):
-                level.append(self.conv_layer(self.nf * (2**ilevel), self.ksz,
+                level.append(self.conv_layer(self.filters * (2**ilevel), self.kernel_size,
                                            strides=self.strides[ilayer],
                                            use_bias=self.use_bias,
                                            activation=self.activation,
@@ -58,7 +58,7 @@ class UNet(tf.keras.Model):
                 level.append(self.activation_layer)
 
             if self.downsampling == 'mp':
-                level.append(self.down_layer(pool_size=self.dsz))
+                level.append(self.down_layer(pool_size=self.pool_size))
             else:
                 level.append(self.down_layer)
             stage.append(level)
@@ -67,7 +67,7 @@ class UNet(tf.keras.Model):
         # bottleneck
         stage = []
         for ilayer in range(self.num_layer_per_level):
-            stage.append(self.conv_layer(self.nf * (2 ** (self.num_level)), self.ksz,
+            stage.append(self.conv_layer(self.filters * (2 ** (self.num_level)), self.kernel_size,
                                        strides=self.strides[ilayer],
                                        use_bias=self.use_bias,
                                        activation=self.activation,
@@ -75,10 +75,10 @@ class UNet(tf.keras.Model):
             stage.append(self.norm_layer)
             stage.append(self.activation_layer)
         if self.upsampling == 'us':
-            stage.append(self.up_layer(dsz))
+            stage.append(self.up_layer(pool_size))
         elif self.upsampling == 'tc':
-            stage.append(self.up_layer(self.nf * (2 ** (self.num_level-1)), self.ksz,
-                                       strides=self.dsz,
+            stage.append(self.up_layer(self.filters * (2 ** (self.num_level-1)), self.kernel_size,
+                                       strides=self.pool_size,
                                        use_bias=self.use_bias,
                                        activation=self.activation,
                                        padding='same'))
@@ -89,7 +89,7 @@ class UNet(tf.keras.Model):
         for ilevel in range(self.num_level-1, -1, -1):
             level = []
             for ilayer in range(self.num_layer_per_level):
-                level.append(self.conv_layer(self.nf * (2 ** ilevel), self.ksz,
+                level.append(self.conv_layer(self.filters * (2 ** ilevel), self.kernel_size,
                                            strides=1,
                                            use_bias=self.use_bias,
                                            activation=self.activation,
@@ -99,10 +99,10 @@ class UNet(tf.keras.Model):
 
             if ilevel > 0:
                 if self.upsampling == 'us':
-                    level.append(self.up_layer(self.dsz))
+                    level.append(self.up_layer(self.pool_size))
                 elif self.upsampling == 'tc':
-                    level.append(self.up_layer(self.nf * (2 ** (ilevel-1)), self.ksz,
-                                          strides=self.dsz,
+                    level.append(self.up_layer(self.filters * (2 ** (ilevel-1)), self.kernel_size,
+                                          strides=self.pool_size,
                                           use_bias=self.use_bias,
                                           activation=self.activation,
                                           padding='same'))
@@ -143,14 +143,14 @@ class UNet(tf.keras.Model):
         return x
 
 class Real2chUNet(UNet):
-    def __init__(self, dim='2D', nf=64, ksz=3, dsz=2, num_layer_per_level=2, num_level=4,
+    def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
                        activation='relu', use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
                        name='Real2chUNet', **kwargs):
         """
         Builds the real-valued 2D/2D+t/3D/3D+t/4D UNet model
         """
-        super().__init__(dim, nf, ksz, dsz, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name)
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name)
 
         # get correct conv operator
         if dim == '2D':
@@ -221,14 +221,14 @@ class Real2chUNet(UNet):
         return merlintf.real2complex(x)
 
 class ComplexUNet(UNet):
-    def __init__(self, dim='2D', nf=64, ksz=3, dsz=2, num_layer_per_level=2, num_level=4,
+    def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
                        activation='ModReLU', use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
                        name='ComplexUNet', **kwargs):
         """
         Builds the complex-valued 2D/2D+t/3D/3D+t/4D UNet model
         """
-        super().__init__(dim, nf, ksz, dsz, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name)
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name)
 
         # get correct conv operator
         self.conv_layer = merlintf.keras.layers.ComplexConvolution(dim)
@@ -291,20 +291,20 @@ class ComplexUNetTest(unittest.TestCase):
     #    self._test_UNet('3D', 32, (3, 3, 3), complex_network=True, complex_input=False)
     #    self._test_UNet('3D', 32, (3, 3, 3), complex_network=True, complex_input=True)
 
-    def _test_UNet(self, dim, nf, ksz, complex_network=True, complex_input=True):
+    def _test_UNet(self, dim, filters, kernel_size, complex_network=True, complex_input=True):
         gpus = tf.config.experimental.list_physical_devices('GPU')
         tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
         tf.config.experimental.set_memory_growth(gpus[0], True)
 
-        nBatch = 5
-        D = 32
-        M = 128
-        N = 128
+        nBatch = 2
+        D = 16
+        M = 32
+        N = 32
 
         if complex_network:
-            model = ComplexUNet(dim, nf, ksz)
+            model = ComplexUNet(dim, filters, kernel_size)
         else:
-            model = Real2chUNet(dim, nf, ksz)
+            model = Real2chUNet(dim, filters, kernel_size)
 
         if dim == '2D':
             if complex_input:
