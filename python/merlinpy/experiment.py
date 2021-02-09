@@ -40,6 +40,7 @@ class Experiment(object):
         action.add_argument('--tf', action='store_true', default=True, help='Use Tensorflow backend (default)')
         action.add_argument('--th', action='store_true', default=False, help='Use Pytorch backend')
         self.parser.add_argument('--resume', action='store_true', default=False, help='Resume training')
+        self.parser.add_argument('--debug', action='store_true', default=False, help='Debug mode')
         action = self.parser.add_mutually_exclusive_group(required=False)
         action.add_argument('--train', action='store_true', default=True, help='Train the model')
         action.add_argument('--evaluate', action='store_true', default=False, help='Evaluate the model')
