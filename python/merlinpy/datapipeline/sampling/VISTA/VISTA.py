@@ -22,45 +22,49 @@ if R == 1:
 
 # Let's find uniform interleaved sampling (UIS)
 def samp_UIS(p,t,R):
-    ptmp = np.zeros((p, 1))  # (132,1)
+    ptmp = np.zeros((p, 1)).flatten()  # (132,)
     for i in list(range(0, p, R)):
         i = round(i)
-        ptmp[i][0] = 1
+        ptmp[i] = 1
 
-    ttmp = np.zeros((t, 1))  # (25,1)
+    ttmp = np.zeros((t, 1)).flatten()  # (25)
     for i in list(range(0, t, R)):
         i = round(i)
-        ttmp[i][0] = 1
+        ttmp[i] = 1
 
     Top = toeplitz(ptmp, ttmp)
-
-    Top_list = np.reshape(Top, p * t)
-    index = []
-    for _ in np.where(Top_list == 1)[0]:
-        index.append(_)
+    Top_flatten = np.reshape(Top, (p * t,), order='F')
+    ind = []
+    for _ in np.where(Top_flatten == 1)[0]:
+        ind.append(_)
+    ind = np.array(ind)  #(660,)
 
     ph = []
-    for i in index:
-        i_ph = (i - 1) % p - math.floor(p / 2)
+    for i in ind:
+        i_ph = i % p - math.floor(p / 2)
         ph.append(i_ph)
+    ph = np.array(ph)    #(660,)
 
     ti = []
-    for i in index:
-        i_ti = math.floor((i - 1) / p) - math.floor(t / 2)
-        ti.append(i_ti)
-
-    ind = []
-    for i in range(len(index)):
-        i_ph = ph[i]
-        i_ti = ti[i]
-        ind_ = round(p * (i_ti + math.floor(t / 2)) + (i_ph + math.floor(p / 2) + 1))
-        ind.append(ind_)
-
-    samp = np.zeros((p, t))
-    samp = np.reshape(samp, p * t)
     for i in ind:
-        samp[i] = 1
-    samp = np.reshape(samp, (p, t))
+        i_ti = math.floor((i / p)) - math.floor(t / 2)
+        ti.append(i_ti)
+    ti = np.array(ti)    #(660,)
+
+    ph, ti = dispdup(ph, ti, p, t)
+
+    samp = np.zeros((p, t))     #(132,25)
+    ind2 = []
+    for i in range(len(ind)):
+        ind_ = round(p * (ti[i] + math.floor(t / 2)) + (ph[i] + math.floor(p / 2) + 1))
+        ind2.append(ind_)
+    ind = np.array(ind2)
+
+    samp = np.reshape(samp, (p * t,), order='F')
+    for every_ind in ind:
+        samp[every_ind] = 1
+    samp = np.reshape(samp, (p, t), order='F')
+    
     return samp
 
 
