@@ -6,11 +6,15 @@ import tensorflow as tf
 # If precompiled tensorflow isused, one has to destinguish between "tensorflow" and "tensorflow-gpu"
 tfCPU = not subprocess.call(["pip","-q","show","tensorflow"] )
 tfGPU = not subprocess.call(["pip","-q","show","tensorflow-gpu"] )
+tfNightly = not subprocess.call(["pip","-q","show","tf-nightly"] )
+
 if tfCPU:
   tfstr = "tensorflow == {}".format(tf.version.VERSION)
 if tfGPU:
   tfstr = "tensorflow-gpu == {}".format(tf.version.VERSION)
-if (tfGPU and tfCPU) or not (tfGPU or tfCPU):
+if tfNightly:
+  tfstr = "tf-nightly == {}".format(tf.version.VERSION)
+if (tfGPU and tfCPU) or not (tfGPU or tfCPU or tfNightly):
   tfstr = ""
   assert False, "\n\nunexpected error, is tensorflow or tensorflow-gpu installed with pip?\n\n"
   exit(1)
