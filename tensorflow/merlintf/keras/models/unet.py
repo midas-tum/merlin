@@ -286,15 +286,17 @@ class ComplexUNetTest(unittest.TestCase):
     def test_UNet_2chreal_3d(self):
         self._test_UNet('3D', 32, (3, 3, 3), complex_network=False, complex_input=False)
         self._test_UNet('3D', 32, (3, 3, 3), complex_network=False, complex_input=True)
+        self._test_UNet('3D', 32, (1, 3, 3), (1, 2, 2), complex_network=False, complex_input=True)
 
     #def test_UNet_complex_3d(self):
     #    self._test_UNet('3D', 32, (3, 3, 3), complex_network=True, complex_input=False)
     #    self._test_UNet('3D', 32, (3, 3, 3), complex_network=True, complex_input=True)
 
-    def _test_UNet(self, dim, filters, kernel_size, complex_network=True, complex_input=True):
+    def _test_UNet(self, dim, filters, kernel_size, down_size=(2,2,2), complex_network=True, complex_input=True):
         gpus = tf.config.experimental.list_physical_devices('GPU')
         tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
         tf.config.experimental.set_memory_growth(gpus[0], True)
+        tf.config.experimental_run_functions_eagerly(False)
 
         nBatch = 2
         D = 16
@@ -302,9 +304,9 @@ class ComplexUNetTest(unittest.TestCase):
         N = 32
 
         if complex_network:
-            model = ComplexUNet(dim, filters, kernel_size)
+            model = ComplexUNet(dim, filters, kernel_size, down_size)
         else:
-            model = Real2chUNet(dim, filters, kernel_size)
+            model = Real2chUNet(dim, filters, kernel_size, down_size)
 
         if dim == '2D':
             if complex_input:
