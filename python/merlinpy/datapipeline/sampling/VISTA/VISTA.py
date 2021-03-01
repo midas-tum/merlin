@@ -63,11 +63,10 @@ def samp_UIS(p,t,R):
     for i in range(len(ind)):
         ind_ = round(p * (ti[i] + math.floor(t / 2)) + (ph[i] + math.floor(p / 2) + 1))
         ind2.append(ind_)
-    ind = np.array(ind2)
+    ind = np.array(ind2).astype('int64')
 
     samp = np.reshape(samp, (p*t,), order='F')
-    for every_ind in ind:
-        samp[every_ind] = 1
+    samp[ind] = 1
     samp = np.reshape(samp, (p, t), order='F')
 
     return samp
@@ -291,15 +290,13 @@ for i in range(nIter):
 
 ph, ti = dispdup(ph[:N], ti[:N], p, t)
 
-"""
 #From indices to 2D binary mask
 samp = np.zeros((p, t))
 ind = []
 for phti_ind in range(N):
     ind.append(round(p*(ti[phti_ind]+math.floor(t/2)) + (ph[phti_ind]+math.floor(p/2)+1)))
-ind = np.array(ind)
+ind = np.array(ind).astype('int64')
 samp = np.reshape(samp, (p*t,), order='F')
 samp[ind] = 1
 samp = np.reshape(samp, (p, t), order='F')
 print('VISTA computed at', datetime.datetime.now())
-"""
