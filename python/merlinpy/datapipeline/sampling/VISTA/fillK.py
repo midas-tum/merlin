@@ -85,8 +85,8 @@ def fillK(P, T, Pacc, Tacc, p, R, alph, s=1.4, fr=1):
             if np.sign(ind + eps) * every_P > np.sign(ind + eps) * ind:
                 can.append(every_P)
         can = np.array(can)  # Find candidates which are on the boundary side of "ind"
-        # can:ndarray
-        # 若can为空，则break
+        # can: ndarray
+        # fi can is empty, then break
         if isempty(can) == 1:
             break
         else:
@@ -123,14 +123,11 @@ def fillK(P, T, Pacc, Tacc, p, R, alph, s=1.4, fr=1):
             for ind_tmp3 in range(lentmp3):
                 if P[ind_tmp3] == Pcan[slc] and T[ind_tmp3] == Tcan[slc]:
                     P[ind_tmp3] = ind  # Fill the hole with the approprate candidate
-            #     figure; plot(Tacc,Pacc,T,P+0.1,'--r')
+            
             tmp = np.setdiff1d(np.array([x for x in range(-math.floor(fr * p / 2), math.ceil(fr * p / 2))]), P)
             tmp = excludeOuter(tmp, p)
             tmp2 = np.array(sorted(list(map(abs, tmp))))
             ords = np.argsort(tmp)
             tmp2 = np.multiply(tmp2, np.sign(tmp[ords]))  # Find new holes
 
-        # figure;
-        # plot(T,P,'s','markersize',sz,'color','red','markerfacecolor','red');
-        # axis('image');axis([-t/2, t/2-1, -p/2, p/2-1]);
     return Pacc, Tacc
