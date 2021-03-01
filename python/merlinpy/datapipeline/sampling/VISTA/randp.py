@@ -9,15 +9,16 @@ def randp(P,sd,n,m):
     :param n,m: dimensions
     :return:
     """
+    sd = int(sd)
     np.random.seed(sd)
     X = np.random.rand(n*m)
 
     for i in P:
-        if i<0:
+        if i < 0:
             print('All probabilities should be 0 or larger.')
 
     cum_prob = []
-    for i in np.concatenate([[0],np.cumsum(P)]):
+    for i in np.concatenate([[0], np.cumsum(P)]):
         i_prob = i/sum(P)
         cum_prob.append(i_prob)
 
