@@ -4,6 +4,10 @@ from scipy.linalg import toeplitz
 import math
 import datetime
 import matplotlib.pyplot as plt
+from dispdup import dispdup
+from fillK import fillK
+from randp import randp
+
 
 """
 R: Net acceleration factor
@@ -11,9 +15,10 @@ p: Number of phase encoding steps
 t: Number of frames
 typ: Type of sampling
 """
+typ = 'VISTA'
 p = 132
 t = 25
-R = 3
+R = 5
 
 
 #Let's handle the special case of R = 1
@@ -60,98 +65,95 @@ def samp_UIS(p,t,R):
         ind2.append(ind_)
     ind = np.array(ind2)
 
-    samp = np.reshape(samp, (p * t,), order='F')
+    samp = np.reshape(samp, (p*t,), order='F')
     for every_ind in ind:
         samp[every_ind] = 1
     samp = np.reshape(samp, (p, t), order='F')
-    
+
     return samp
 
 
+def tile(ph, ti, p, t):
+  """
+  Replicate the sampling pattern in each direction. Probablity, this is
+  not an efficient way to impose periodic boundary condition because it
+  makes the problem size grow by 9 fold.
+  """
+  po = np.concatenate((ph, ph-p, ph, ph+p, ph-p, ph+p, ph-p, ph, ph+p))
+  to = np.concatenate((ti, ti-t, ti-t, ti-t, ti, ti, ti+t, ti+t, ti+t))
+  return po, to
 
 
 # Use VRS as initialization for VISTA(variable density random sampling)
-alph = 0.28  # 0=uniform density, 0<alph<1 for variable density
-sig = p / 5  # Std of the Gaussian envelope that defines variable density
-tr = round(p/R) # Number of readout lines per frame (temporal resolution)
-sd = 10 #sd: Seed for random number generation
+alph = 0.28       # 0=uniform density, 0<alph<1 for variable density
+sig = p / 5       # Std of the Gaussian envelope that defines variable density
+tr = round(p/R)   # Number of readout lines per frame (temporal resolution)
+sd = 10           #sd: Seed for random number generation
 
 p1 = []
-for _ in range(-math.floor(p / 2), math.ceil(p / 2)):
+for _ in range(-math.floor(p/2), math.ceil(p/2)):
     p1.append(_)
-p1 = np.reshape(p1, (len(p1), 1))
+p1 = np.array(p1)  #(-66,...,65), shape(132,)
 
-t1 = []
+t1 = np.array([])
 ind=0
-ti = np.zeros((tr*t,1))
-ph = np.zeros((tr*t,1))
+ti = np.zeros((tr*t,))
+ph = np.zeros((tr*t,))
 prob = []
-for p in p1:
-    a = (0.1 + alph/(1-alph+1e-10)*math.exp(-p**2/(1*sig**2)))
-    prob.append(a)
-prob = np.reshape(prob, (len(prob),1))
+for every_p1 in p1:
+    prob_ = (0.1 + alph/(1-alph+1e-10)*math.exp(-every_p1**2/(1*sig**2)))
+    prob.append(prob_)
+prob = np.array(prob)     #(132,)
 
 np.random.seed(sd)
-tmpSd = [round(s) for s in 1e6*np.random.rand(t)]
+tmpSd = [round(s) for s in 1e6*np.random.rand(t)] #Seeds for random numbers
+tmpSd = np.array(tmpSd)   #(25,)
 
-def randp(P,sd,*args):
-    #P:Prob
-    #sd:seed
-    #args: dimensions
-    P = np.reshape(P, (len(P),1))
-    P = P.flatten()
-    cum_prob = []
-    for i in np.concatenate([[0],np.cumsum(P)]):
-        i_prob = i/sum(P)
-        cum_prob.append(i_prob)
-    length = np.prod(args)
-    np.random.seed(sd)
-    X = np.random.rand(length)
-    ind = np.searchsorted(cum_prob, X, "right")
-    return ind
-
-c = math.floor(t/2)
-d = math.ceil(t/2)
-for i in range(-c,d):
+for i in range(-math.floor(t/2), math.ceil(t/2)):
     a = np.where(t1==i)[0]
     n_tmp = tr - len(a)
-    prob_tmp = prob
+    prob_tmp = prob    #(132,)
     prob_tmp[a] = 0
-    p_tmp = randp(prob_tmp, tmpSd[i+c+1], n_tmp, 1) - math.floor(p/2)-1
-    p_tmp = np.reshape(p_tmp, (len(p_tmp),1))
+    p_tmp = randp(prob_tmp, tmpSd[i+math.floor(t/2)], n_tmp, 1) - math.floor(p/2)-1 #(26,)
     ti[ind : ind+n_tmp] = i
     ph[ind : ind+n_tmp] = p_tmp
     ind = ind + n_tmp
 
-def samp_VRS(p,t):
-    #[ph, ti] = dispdup(ph, ti, param)
+if typ == 'VRS':
+    ph, ti = dispdup(ph, ti, p, t)
     samp = np.zeros((p,t))
-    samp = np.reshape(samp, (p*t,1))
-    ind_list = p*(ti+c) + (ph+math.floor(p/2)+1)
-    ind_list = ind_list.flatten()
-    ind = []
-    for ind_ in ind_list:
-        ind_new = round(ind_)
-        ind.append(ind_new)
-    samp[ind] = 1
-    return samp
+    samp = np.reshape(samp, (p*t,), order='F')
+    ind_list = p*(ti+math.floor(t/2)) + (ph+math.floor(p/2)+1)
+    for i in ind_list:
+        ind = round(i)
+        samp[ind] = 1
+    samp = np.reshape(samp, (p, t), order='F')
 
 
 # Displacement parameters
 nIter = 120
 W = max(R/10 + 0.25, 1)      #Scaling of time dimension; frames are "W" units apart
 N = tr*t                     #Total number of samples after rounding off
-g = math.floor(nIter/6)      #Every gth iteration is relocated on a Cartesian grid. Default value: floor(param.nIter/6)
-uni = math.floor(nIter/2)    #At param.uni iteration, reset to equivalent uniform sampling. Default value: floor(param.nIter/2)
-ss = 0.25                    #Step-size for gradient descent. Default value: 0.25;
-fl = math.floor(nIter*5/6)   #Start checking fully sampledness at fl^th iteration. Default value: floor(param.nIter*5/6)
-fs = 1                       #Does time average has to be fully sampled, 0 for no, 1 for yes. Only works with VISTA. Default value: 1
-s = 1.4                      #Exponent of the potenital energy term. Default value 1.4
+g = math.floor(nIter/6)      #Every gth iteration is relocated on a Cartesian grid.
+                             # Default value: floor(param.nIter/6)
+uni = math.floor(nIter/2)    #At param.uni iteration, reset to equivalent uniform sampling.
+                             # Default value: floor(param.nIter/2)
+ss = 0.25                    #Step-size for gradient descent.
+                             # Default value: 0.25;
+fl = math.floor(nIter*5/6)   #Start checking fully sampledness at fl^th iteration.
+                             # Default value: floor(param.nIter*5/6)
+fs = 1                       #Does time average has to be fully sampled, 0 for no, 1 for yes. Only works with VISTA.
+                             # Default value: 1
+s = 1.4                      #Exponent of the potenital energy term.
+                             # Default value 1.4
+tf = 0.0                     # Step-size in time direction wrt to phase-encoding direction; use zero for constant temporal resolution.
+                             # Default value: 0.0
+dsp = 5                      #Display the distribution at every dsp^th iteration
 
-import datetime
+
 print('Computing VISTA, plese wait as it may take a while ...', datetime.datetime.now())
-stp = np.ones((1, nIter)) #Gradient descent displacement
-a = W * np.ones((1,nIter)) #Temporal axis scaling
+stp = np.ones((1, nIter)).flatten()  #Gradient descent displacement, shape(120,)
+a = W * np.ones((1, nIter)).flatten() #Temporal axis scaling
 
 def square(num):
   return num*num
@@ -169,17 +171,16 @@ def get_median(data):
 
 
 np.random.seed(sd)
-f = 1 + round(100 * np.random.rand())  # Figure index
-dis_ext = np.zeros((N, 1));  # Extent of displacement
-s = 1.4  # Exponent of the potenital energy term. Default value 1.4
-tf = 0.0  # Step-size in time direction wrt to phase-encoding direction; use zero for constant temporal resolution. Default value: 0.0
+f = round(100 * np.random.rand())  # Figure index
+dis_ext = np.zeros((N, 1)).flatten() # Extent of displacement, shape(650,)
 
-for i in range(0, nIter):
-    # [ph,ti] = tile(ph(1:N), ti(1:N), param);
-    for j in range(0, N):
+
+for i in range(nIter):
+    ph, ti = tile(ph[:N], ti[:N], p, t)
+    for j in range(N):
         # Distances -------------------------------------------------------
         m = np.array(list(map(square, abs(ph - ph[j]))))
-        n = np.array(list(map(square, abs(a.flatten()[i] * (ti - ti[j])))))
+        n = np.array(list(map(square, abs(a[i] * (ti - ti[j])))))
         dis = []
         for dis_sqr in (m + n):
             dis_ = math.sqrt(dis_sqr)
@@ -189,23 +190,20 @@ for i in range(0, nIter):
         dis[nanloc] = np.Inf
 
         # Scaling ---------------------------------------------------------
-        scl_array = -np.array(list(map(square, ph))) / (2 * sig ** 2)
+        scl_tmp = -np.array(list(map(square, ph))) / (2*sig**2)
         scl = []
-        for scl_ in scl_array:
+        for scl_ in scl_tmp:
             _scl_ = 1 - alph * math.exp(scl_)
             scl.append(_scl_)
         scl = np.array(scl)
         scl = scl + (1 - scl[0])
-        dscl = 1 / sig ** 2 * alph * ph[j] * math.exp(
-            -(ph[j] ** 2) / (2 * sig ** 2))  # Differentiation of scl wrt to "ph"
+        dscl = 1/sig**2*alph*ph[j] * math.exp(-(ph[j]**2) / (2*sig**2))  # Differentiation of scl wrt to "ph"
 
         # Force and resulting displacement --------------------------------
-        fx = s * np.multiply((ph[j] - ph).flatten(), (scl[j] * scl) / np.array(list(map(s2, dis)))) - (
-                    dscl * scl / np.array(list(map(s_square, dis))))
-        fy = s * np.multiply(a.flatten()[i] ** 2 * (ti.flatten()[j] - ti.flatten()),
-                             scl[j] * scl / np.array(list(map(s2, dis)))) * tf
-        ph[j] = ph[j] + max(min(stp.flatten()[i] * sum(fx), R / 4), -R / 4)
-        ti[j] = ti[j] + max(min(stp.flatten()[i] * sum(fy), R / 4), -R / 4)
+        fx = s * np.multiply((ph[j] - ph), (scl[j]*scl) / np.array(list(map(s2, dis)))) - (dscl * scl / np.array(list(map(s_square, dis))))
+        fy = s * np.multiply(a[i]**2 * (ti[j] - ti), scl[j] * scl / np.array(list(map(s2, dis)))) * tf
+        ph[j] = ph[j] + max(min(stp[i] * sum(fx), R/4), -R/4)
+        ti[j] = ti[j] + max(min(stp[i] * sum(fy), R/4), -R/4)
 
         # Ensure that the samples stay in bounds --------------------------
         if ph[j] < -math.floor(p / 2) - 1 / 2:
@@ -220,70 +218,88 @@ for i in range(0, nIter):
 
         # Displacing samples to nearest Cartesian location
         if (i + 1) % g == 0 or (i + 1) == nIter:
-            ph[j] = round(ph[j][0])
-            ti[j] = round(ti[j][0])
+            ph[j] = round(ph[j])
+            ti[j] = round(ti[j])
 
         # Measuing the displacement
         if i == 1:
             dis_ext[j] = abs(stp.flatten()[i] * sum(fx))
 
-        # Normalizing the step-size to a reasonable value
-        if i == 2:
-            stp = ss * (1 + R / 4) / get_median(list(dis_ext.flatten())) * stp
+    # Normalizing the step-size to a reasonable value
+    if i == 2:
+        stp = ss * (1 + R / 4) / get_median(list(dis_ext)) * stp
 
-        # At uni-th iteration, reset to jittered uniform sampling
-        ti = list(ti.flatten())[:N]
-        ph = list(ph.flatten())[:N]
-        if (i + 1) == uni:
-            tmp = np.zeros((tr, t))
-            for k in range(1, t + 1):
-                tmp[:, k - 1] = np.array(sorted(list(ph.flatten())[(k - 1) * tr: k * tr]))
-            tmp = np.array(list(
-                map(round, np.mean(tmp, axis=1))))  # Find average distances between adjacent phase-encoding samples
-            ph = np.tile(tmp, t)  # Variable density sampling with "average" distances
-            np.random.seed(sd)
-            rndTmp = np.random.rand(t, 1)
-            for k in range(-math.floor(t / 2), math.ceil(t / 2)):
-                tmp = (np.zeros(ti.shape)).flatten()
-                ptmp = []
-                for ti_ind in np.where(ti == k)[0]:
-                    tmp[ti_ind - 1] = 1
-                    ptmp_ = ph[ti_ind - 1] + round(
-                        1 / 2 * R ** 1 * (rndTmp[k + math.floor(t / 2)][0] - 0.5))  # Add jitter
-                    ptmp.append(ptmp_)
-                ptmp = np.array(ptmp)
-                for ptmp_ind in np.where(ptmp > math.ceil(p / 2) - 1)[0]:
-                    ptmp[ptmp_ind] = ptmp[ptmp_ind] - p  # Ensure the samples don't run out of the k-t grid
-                for ptmp_ind in np.where(ptmp < -math.floor(p / 2))[0]:
-                    ptmp[ptmp_ind] = ptmp[ptmp_ind] + p
-                ptmp_ind = 0
-                ph = ph.flatten()
-                for ph_ind in np.where(tmp == 1)[0]:
-                    ph[ph_ind] = ptmp.flatten()[ptmp_ind]
-                    ptmp_ind += 1
+    # At uni-th iteration, reset to jittered uniform sampling
+    ti = ti[:N]
+    ph = ph[:N]
+    if (i + 1) == uni:
+        tmp = np.zeros((tr, t))
+        for k in range(t):
+            tmp[:, k] = np.array(sorted(ph[k * tr: (k+1) * tr]))  # tmp:(26,25)
+        tmp = np.array(list(map(round, np.mean(tmp,
+                                               axis=1))))  # Find average distances between adjacent phase-encoding samples, shape(26,)
+        ph = np.tile(tmp, t)  # Variable density sampling with "average" distances, (650,)
+        np.random.seed(sd)
+        rndTmp = np.random.rand(t, 1).flatten()  # (25,)
+        for k in range(-math.floor(t / 2), math.ceil(t / 2)):
+            tmp = np.where(ti == k)[0]
+            ptmp = ph[tmp] + round(1 / 2 * R ** 1 * (rndTmp[k + math.floor(t / 2)] - 0.5))  # Add jitter
+            for ptmp_ind in np.where(ptmp > math.ceil(p / 2) - 1)[0]:
+                ptmp[ptmp_ind] = ptmp[ptmp_ind] - p  # Ensure the samples don't run out of the k-t grid
+            for ptmp_ind in np.where(ptmp < -math.floor(p / 2))[0]:
+                ptmp[ptmp_ind] = ptmp[ptmp_ind] + p
+            ptmp_ind = 0
+            for ph_ind in tmp:
+                ph[ph_ind] = ptmp[ptmp_ind]
+                ptmp_ind += 1
 
-            # Temporarily stretch the time axis to avoid bad local minima
-            a = a.flatten()
-            nn = []
-            for i_ in range(i, nIter):
-                nn_i = 1 + math.exp(i_ - (i + 1)) / math.ceil(nIter / 60)
-                nn.append(nn_i)
-            nn = np.array(nn)
-            a[i:] = np.multiply(a[i:], nn)
-            # figure
-            plt.imshow(np.reshape(a, (1, nIter)))
-            plt.show()
+        # Temporarily stretch the time axis to avoid bad local minima
+        nn = []
+        for i_item in range(i + 1, nIter):
+            nn_i = 1 + math.exp(-(i_item - (i + 1)) / math.ceil(nIter / 60))
+            nn.append(nn_i)
+        nn = np.array(nn)
+        a[i + 1:] = np.multiply(a[i + 1:], nn)
 
-        # Displace the overlapping points so that one location has only one sample
-        if (i + 1) % g == 0 or (i + 1) == nIter:
-            #[ph, ti] = dispdup(ph(1:N), ti(1:N), param)
+        # figure
+        #plt.scatter(a)
+        #plt.show()
 
-        # Check/ensure time-average is fully sampled
-        if ((i + 1) % g == 0 or (i + 1) == nIter) and (i + 1) >= fl:
-            ph = ph[:N]
-            ti = ti[:N]
-            if fs == 1:  # Ensuring fully sampledness at average all
-            #   [ph, ti] = fillK(ph, ti, ph, ti, param)
-            elif fs > 1:  # Ensuring fully sampledness for "fs" frames
-                for m in range(0, math.floor(t / fs)):
-                    tmp = (m - 1) * tr * fs + 1
+    # Displace the overlapping points so that one location has only one sample
+    if (i + 1) % g == 0 or (i + 1) == nIter:
+        ph, ti = dispdup(ph[:N], ti[:N], p, t)
+
+    # Check/ensure time-average is fully sampled
+    if ((i + 1) % g == 0 or (i + 1) == nIter) and (i + 1) >= fl:
+        ph = ph[:N]
+        ti = ti[:N]
+        if fs == 1:  # Ensuring fully sampledness at average all
+            ph, ti = fillK(ph, ti, ph, ti, p, R, alph)
+        elif fs > 1:  # Ensuring fully sampledness for "fs" frames
+            for m in range(math.floor(t / fs)):
+                tmp = (m - 1) * tr * fs + 1
+                ph, ti = fillK(ph[tmp], ti[tmp], ph, ti, p, R, alph)
+
+    if (i + 1) == 1 or (i + 1) % dsp == 0 or (i + 1) == nIter:  # When to diplay the distribution
+        plt.scatter(ti[:N], ph[:N], s=10)
+        plt.title('Iter is %s,number of samples is %s'%(i+1, N))
+        plt.xlim((-math.floor(t / 2), math.ceil(t / 2) - 1))
+        plt.ylim((-math.floor(p / 2), math.ceil(p / 2) - 1))
+        plt.xlabel('time')
+        plt.ylabel('phase')
+        plt.show()
+
+ph, ti = dispdup(ph[:N], ti[:N], p, t)
+
+"""
+#From indices to 2D binary mask
+samp = np.zeros((p, t))
+ind = []
+for phti_ind in range(N):
+    ind.append(round(p*(ti[phti_ind]+math.floor(t/2)) + (ph[phti_ind]+math.floor(p/2)+1)))
+ind = np.array(ind)
+samp = np.reshape(samp, (p*t,), order='F')
+samp[ind] = 1
+samp = np.reshape(samp, (p, t), order='F')
+print('VISTA computed at', datetime.datetime.now())
+"""
