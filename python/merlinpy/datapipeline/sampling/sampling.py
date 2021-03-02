@@ -1,5 +1,6 @@
 import numpy as np
 import VD_CASPR_CINE as VD_CASPR_CINE
+from VISTA import vista
 
 class Sampling
     def __init__(self, dim, acc, trajectory):
@@ -63,3 +64,31 @@ class CASPR(Sampling):
 
         self.mask = mask_rep
         return mask_rep  # Z x Y x Time
+    
+    
+class VISTA(Sampling):
+    def __init__(self, dim, acc, typ, alph, sd, nIter=120, g=20, uni=60, ss=0.25, fl=100, fs=1, s=1.4, tf=0.0, dsp=5):
+        self.typ = typ  # 'UIS', 'VRS', 'VISTA'
+        self.alph = alph
+        self.sd = sd
+        self.nIter = nIter
+        self.g = g
+        self.uni = uni
+        self.ss = ss
+        self.fl = fl
+        self.fs = fs
+        self.s = s
+        self.tf = tf
+        self.dsp = dsp
+        super().__init__(dim=dim, acc=acc, trajectory='VISTA')
+
+    def generate_mask(self):
+        p = self.dim[1]  # Number of phase encoding steps
+        t = self.dim[3]  # Number of frames
+        R = self.acc
+
+        mask_VISTA = vista(p, t, R, self.typ, self.alph, self.sd, self.nIter, self.g, self.uni, self.ss, self.fl,
+                           self.fs, self.s, self.tf, self.dsp)
+        
+        self.mask = mask_VISTA
+        return mask_VISTA
