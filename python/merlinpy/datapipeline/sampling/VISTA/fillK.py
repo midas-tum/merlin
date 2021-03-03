@@ -1,11 +1,11 @@
-
 import numpy as np
 import math
 
 eps = np.spacing(1)
 
-def isempty(number): #if array is empty, return 1
-    if any(number) == True:
+
+def isempty(number):  # if array is empty, return 1
+    if any(number):
         num = 0
     else:
         num = 1
@@ -15,17 +15,10 @@ def isempty(number): #if array is empty, return 1
 def computeU(P, T, p, R, alph, s=1.4):
     """
     Compute potential energy (U) of the distribution
-    :param P:
-    :param T:
-    :param p: Number of phase encoding steps
-    :param R: Net acceleration rate
-    :param alph: 0<alph<1 controls sampling density; 0: uniform density, 1: maximally non-uniform density
-    :param s: Exponent of the potenital energy term. Default value 1.4
-    :return:
     """
 
     N = len(P)
-    sig = p / 5                # Std of the Gaussian envelope for sampling density
+    sig = p / 5  # Std of the Gaussian envelope for sampling density
     a = max(R / 10 + 0.25, 1)  # Scaling of time dimension; frames are "a" units apart
 
     U = 0
@@ -34,8 +27,8 @@ def computeU(P, T, p, R, alph, s=1.4):
         k.extend(list(range(i + 1, N)))
         k = np.array(k)
         U = U + 1 / 2 * ((1 - alph * math.exp(-P[i] ** 2 / (2 * sig ** 2))) * (
-                    1 - alph * math.exp(-P[k] ** 2 / (2 * sig ** 2)))) / (
-                        (P[i] - P[k]) ** 2 + (a * (T[i] - T[k])) ** 2) ** (s / 2)
+                1 - alph * math.exp(-P[k] ** 2 / (2 * sig ** 2)))) / (
+                    (P[i] - P[k]) ** 2 + (a * (T[i] - T[k])) ** 2) ** (s / 2)
 
     return U
 
@@ -60,6 +53,7 @@ def excludeOuter(tmp, p):
 
     return tmp
 
+
 def fillK(P, T, Pacc, Tacc, p, R, alph, s=1.4, fr=1):
     """
     Ensures time-average of VISTA is fully sampled(except for the outer mostregion)
@@ -77,9 +71,6 @@ def fillK(P, T, Pacc, Tacc, p, R, alph, s=1.4, fr=1):
     while len(tmp2) > 0:
         ind = tmp2[1]  # the hole (PE location) to be filled
 
-        # ind:数，eps:数
-        # P: 传入的ph，长度为N
-        # T: 传入的ti，ndarray
         can = []
         for every_P in P:
             if np.sign(ind + eps) * every_P > np.sign(ind + eps) * ind:
@@ -123,7 +114,7 @@ def fillK(P, T, Pacc, Tacc, p, R, alph, s=1.4, fr=1):
             for ind_tmp3 in range(lentmp3):
                 if P[ind_tmp3] == Pcan[slc] and T[ind_tmp3] == Tcan[slc]:
                     P[ind_tmp3] = ind  # Fill the hole with the approprate candidate
-            
+
             tmp = np.setdiff1d(np.array([x for x in range(-math.floor(fr * p / 2), math.ceil(fr * p / 2))]), P)
             tmp = excludeOuter(tmp, p)
             tmp2 = np.array(sorted(list(map(abs, tmp))))
