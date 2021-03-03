@@ -8,7 +8,7 @@ from fillK import fillK
 from randp import randp
 
 
-def vista(p, t, R, typ, alph, sd, nIter=120, g=20, uni=60, ss=0.25, fl=100, fs=1, s=1.4, tf=0.0, dsp=5):
+def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
     """
     :param p: Number of phase encoding steps
     :param t: Number of frames
@@ -23,12 +23,13 @@ def vista(p, t, R, typ, alph, sd, nIter=120, g=20, uni=60, ss=0.25, fl=100, fs=1
     :param fl: Start checking fully sampledness at fl^th iteration. Default value: floor(nIter*5/6)
     :param fs: Does time average has to be fully sampled, 0 for no, 1 for yes. Only works with VISTA. Default value: 1
     :param s: Exponent of the potenital energy term. Default value 1.4
-    :param tf: Step-size in time direction wrt to phase-encoding direction; use zero for constant temporal resolution. Default value: 0.0
+    :param tf: Step-size in time direction wrt to phase-encoding direction; use zero for constant temporal resolution. 
+               Default value: 0.0
     :param dsp: Display the distribution at every dsp^th iteration
     :return: Variable Density Incoherent Spatiotemporal Acquisition (VISTA) 2D sampling pattern
     """
 
-    sig = p / 5  # Std of the Gaussian envelope that defines variable density
+    sig = p / 5        # Std of the Gaussian envelope that defines variable density
     tr = round(p / R)  # Number of readout lines per frame (temporal resolution)
 
     # Displacement parameters
@@ -42,12 +43,12 @@ def vista(p, t, R, typ, alph, sd, nIter=120, g=20, uni=60, ss=0.25, fl=100, fs=1
 
     # Let's find uniform interleaved sampling (UIS)
     def samp_UIS(p, t, R):
-        ptmp = np.zeros((p, 1)).flatten()  # (132,)
+        ptmp = np.zeros((p, 1)).flatten()
         for i in list(range(0, p, R)):
             i = round(i)
             ptmp[i] = 1
 
-        ttmp = np.zeros((t, 1)).flatten()  # (25)
+        ttmp = np.zeros((t, 1)).flatten()
         for i in list(range(0, t, R)):
             i = round(i)
             ttmp[i] = 1
@@ -57,23 +58,23 @@ def vista(p, t, R, typ, alph, sd, nIter=120, g=20, uni=60, ss=0.25, fl=100, fs=1
         ind = []
         for _ in np.where(Top_flatten == 1)[0]:
             ind.append(_)
-        ind = np.array(ind)  # (660,)
+        ind = np.array(ind)
 
         ph = []
         for i in ind:
             i_ph = i % p - math.floor(p / 2)
             ph.append(i_ph)
-        ph = np.array(ph)  # (660,)
+        ph = np.array(ph)
 
         ti = []
         for i in ind:
             i_ti = math.floor((i / p)) - math.floor(t / 2)
             ti.append(i_ti)
-        ti = np.array(ti)  # (660,)
+        ti = np.array(ti)
 
         ph, ti = dispdup(ph, ti, p, t)
 
-        samp = np.zeros((p, t))  # (132,25)
+        samp = np.zeros((p, t))
         ind2 = []
         for i in range(len(ind)):
             ind_ = round(p * (ti[i] + math.floor(t / 2)) + (ph[i] + math.floor(p / 2) + 1))
@@ -88,10 +89,10 @@ def vista(p, t, R, typ, alph, sd, nIter=120, g=20, uni=60, ss=0.25, fl=100, fs=1
 
     def tile(ph, ti, p, t):
         """
-      Replicate the sampling pattern in each direction. Probablity, this is
-      not an efficient way to impose periodic boundary condition because it
-      makes the problem size grow by 9 fold.
-      """
+        Replicate the sampling pattern in each direction. Probablity, this is
+        not an efficient way to impose periodic boundary condition because it
+        makes the problem size grow by 9 fold.
+        """
         po = np.concatenate((ph, ph - p, ph, ph + p, ph - p, ph + p, ph - p, ph, ph + p))
         to = np.concatenate((ti, ti - t, ti - t, ti - t, ti, ti, ti + t, ti + t, ti + t))
         return po, to
@@ -100,7 +101,7 @@ def vista(p, t, R, typ, alph, sd, nIter=120, g=20, uni=60, ss=0.25, fl=100, fs=1
     p1 = []
     for _ in range(-math.floor(p / 2), math.ceil(p / 2)):
         p1.append(_)
-    p1 = np.array(p1)  # (-66,...,65), shape(132,)
+    p1 = np.array(p1)
 
     t1 = np.array([])
     ind = 0
@@ -110,24 +111,24 @@ def vista(p, t, R, typ, alph, sd, nIter=120, g=20, uni=60, ss=0.25, fl=100, fs=1
     for every_p1 in p1:
         prob_ = (0.1 + alph / (1 - alph + 1e-10) * math.exp(-every_p1 ** 2 / (1 * sig ** 2)))
         prob.append(prob_)
-    prob = np.array(prob)  # (132,)
+    prob = np.array(prob) 
 
     np.random.seed(sd)
     tmpSd = [round(s) for s in 1e6 * np.random.rand(t)]  # Seeds for random numbers
-    tmpSd = np.array(tmpSd)  # (25,)
+    tmpSd = np.array(tmpSd)
 
     for i in range(-math.floor(t / 2), math.ceil(t / 2)):
         a = np.where(t1 == i)[0]
         n_tmp = tr - len(a)
-        prob_tmp = prob  # (132,)
+        prob_tmp = prob
         prob_tmp[a] = 0
-        p_tmp = randp(prob_tmp, tmpSd[i + math.floor(t / 2)], n_tmp, 1) - math.floor(p / 2) - 1  # (26,)
+        p_tmp = randp(prob_tmp, tmpSd[i + math.floor(t / 2)], n_tmp, 1) - math.floor(p / 2) - 1
         ti[ind: ind + n_tmp] = i
         ph[ind: ind + n_tmp] = p_tmp
         ind = ind + n_tmp
 
     print('Computing VISTA, plese wait as it may take a while ...', datetime.datetime.now())
-    stp = np.ones((1, nIter)).flatten()  # Gradient descent displacement, shape(120,)
+    stp = np.ones((1, nIter)).flatten()    # Gradient descent displacement, shape(120,)
     a = W * np.ones((1, nIter)).flatten()  # Temporal axis scaling
 
     def square(num):
@@ -145,7 +146,7 @@ def vista(p, t, R, typ, alph, sd, nIter=120, g=20, uni=60, ss=0.25, fl=100, fs=1
         return (data[half] + data[-half]) / 2
 
     np.random.seed(sd)
-    f = round(100 * np.random.rand())  # Figure index
+    f = round(100 * np.random.rand())     # Figure index
     dis_ext = np.zeros((N, 1)).flatten()  # Extent of displacement, shape(650,)
 
     for i in range(nIter):
@@ -210,12 +211,13 @@ def vista(p, t, R, typ, alph, sd, nIter=120, g=20, uni=60, ss=0.25, fl=100, fs=1
         if (i + 1) == uni:
             tmp = np.zeros((tr, t))
             for k in range(t):
-                tmp[:, k] = np.array(sorted(ph[k * tr: (k + 1) * tr]))  # tmp:(26,25)
-            tmp = np.array(list(map(round, np.mean(tmp,
-                                                   axis=1))))  # Find average distances between adjacent phase-encoding samples, shape(26,)
-            ph = np.tile(tmp, t)  # Variable density sampling with "average" distances, (650,)
+                tmp[:, k] = np.array(sorted(ph[k * tr: (k + 1) * tr]))
+            tmp = np.array(list(map(round, np.mean(tmp,axis=1))))  
+            # Find average distances between adjacent phase-encoding samples
+            
+            ph = np.tile(tmp, t)  # Variable density sampling with "average" distances
             np.random.seed(sd)
-            rndTmp = np.random.rand(t, 1).flatten()  # (25,)
+            rndTmp = np.random.rand(t, 1).flatten()
             for k in range(-math.floor(t / 2), math.ceil(t / 2)):
                 tmp = np.where(ti == k)[0]
                 ptmp = ph[tmp] + round(1 / 2 * R ** 1 * (rndTmp[k + math.floor(t / 2)] - 0.5))  # Add jitter
