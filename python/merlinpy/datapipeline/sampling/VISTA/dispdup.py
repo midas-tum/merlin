@@ -1,10 +1,12 @@
 import math
 import numpy as np
 
+
 def square(num):
   return num*num
 
-#Index to (x,y)
+
+# Index to (x,y)
 def ind2xy(ind, X):
     x = []
     y = []
@@ -15,12 +17,14 @@ def ind2xy(ind, X):
     y = np.array(y)
     return x, y
 
+
 def ind2xy_single(ind, X):
     x = ind - math.floor((ind-1)/X)*X
     y = math.ceil(ind/X)
     return x, y
 
-#For a given 'dupind', this function finds the nearest vacant location among 'empind'
+
+# For a given 'dupind', this function finds the nearest vacant location among 'empind'
 def nearestvac(dupind, empind, p):
     x0, y0 = ind2xy_single(dupind, p)
     x, y = ind2xy(empind, p)
@@ -37,6 +41,7 @@ def nearestvac(dupind, empind, p):
     b = dis.index(min(dis))
     n = empind[b]
     return n
+
 
 def dispdup(ph, ti, p, t):
     """
