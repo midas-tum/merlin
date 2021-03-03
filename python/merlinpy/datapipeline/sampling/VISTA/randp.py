@@ -1,13 +1,15 @@
 
 import numpy as np
 
-def randp(P,sd,n,m):
+
+def randp(P, sd, n, m):
     """
     RANDP - pick random values with relative probability
+    :param n: dimension
+    :param m: dimension
     :param P: input prob_tmp
     :param sd: seed
-    :param n,m: dimensions
-    :return:
+    :return: random values with relative probability
     """
     sd = int(sd)
     np.random.seed(sd)
