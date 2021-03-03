@@ -39,7 +39,7 @@ class UNet(tf.keras.Model):
         self.downsampling = downsampling
         self.upsampling = upsampling
 
-    def create_layers(self):
+    def create_layers(self, **kwargs):
         # ------------- #
         # create layers #
         # ------------- #
@@ -53,14 +53,14 @@ class UNet(tf.keras.Model):
                                            strides=self.strides[ilayer],
                                            use_bias=self.use_bias,
                                            activation=self.activation,
-                                           padding='same'))
-                level.append(self.norm_layer)
-                level.append(self.activation_layer)
+                                           padding='same', **kwargs))
+                level.append(self.norm_layer(**kwargs))
+                level.append(self.activation_layer(**kwargs))
 
             if self.downsampling == 'mp':
-                level.append(self.down_layer(pool_size=self.pool_size))
+                level.append(self.down_layer(pool_size=self.pool_size, **kwargs))
             else:
-                level.append(self.down_layer)
+                level.append(self.down_layer(**kwargs))
             stage.append(level)
         self.ops.append(stage)
 
@@ -71,17 +71,17 @@ class UNet(tf.keras.Model):
                                        strides=self.strides[ilayer],
                                        use_bias=self.use_bias,
                                        activation=self.activation,
-                                       padding='same'))
-            stage.append(self.norm_layer)
-            stage.append(self.activation_layer)
+                                       padding='same', **kwargs))
+            stage.append(self.norm_layer(**kwargs))
+            stage.append(self.activation_layer(**kwargs))
         if self.upsampling == 'us':
-            stage.append(self.up_layer(pool_size))
+            stage.append(self.up_layer(pool_size, **kwargs))
         elif self.upsampling == 'tc':
             stage.append(self.up_layer(self.filters * (2 ** (self.num_level-1)), self.kernel_size,
                                        strides=self.pool_size,
                                        use_bias=self.use_bias,
                                        activation=self.activation,
-                                       padding='same'))
+                                       padding='same', **kwargs))
         self.ops.append(stage)
 
         # decoder
@@ -93,19 +93,19 @@ class UNet(tf.keras.Model):
                                            strides=1,
                                            use_bias=self.use_bias,
                                            activation=self.activation,
-                                           padding='same'))
-                level.append(self.norm_layer)
-                level.append(self.activation_layer)
+                                           padding='same', **kwargs))
+                level.append(self.norm_layer(**kwargs))
+                level.append(self.activation_layer(**kwargs))
 
             if ilevel > 0:
                 if self.upsampling == 'us':
-                    level.append(self.up_layer(self.pool_size))
+                    level.append(self.up_layer(self.pool_size, **kwargs))
                 elif self.upsampling == 'tc':
                     level.append(self.up_layer(self.filters * (2 ** (ilevel-1)), self.kernel_size,
                                           strides=self.pool_size,
                                           use_bias=self.use_bias,
                                           activation=self.activation,
-                                          padding='same'))
+                                          padding='same', **kwargs))
             stage.append(level)
         self.ops.append(stage)
 
@@ -113,7 +113,7 @@ class UNet(tf.keras.Model):
         self.ops.append(self.conv_layer(self.out_cha, 1, strides=1,
                                            use_bias=self.use_bias,
                                            activation=self.activation_last,
-                                           padding='same'))
+                                           padding='same', **kwargs))
 
     def call(self, inputs):
         x = inputs
@@ -142,13 +142,13 @@ class UNet(tf.keras.Model):
         x = self.ops[3](x)
         return x
 
-class Real2chUNet(UNet):
+class RealUNet(UNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
-                       activation='relu', use_bias=True,
-                       normalization='none', downsampling='mp', upsampling='tc',
-                       name='Real2chUNet', **kwargs):
+                 activation='relu', use_bias=True,
+                 normalization='none', downsampling='mp', upsampling='tc',
+                 name='RealUNet', **kwargs):
         """
-        Builds the real-valued 2D/2D+t/3D/3D+t/4D UNet model
+        Builds the real-valued 2D/2D+t/3D/3D+t/4D UNet model (abstract class)
         """
         super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name)
 
@@ -161,64 +161,92 @@ class Real2chUNet(UNet):
             raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
 
         # output convolution
-        self.activation_last = activation
+        if 'activation_last' in kwargs:
+            self.activation_last = kwargs.get('activation_last')
+        else:
+            self.activation_last = activation
+
+            # get normalization operator
+            if normalization == 'BN':
+                self.norm_layer = tf.keras.layers.BatchNormalization
+                self.activation_layer = tf.keras.layers.Activation(activation)
+                self.activation = ''
+            elif normalization == 'IN':
+                self.norm_layer = tf.keras.layers.InstanceNormalization
+                self.activation_layer = tf.keras.layers.Activation(activation)
+                self.activation = ''
+            elif normalization == 'none':
+                self.norm_layer = None
+                self.activation_layer = None
+                self.activation = activation
+            else:
+                raise RuntimeError(f"Normalization for {normalization} not implemented!")
+
+            # get downsampling operator
+            if downsampling == 'mp':
+                if dim == '2D':
+                    self.down_layer = tf.keras.layers.MaxPool2D
+                elif dim == '3D':
+                    self.down_layer = tf.keras.layers.MaxPool3D
+                else:
+                    raise RuntimeError(f"MaxPooling for dim={dim} not implemented!")
+                self.strides = [1] * num_layer_per_level
+            elif downsampling == 'st':
+                self.down_layer = None
+                self.strides = [1] * (num_layer_per_level - 1) + [2]
+            else:
+                raise RuntimeError(f"Downsampling operation {downsampling} not implemented!")
+
+            # get upsampling operator
+            if upsampling == 'us':
+                if dim == '2D':
+                    self.up_layer = tf.keras.layers.UpSampling2D
+                elif dim == '3D':
+                    self.up_layer = tf.keras.layers.UpSampling3D
+                else:
+                    raise RuntimeError(f"Upsampling for dim={dim} not implemented!")
+            elif upsampling == 'tc':
+                if dim == '2D':
+                    self.up_layer = tf.keras.layers.Conv2DTranspose
+                elif dim == '3D':
+                    self.up_layer = tf.keras.layers.Conv3DTranspose
+                else:
+                    raise RuntimeError(f"Transposed convlutions for dim={dim} not implemented!")
+            else:
+                raise RuntimeError(f"Upsampling operation {upsampling} not implemented!")
+
+class Real2chUNet(RealUNet):
+    def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
+                       activation='relu', use_bias=True,
+                       normalization='none', downsampling='mp', upsampling='tc',
+                       name='Real2chUNet', **kwargs):
+        """
+        Builds the real-valued 2-channel (real/imag or mag/pha in channel dim) 2D/2D+t/3D/3D+t/4D UNet model
+        """
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, **kwargs)
         self.out_cha = 2
-
-        # get normalization operator
-        if normalization == 'BN':
-            self.norm_layer = tf.keras.layers.BatchNormalization
-            self.activation_layer = tf.keras.layers.Activation(activation)
-            self.activation = ''
-        elif normalization == 'IN':
-            self.norm_layer = tf.keras.layers.InstanceNormalization
-            self.activation_layer = tf.keras.layers.Activation(activation)
-            self.activation = ''
-        elif normalization == 'none':
-            self.norm_layer = None
-            self.activation_layer = None
-            self.activation = activation
-        else:
-            raise RuntimeError(f"Normalization for {normalization} not implemented!")
-
-        # get downsampling operator
-        if downsampling == 'mp':
-            if dim == '2D':
-                self.down_layer = tf.keras.layers.MaxPool2D
-            elif dim == '3D':
-                self.down_layer = tf.keras.layers.MaxPool3D
-            else:
-                raise RuntimeError(f"MaxPooling for dim={dim} not implemented!")
-            self.strides = [1] * num_layer_per_level
-        elif downsampling == 'st':
-            self.down_layer = None
-            self.strides = [1] * (num_layer_per_level - 1) + [2]
-        else:
-            raise RuntimeError(f"Downsampling operation {downsampling} not implemented!")
-
-        # get upsampling operator
-        if upsampling == 'us':
-            if dim == '2D':
-                self.up_layer = tf.keras.layers.UpSampling2D
-            elif dim == '3D':
-                self.up_layer = tf.keras.layers.UpSampling3D
-            else:
-                raise RuntimeError(f"Upsampling for dim={dim} not implemented!")
-        elif upsampling == 'tc':
-            if dim == '2D':
-                self.up_layer = tf.keras.layers.Conv2DTranspose
-            elif dim == '3D':
-                self.up_layer = tf.keras.layers.Conv3DTranspose
-            else:
-                raise RuntimeError(f"Transposed convlutions for dim={dim} not implemented!")
-        else:
-            raise RuntimeError(f"Upsampling operation {upsampling} not implemented!")
-
-        super().create_layers()
+        super().create_layers(**kwargs)
 
     def call(self, inputs):
         x = merlintf.complex2real(inputs)
         x = super().call(x)
         return merlintf.real2complex(x)
+
+class MagUNet(RealUNet):
+    def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
+                       activation='relu', use_bias=True,
+                       normalization='none', downsampling='mp', upsampling='tc',
+                       name='MagUNet', **kwargs):
+        """
+        Builds the magnitude-based 2D/2D+t/3D/3D+t/4D UNet model (working on real or complex-valued input)
+        """
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, **kwargs)
+        self.out_cha = 1
+        super().create_layers(**kwargs)
+
+    def call(self, inputs):
+        x = merlintf.complex_abs(inputs)
+        return super().call(x)
 
 class ComplexUNet(UNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
@@ -271,28 +299,37 @@ class ComplexUNet(UNet):
         else:
             raise RuntimeError(f"Upsampling operation {upsampling} not implemented!")
 
-        super().create_layers()
+        super().create_layers(**kwargs)
 
 
-class ComplexUNetTest(unittest.TestCase):
+class UNetTest(unittest.TestCase):
     def test_UNet_2chreal_2d(self):
-        self._test_UNet('2D', 64, (3, 3), complex_network=False, complex_input=False)
-        self._test_UNet('2D', 64, (3, 3), complex_network=False, complex_input=True)
+        self._test_UNet('2D', 64, (3, 3), network='2chreal', complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), network='2chreal', complex_input=True)
+
+    def test_UNet_mag_2d(self):
+        self._test_UNet('2D', 64, (3, 3), network='mag', complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), network='mag', complex_input=True)
 
     def test_UNet_complex_2d(self):
-        self._test_UNet('2D', 64, (3, 3), complex_network=True, complex_input=False)
-        self._test_UNet('2D', 64, (3, 3), complex_network=True, complex_input=True)
+        self._test_UNet('2D', 64, (3, 3), network='complex', complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), network='complex', complex_input=True)
 
     def test_UNet_2chreal_3d(self):
-        self._test_UNet('3D', 32, (3, 3, 3), complex_network=False, complex_input=False)
-        self._test_UNet('3D', 32, (3, 3, 3), complex_network=False, complex_input=True)
-        self._test_UNet('3D', 32, (1, 3, 3), (1, 2, 2), complex_network=False, complex_input=True)
+        self._test_UNet('3D', 32, (3, 3, 3), network='2chreal', complex_input=False)
+        self._test_UNet('3D', 32, (3, 3, 3), network='2chreal', complex_input=True)
+        self._test_UNet('3D', 32, (1, 3, 3), (1, 2, 2), network='2chreal', complex_input=True)
+
+    def test_UNet_mag_3d(self):
+        self._test_UNet('3D', 32, (3, 3, 3), network='mag', complex_input=False)
+        self._test_UNet('3D', 32, (3, 3, 3), network='mag', complex_input=True)
+        self._test_UNet('3D', 32, (1, 3, 3), (1, 2, 2), network='mag', complex_input=True)
 
     #def test_UNet_complex_3d(self):
-    #    self._test_UNet('3D', 32, (3, 3, 3), complex_network=True, complex_input=False)
-    #    self._test_UNet('3D', 32, (3, 3, 3), complex_network=True, complex_input=True)
+    #    self._test_UNet('3D', 32, (3, 3, 3), network='complex', complex_input=False)
+    #    self._test_UNet('3D', 32, (3, 3, 3), network='complex', complex_input=True)
 
-    def _test_UNet(self, dim, filters, kernel_size, down_size=(2,2,2), complex_network=True, complex_input=True):
+    def _test_UNet(self, dim, filters, kernel_size, down_size=(2,2,2), network='complex', complex_input=True):
         gpus = tf.config.experimental.list_physical_devices('GPU')
         tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
         tf.config.experimental.set_memory_growth(gpus[0], True)
@@ -303,10 +340,12 @@ class ComplexUNetTest(unittest.TestCase):
         M = 32
         N = 32
 
-        if complex_network:
+        if network == 'complex':
             model = ComplexUNet(dim, filters, kernel_size, down_size)
-        else:
+        elif network =='2chreal':
             model = Real2chUNet(dim, filters, kernel_size, down_size)
+        else:
+            model = MagUNet(dim, filters, kernel_size, down_size)
 
         if dim == '2D':
             if complex_input:
