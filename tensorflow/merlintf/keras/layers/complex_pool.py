@@ -25,7 +25,7 @@ def deserialize(op):
     elif op == 'MagnitudeMaxPool3D' or op == 'MagnitudeMaxPooling3D':
         return MagnitudeMaxPool3D
     else:
-        raise ValueError(f"Selected operation '{conv}' not implemented in complex convolutional")
+        raise ValueError(f"Selected operation '{op}' not implemented in complex convolutional")
 
 class MagnitudeMaxPool(tf.keras.layers.Layer):
     def __init__(self, pool_size, strides=None, padding='SAME'):
