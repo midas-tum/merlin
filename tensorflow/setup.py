@@ -20,6 +20,7 @@ print ("=>required tensorflow for pip: %s\n"% tfstr)
 # define requirements
 REQUIRED_PACKAGES = [
     tfstr, # tensorflow or tensorflow-gpu
+    'tensorflow-addons[tensorflow]',
 ]
 
 setup(
