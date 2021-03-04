@@ -1,8 +1,13 @@
 import tensorflow as tf
+import tensorflow_addons as tfa
 import merlintf
 
 import unittest
-import numpy as np
+#import numpy as np
+
+__all__ = ['Real2chUNet',
+           'MagUNet',
+           'ComplexUNet']
 
 class UNet(tf.keras.Model):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
@@ -54,13 +59,13 @@ class UNet(tf.keras.Model):
                                            use_bias=self.use_bias,
                                            activation=self.activation,
                                            padding='same', **kwargs))
-                level.append(self.norm_layer(**kwargs))
-                level.append(self.activation_layer(**kwargs))
+                level.append(callCheck(self.norm_layer, **kwargs))
+                level.append(callCheck(self.activation_layer, **kwargs))
 
             if self.downsampling == 'mp':
-                level.append(self.down_layer(pool_size=self.pool_size, **kwargs))
+                level.append(callCheck(self.down_layer, pool_size=self.pool_size, **kwargs))
             else:
-                level.append(self.down_layer(**kwargs))
+                level.append(callCheck(self.down_layer, **kwargs))
             stage.append(level)
         self.ops.append(stage)
 
@@ -72,10 +77,10 @@ class UNet(tf.keras.Model):
                                        use_bias=self.use_bias,
                                        activation=self.activation,
                                        padding='same', **kwargs))
-            stage.append(self.norm_layer(**kwargs))
-            stage.append(self.activation_layer(**kwargs))
+            stage.append(callCheck(self.norm_layer, **kwargs))
+            stage.append(callCheck(self.activation_layer, **kwargs))
         if self.upsampling == 'us':
-            stage.append(self.up_layer(pool_size, **kwargs))
+            stage.append(self.up_layer(self.pool_size, **kwargs))
         elif self.upsampling == 'tc':
             stage.append(self.up_layer(self.filters * (2 ** (self.num_level-1)), self.kernel_size,
                                        strides=self.pool_size,
@@ -94,8 +99,8 @@ class UNet(tf.keras.Model):
                                            use_bias=self.use_bias,
                                            activation=self.activation,
                                            padding='same', **kwargs))
-                level.append(self.norm_layer(**kwargs))
-                level.append(self.activation_layer(**kwargs))
+                level.append(callCheck(self.norm_layer, **kwargs))
+                level.append(callCheck(self.activation_layer, **kwargs))
 
             if ilevel > 0:
                 if self.upsampling == 'us':
@@ -172,7 +177,7 @@ class RealUNet(UNet):
                 self.activation_layer = tf.keras.layers.Activation(activation)
                 self.activation = ''
             elif normalization == 'IN':
-                self.norm_layer = tf.keras.layers.InstanceNormalization
+                self.norm_layer = tfa.layers.InstanceNormalization
                 self.activation_layer = tf.keras.layers.Activation(activation)
                 self.activation = ''
             elif normalization == 'none':
@@ -301,28 +306,33 @@ class ComplexUNet(UNet):
 
         super().create_layers(**kwargs)
 
+def callCheck(fhandle, **kwargs):
+    if fhandle is not None:
+        return fhandle(**kwargs)
+    else:
+        return fhandle
 
 class UNetTest(unittest.TestCase):
     def test_UNet_2chreal_2d(self):
-        self._test_UNet('2D', 64, (3, 3), network='2chreal', complex_input=False)
-        self._test_UNet('2D', 64, (3, 3), network='2chreal', complex_input=True)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), network='2chreal', complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), network='2chreal', complex_input=True)
 
     def test_UNet_mag_2d(self):
-        self._test_UNet('2D', 64, (3, 3), network='mag', complex_input=False)
-        self._test_UNet('2D', 64, (3, 3), network='mag', complex_input=True)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), network='mag', complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), network='mag', complex_input=True)
 
     def test_UNet_complex_2d(self):
-        self._test_UNet('2D', 64, (3, 3), network='complex', complex_input=False)
-        self._test_UNet('2D', 64, (3, 3), network='complex', complex_input=True)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), network='complex', complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), network='complex', complex_input=True)
 
     def test_UNet_2chreal_3d(self):
-        self._test_UNet('3D', 32, (3, 3, 3), network='2chreal', complex_input=False)
-        self._test_UNet('3D', 32, (3, 3, 3), network='2chreal', complex_input=True)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='2chreal', complex_input=False)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='2chreal', complex_input=True)
         self._test_UNet('3D', 32, (1, 3, 3), (1, 2, 2), network='2chreal', complex_input=True)
 
     def test_UNet_mag_3d(self):
-        self._test_UNet('3D', 32, (3, 3, 3), network='mag', complex_input=False)
-        self._test_UNet('3D', 32, (3, 3, 3), network='mag', complex_input=True)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='mag', complex_input=False)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='mag', complex_input=True)
         self._test_UNet('3D', 32, (1, 3, 3), (1, 2, 2), network='mag', complex_input=True)
 
     #def test_UNet_complex_3d(self):
@@ -332,7 +342,7 @@ class UNetTest(unittest.TestCase):
     def _test_UNet(self, dim, filters, kernel_size, down_size=(2,2,2), network='complex', complex_input=True):
         gpus = tf.config.experimental.list_physical_devices('GPU')
         tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
-        tf.config.experimental.set_memory_growth(gpus[0], True)
+        #tf.config.experimental.set_memory_growth(gpus[0], True)
         tf.config.experimental_run_functions_eagerly(False)
 
         nBatch = 2
@@ -364,4 +374,4 @@ class UNetTest(unittest.TestCase):
         self.assertTrue(Kx.shape == x.shape)
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()
