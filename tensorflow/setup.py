@@ -10,12 +10,13 @@ tfNightly = not subprocess.call(["pip","-q","show","tf-nightly"] )
 
 if tfCPU:
   tfstr = "tensorflow == {}".format(tf.version.VERSION)
+  tfstra = "tensorflow-addons[tensorflow]"
 if tfGPU:
   tfstr = "tensorflow-gpu == {}".format(tf.version.VERSION)
-if tfNightly:
-  tfstr = "tf-nightly == {}".format(tf.version.VERSION)
-if (tfGPU and tfCPU) or not (tfGPU or tfCPU or tfNightly):
+  tfstra = "tensorflow-addons[tensorflow-gpu]"
+if (tfGPU and tfCPU) or not (tfGPU or tfCPU):
   tfstr = ""
+  tfstra = ""
   assert False, "\n\nunexpected error, is tensorflow or tensorflow-gpu installed with pip?\n\n"
   exit(1)
 print ("=>required tensorflow for pip: %s\n"% tfstr)
@@ -24,6 +25,7 @@ print ("=>required tensorflow for pip: %s\n"% tfstr)
 # define requirements
 REQUIRED_PACKAGES = [
     tfstr, # tensorflow or tensorflow-gpu
+    tfstra,
 ]
 
 setup(
