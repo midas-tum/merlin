@@ -1,6 +1,7 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
 import merlintf
+import numpy as np
 
 import unittest
 #import numpy as np
@@ -13,7 +14,7 @@ class UNet(tf.keras.Model):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
                        activation='relu', use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
-                       name='UNet', **kwargs):
+                       name='UNet', data_format='channels_last', **kwargs):
         """
         Abstract class for 2D/2D+t/3D/3D+t/4D UNet model
         input parameter:
@@ -28,6 +29,8 @@ class UNet(tf.keras.Model):
         normalization               use normalization layers: BN (batch), IN (instance), none
         downsampling                downsampling operation: mp (max-pooling), st (stride)
         upsampling                  upsampling operation: us (upsampling), tc (transposed convolution)
+        name                        specific identifier for network
+        data_format                 'channels_last' (default) or 'channels_first' processing
         """
         super().__init__(name=name)
 
@@ -43,6 +46,7 @@ class UNet(tf.keras.Model):
         self.normalization = normalization
         self.downsampling = downsampling
         self.upsampling = upsampling
+        self.data_format = data_format
 
     def create_layers(self, **kwargs):
         # ------------- #
@@ -120,8 +124,27 @@ class UNet(tf.keras.Model):
                                            activation=self.activation_last,
                                            padding='same', **kwargs))
 
+    def calculate_downsampling_padding(self, tensor):
+        # calculate pad size
+        if self.data_format == 'channels_last':  # default
+            imshape = np.array(tensor.shape[1:len(self.pool_size)+1])
+        else:  # channels_first
+            imshape = np.array(tensor.shape[2:len(self.pool_size)+2])
+        factor = np.power(self.pool_size, self.num_level)
+        paddings = np.ceil(imshape / factor) * factor - imshape
+        paddings = paddings.astype(np.int) // 2
+        # reversed order of paddings???
+        pad = []
+        for idx in range(len(self.pool_size)):
+            # pad.extend([paddings[idx], paddings[idx]])  # for optox
+            pad.append((paddings[idx], paddings[idx]))
+
+        return tuple(pad)
+
     def call(self, inputs):
-        x = inputs
+        pad = self.calculate_downsampling_padding(inputs)
+        # x = merlintf.keras.layers.pad(len(self.pool_size), inputs, pad, 'symmetric')  # symmetric padding via optox
+        x = self.pad_layer(pad)(inputs)
         xforward = []
         # encoder
         for ilevel in range(self.num_level):
@@ -145,6 +168,7 @@ class UNet(tf.keras.Model):
 
         # output convolution
         x = self.ops[3](x)
+        x = self.crop_layer(pad)(x)
         return x
 
 class RealUNet(UNet):
@@ -157,11 +181,15 @@ class RealUNet(UNet):
         """
         super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name)
 
-        # get correct conv operator
+        # get correct conv and input padding/output cropping operator
         if dim == '2D':
             self.conv_layer = tf.keras.layers.Conv2D
+            self.pad_layer = tf.keras.layers.ZeroPadding2D
+            self.crop_layer = tf.keras.layers.Cropping2D
         elif dim == '3D':
             self.conv_layer = tf.keras.layers.Conv3D
+            self.pad_layer = tf.keras.layers.ZeroPadding3D
+            self.crop_layer = tf.keras.layers.Cropping3D
         else:
             raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
 
@@ -265,6 +293,8 @@ class ComplexUNet(UNet):
 
         # get correct conv operator
         self.conv_layer = merlintf.keras.layers.ComplexConvolution(dim)
+        self.pad_layer = merlintf.keras.layers.ZeroPadding(dim)
+        self.crop_layer = merlintf.keras.layers.Cropping(dim)
 
         # output convolution
         self.activation_last = activation
@@ -342,11 +372,11 @@ class UNetTest(unittest.TestCase):
     def _test_UNet(self, dim, filters, kernel_size, down_size=(2,2,2), network='complex', complex_input=True):
         gpus = tf.config.experimental.list_physical_devices('GPU')
         tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
-        #tf.config.experimental.set_memory_growth(gpus[0], True)
+        tf.config.experimental.set_memory_growth(gpus[0], True)
         tf.config.experimental_run_functions_eagerly(False)
 
         nBatch = 2
-        D = 16
+        D = 20
         M = 32
         N = 32
 
