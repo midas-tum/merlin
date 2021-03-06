@@ -14,7 +14,7 @@ class UNet(tf.keras.Model):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
                        activation='relu', use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
-                       name='UNet', data_format='channels_last', **kwargs):
+                       name='UNet', data_format='channels_last', residual_output_add=False, **kwargs):
         """
         Abstract class for 2D/2D+t/3D/3D+t/4D UNet model
         input parameter:
@@ -31,6 +31,7 @@ class UNet(tf.keras.Model):
         upsampling                  upsampling operation: us (upsampling), tc (transposed convolution)
         name                        specific identifier for network
         data_format                 'channels_last' (default) or 'channels_first' processing
+        residual_output_add         adding aliased input to output for residual learning
         """
         super().__init__(name=name)
 
@@ -47,6 +48,7 @@ class UNet(tf.keras.Model):
         self.downsampling = downsampling
         self.upsampling = upsampling
         self.data_format = data_format
+        self.residual_output_add = residual_output_add
 
     def create_layers(self, **kwargs):
         # ------------- #
@@ -119,10 +121,19 @@ class UNet(tf.keras.Model):
         self.ops.append(stage)
 
         # output convolution
-        self.ops.append(self.conv_layer(self.out_cha, 1, strides=1,
-                                           use_bias=self.use_bias,
-                                           activation=self.activation_last,
-                                           padding='same', **kwargs))
+        if self.residual_output_add:
+            stage = []
+            stage.append(self.conv_layer(self.out_cha, 1, strides=1,
+                                               use_bias=self.use_bias,
+                                               activation=None,
+                                               padding='same', **kwargs))
+            stage.append(callCheck(self.activation_layer, **kwargs))
+            self.ops.append(stage)
+        else:
+            self.ops.append(self.conv_layer(self.out_cha, 1, strides=1,
+                                               use_bias=self.use_bias,
+                                               activation=self.activation_last,
+                                               padding='same', **kwargs))
 
     def calculate_downsampling_padding(self, tensor):
         # calculate pad size
@@ -133,10 +144,9 @@ class UNet(tf.keras.Model):
         factor = np.power(self.pool_size, self.num_level)
         paddings = np.ceil(imshape / factor) * factor - imshape
         paddings = paddings.astype(np.int) // 2
-        # reversed order of paddings???
         pad = []
         for idx in range(len(self.pool_size)):
-            # pad.extend([paddings[idx], paddings[idx]])  # for optox
+            # pad.extend([paddings[idx], paddings[idx]])  # for optox, TODO: check if reversed order of paddings
             pad.append((paddings[idx], paddings[idx]))
 
         return tuple(pad)
@@ -144,7 +154,8 @@ class UNet(tf.keras.Model):
     def call(self, inputs):
         pad = self.calculate_downsampling_padding(inputs)
         # x = merlintf.keras.layers.pad(len(self.pool_size), inputs, pad, 'symmetric')  # symmetric padding via optox
-        x = self.pad_layer(pad)(inputs)
+        xin = self.pad_layer(pad)(inputs)
+        x = xin  # xin needed for residual add forward
         xforward = []
         # encoder
         for ilevel in range(self.num_level):
@@ -167,7 +178,12 @@ class UNet(tf.keras.Model):
                     x = op(x)
 
         # output convolution
-        x = self.ops[3](x)
+        if self.residual_output_add:
+            x = self.ops[3][0](x)
+            x = tf.keras.layers.Add()([x, xin])
+            x = self.ops[3][1](x)
+        else:
+            x = self.ops[3](x)
         x = self.crop_layer(pad)(x)
         return x
 
@@ -175,11 +191,11 @@ class RealUNet(UNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
                  activation='relu', use_bias=True,
                  normalization='none', downsampling='mp', upsampling='tc',
-                 name='RealUNet', **kwargs):
+                 name='RealUNet', data_format='channels_last', residual_output_add=False, **kwargs):
         """
         Builds the real-valued 2D/2D+t/3D/3D+t/4D UNet model (abstract class)
         """
-        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name)
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, data_format, residual_output_add)
 
         # get correct conv and input padding/output cropping operator
         if dim == '2D':
@@ -252,11 +268,11 @@ class Real2chUNet(RealUNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
                        activation='relu', use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
-                       name='Real2chUNet', **kwargs):
+                       name='Real2chUNet', data_format='channels_last', residual_output_add=False, **kwargs):
         """
         Builds the real-valued 2-channel (real/imag or mag/pha in channel dim) 2D/2D+t/3D/3D+t/4D UNet model
         """
-        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, **kwargs)
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, data_format, residual_output_add, **kwargs)
         self.out_cha = 2
         super().create_layers(**kwargs)
 
@@ -269,11 +285,11 @@ class MagUNet(RealUNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
                        activation='relu', use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
-                       name='MagUNet', **kwargs):
+                       name='MagUNet', data_format='channels_last', residual_output_add=False, **kwargs):
         """
         Builds the magnitude-based 2D/2D+t/3D/3D+t/4D UNet model (working on real or complex-valued input)
         """
-        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, **kwargs)
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, data_format, residual_output_add, **kwargs)
         self.out_cha = 1
         super().create_layers(**kwargs)
 
@@ -285,11 +301,11 @@ class ComplexUNet(UNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
                        activation='ModReLU', use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
-                       name='ComplexUNet', **kwargs):
+                       name='ComplexUNet', data_format='channels_last', residual_output_add=False, **kwargs):
         """
         Builds the complex-valued 2D/2D+t/3D/3D+t/4D UNet model
         """
-        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name)
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, data_format, residual_output_add)
 
         # get correct conv operator
         self.conv_layer = merlintf.keras.layers.ComplexConvolution(dim)
