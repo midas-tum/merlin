@@ -1,6 +1,7 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
 import merlintf
+import numpy as np
 
 import unittest
 #import numpy as np
@@ -135,7 +136,8 @@ class UNet(tf.keras.Model):
         # reversed order of paddings???
         pad = []
         for idx in range(len(self.pool_size)):
-            pad.extend([paddings[idx], paddings[idx]])
+            # pad.extend([paddings[idx], paddings[idx]])  # for optox
+            pad.append((paddings[idx], paddings[idx]))
 
         return tuple(pad)
 
@@ -370,11 +372,11 @@ class UNetTest(unittest.TestCase):
     def _test_UNet(self, dim, filters, kernel_size, down_size=(2,2,2), network='complex', complex_input=True):
         gpus = tf.config.experimental.list_physical_devices('GPU')
         tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
-        #tf.config.experimental.set_memory_growth(gpus[0], True)
+        tf.config.experimental.set_memory_growth(gpus[0], True)
         tf.config.experimental_run_functions_eagerly(False)
 
         nBatch = 2
-        D = 16
+        D = 20
         M = 32
         N = 32
 
