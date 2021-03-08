@@ -127,7 +127,7 @@ class UNet(tf.keras.Model):
                                                use_bias=self.use_bias,
                                                activation=None,
                                                padding='same', **kwargs))
-            stage.append(callCheck(self.activation_layer, **kwargs))
+            stage.append(self.activation_layer_last)
             self.ops.append(stage)
         else:
             self.ops.append(self.conv_layer(self.out_cha, 1, strides=1,
@@ -214,55 +214,57 @@ class RealUNet(UNet):
             self.activation_last = kwargs.get('activation_last')
         else:
             self.activation_last = activation
+        if residual_output_add:
+            self.activation_layer_last = tf.keras.layers.Activation(self.activation_last)
 
-            # get normalization operator
-            if normalization == 'BN':
-                self.norm_layer = tf.keras.layers.BatchNormalization
-                self.activation_layer = tf.keras.layers.Activation(activation)
-                self.activation = ''
-            elif normalization == 'IN':
-                self.norm_layer = tfa.layers.InstanceNormalization
-                self.activation_layer = tf.keras.layers.Activation(activation)
-                self.activation = ''
-            elif normalization == 'none':
-                self.norm_layer = None
-                self.activation_layer = None
-                self.activation = activation
-            else:
-                raise RuntimeError(f"Normalization for {normalization} not implemented!")
+        # get normalization operator
+        if normalization == 'BN':
+            self.norm_layer = tf.keras.layers.BatchNormalization
+            self.activation_layer = tf.keras.layers.Activation(activation)
+            self.activation = ''
+        elif normalization == 'IN':
+            self.norm_layer = tfa.layers.InstanceNormalization
+            self.activation_layer = tf.keras.layers.Activation(activation)
+            self.activation = ''
+        elif normalization == 'none':
+            self.norm_layer = None
+            self.activation_layer = None
+            self.activation = activation
+        else:
+            raise RuntimeError(f"Normalization for {normalization} not implemented!")
 
-            # get downsampling operator
-            if downsampling == 'mp':
-                if dim == '2D':
-                    self.down_layer = tf.keras.layers.MaxPool2D
-                elif dim == '3D':
-                    self.down_layer = tf.keras.layers.MaxPool3D
-                else:
-                    raise RuntimeError(f"MaxPooling for dim={dim} not implemented!")
-                self.strides = [1] * num_layer_per_level
-            elif downsampling == 'st':
-                self.down_layer = None
-                self.strides = [1] * (num_layer_per_level - 1) + [2]
+        # get downsampling operator
+        if downsampling == 'mp':
+            if dim == '2D':
+                self.down_layer = tf.keras.layers.MaxPool2D
+            elif dim == '3D':
+                self.down_layer = tf.keras.layers.MaxPool3D
             else:
-                raise RuntimeError(f"Downsampling operation {downsampling} not implemented!")
+                raise RuntimeError(f"MaxPooling for dim={dim} not implemented!")
+            self.strides = [1] * num_layer_per_level
+        elif downsampling == 'st':
+            self.down_layer = None
+            self.strides = [1] * (num_layer_per_level - 1) + [2]
+        else:
+            raise RuntimeError(f"Downsampling operation {downsampling} not implemented!")
 
-            # get upsampling operator
-            if upsampling == 'us':
-                if dim == '2D':
-                    self.up_layer = tf.keras.layers.UpSampling2D
-                elif dim == '3D':
-                    self.up_layer = tf.keras.layers.UpSampling3D
-                else:
-                    raise RuntimeError(f"Upsampling for dim={dim} not implemented!")
-            elif upsampling == 'tc':
-                if dim == '2D':
-                    self.up_layer = tf.keras.layers.Conv2DTranspose
-                elif dim == '3D':
-                    self.up_layer = tf.keras.layers.Conv3DTranspose
-                else:
-                    raise RuntimeError(f"Transposed convlutions for dim={dim} not implemented!")
+        # get upsampling operator
+        if upsampling == 'us':
+            if dim == '2D':
+                self.up_layer = tf.keras.layers.UpSampling2D
+            elif dim == '3D':
+                self.up_layer = tf.keras.layers.UpSampling3D
             else:
-                raise RuntimeError(f"Upsampling operation {upsampling} not implemented!")
+                raise RuntimeError(f"Upsampling for dim={dim} not implemented!")
+        elif upsampling == 'tc':
+            if dim == '2D':
+                self.up_layer = tf.keras.layers.Conv2DTranspose
+            elif dim == '3D':
+                self.up_layer = tf.keras.layers.Conv3DTranspose
+            else:
+                raise RuntimeError(f"Transposed convlutions for dim={dim} not implemented!")
+        else:
+            raise RuntimeError(f"Upsampling operation {upsampling} not implemented!")
 
 class Real2chUNet(RealUNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
@@ -313,7 +315,12 @@ class ComplexUNet(UNet):
         self.crop_layer = merlintf.keras.layers.Cropping(dim)
 
         # output convolution
-        self.activation_last = activation
+        if 'activation_last' in kwargs:
+            self.activation_last = kwargs.get('activation_last')
+        else:
+            self.activation_last = activation
+        if residual_output_add:
+            self.activation_layer_last = tf.keras.layers.Activation(self.activation_last)
         self.out_cha = 1
 
         # get normalization operator
