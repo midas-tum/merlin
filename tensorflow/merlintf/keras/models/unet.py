@@ -436,6 +436,7 @@ class UNetTest(unittest.TestCase):
     def test_UNet_mag_3d(self):
         self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='mag', complex_input=False)
         self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='mag', complex_input=True)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='mag', complex_input=True, D=15, num_level=2)
         self._test_UNet('3D', 32, (1, 3, 3), (1, 2, 2), network='mag', complex_input=True)
 
     def test_UNet_mag_3d_padding(self):
@@ -454,11 +455,11 @@ class UNetTest(unittest.TestCase):
         nBatch = 2
 
         if network == 'complex':
-            model = ComplexUNet(dim, filters, kernel_size, down_size)
+            model = ComplexUNet(dim, filters, kernel_size, down_size, num_level=num_level)
         elif network =='2chreal':
-            model = Real2chUNet(dim, filters, kernel_size, down_size)
+            model = Real2chUNet(dim, filters, kernel_size, down_size, num_level=num_level)
         else:
-            model = MagUNet(dim, filters, kernel_size, down_size)
+            model = MagUNet(dim, filters, kernel_size, down_size, num_level=num_level)
 
         if dim == '2D':
             if complex_input:

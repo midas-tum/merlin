@@ -6,6 +6,8 @@ import tensorflow as tf
 # If precompiled tensorflow isused, one has to destinguish between "tensorflow" and "tensorflow-gpu"
 tfCPU = not subprocess.call(["pip","-q","show","tensorflow"] )
 tfGPU = not subprocess.call(["pip","-q","show","tensorflow-gpu"] )
+tfNightly = not subprocess.call(["pip","-q","show","tf-nightly"] )
+
 if tfCPU:
   tfstr = "tensorflow == {}".format(tf.version.VERSION)
   tfstra = "tensorflow-addons[tensorflow]"
