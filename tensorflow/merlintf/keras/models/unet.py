@@ -146,8 +146,9 @@ class UNet(tf.keras.Model):
         if in_shape is None:  # input shape not specified or dynamically varying
             self.use_padding = True
             self.pad = None
+            self.optotf_pad = None
         else:  # input shape specified
-            self.pad = self.calculate_padding(in_shape)
+            self.pad, self.optotf_pad = self.calculate_padding(in_shape)
             if np.all(np.asarray(self.pad) == 0):
                 self.use_padding = False
             else:
@@ -165,12 +166,13 @@ class UNet(tf.keras.Model):
         factor = np.power(self.pool_size, self.num_level)
         paddings = np.ceil(in_shape / factor) * factor - in_shape
         pad = []
+        optotf_pad = []
         for idx in range(n_dim):
             pad_top = paddings[idx].astype(np.int) // 2
             pad_bottom = paddings[idx].astype(np.int) - pad_top
-            # pad.extend([pad_top, pad_bottom])  # for optox, TODO: check if reversed order of paddings
+            optotf_pad.extend([pad_top, pad_bottom])
             pad.append((pad_top, pad_bottom))
-        return tuple(pad)
+        return tuple(pad), optotf_pad[::-1]
 
     def calculate_padding_tensor(self, tensor):
         # calculate pad size
@@ -186,10 +188,11 @@ class UNet(tf.keras.Model):
     def call(self, inputs):
         if self.use_padding:
             if self.pad is None:  # input shape cannot be determined or fixed before compile
-                pad = self.calculate_padding_tensor(inputs)
+                pad, optotf_pad = self.calculate_padding_tensor(inputs)
             else:
                 pad = self.pad  # local variable to avoid permanent storage of fixed pad value in case of dynamic input shapes
-            # xin = merlintf.keras.layers.pad(len(self.pool_size), inputs, pad, 'symmetric')  # symmetric padding via optox
+                optotf_pad = self.optotf_pad
+            # xin = merlintf.keras.layers.pad(len(self.pool_size), inputs, optotf_pad, 'symmetric')  # symmetric padding via optox
             xin = self.pad_layer(pad)(inputs)
             x = xin  # xin needed for residual add forward
         else:
@@ -239,11 +242,13 @@ class RealUNet(UNet):
         # get correct conv and input padding/output cropping operator
         if dim == '2D':
             self.conv_layer = tf.keras.layers.Conv2D
-            self.pad_layer = optotf.keras.pad.Pad2d
+            self.pad_layer = tf.keras.layers.ZeroPadding2D
+            #self.pad_layer = optotf.keras.pad.Pad2d
             self.crop_layer = tf.keras.layers.Cropping2D
         elif dim == '3D':
             self.conv_layer = tf.keras.layers.Conv3D
-            self.pad_layer = optotf.keras.pad.Pad3d
+            self.pad_layer = tf.keras.layers.ZeroPadding3D
+            #self.pad_layer = optotf.keras.pad.Pad3d
             self.crop_layer = tf.keras.layers.Cropping3D
         else:
             raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
@@ -350,10 +355,13 @@ class ComplexUNet(UNet):
 
         # get correct conv operator
         self.conv_layer = merlintf.keras.layers.ComplexConvolution(dim)
+        self.pad_layer = merlintf.keras.layers.ZeroPadding(dim)
+        '''
         if dim == '2D':
             self.pad_layer = optotf.keras.pad.Pad2d
         elif dim == '3D':
             self.pad_layer = optotf.keras.pad.Pad3d
+        '''
         self.crop_layer = merlintf.keras.layers.Cropping(dim)
 
         # output convolution
