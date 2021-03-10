@@ -19,7 +19,7 @@ class ToKerasIO():
             outputs.append(sample[key])
         return inputs, outputs
 
-def validate_input_dimension(dim, param):
+def get_ndim(dim):
     if dim == '2D':
         n_dim = 2
     elif dim == '3D':
@@ -28,6 +28,10 @@ def validate_input_dimension(dim, param):
         n_dim = 3
     elif dim == '3Dt':
         n_dim = 4
+    return n_dim
+
+def validate_input_dimension(dim, param):
+    n_dim = get_ndim(dim)
     if isinstance(param, tuple) or isinstance(param, list):
         if not len(param) == n_dim:
             raise RuntimeError("Parameter dimensions {} do not match requested dimensions {}!".format(len(param), n_dim))
