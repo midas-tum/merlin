@@ -1,9 +1,11 @@
 import tensorflow as tf
 import tensorflow_addons as tfa
 import merlintf
+import numpy as np
 
 import unittest
 #import numpy as np
+import optotf.keras.pad
 
 __all__ = ['Real2chUNet',
            'MagUNet',
@@ -13,7 +15,7 @@ class UNet(tf.keras.Model):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
                        activation='relu', use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
-                       name='UNet', **kwargs):
+                       name='UNet', data_format='channels_last', residual_output_add=False, **kwargs):
         """
         Abstract class for 2D/2D+t/3D/3D+t/4D UNet model
         input parameter:
@@ -28,6 +30,9 @@ class UNet(tf.keras.Model):
         normalization               use normalization layers: BN (batch), IN (instance), none
         downsampling                downsampling operation: mp (max-pooling), st (stride)
         upsampling                  upsampling operation: us (upsampling), tc (transposed convolution)
+        name                        specific identifier for network
+        data_format                 'channels_last' (default) or 'channels_first' processing
+        residual_output_add         adding aliased input to output for residual learning
         """
         super().__init__(name=name)
 
@@ -43,6 +48,8 @@ class UNet(tf.keras.Model):
         self.normalization = normalization
         self.downsampling = downsampling
         self.upsampling = upsampling
+        self.data_format = data_format
+        self.residual_output_add = residual_output_add
 
     def create_layers(self, **kwargs):
         # ------------- #
@@ -115,13 +122,51 @@ class UNet(tf.keras.Model):
         self.ops.append(stage)
 
         # output convolution
-        self.ops.append(self.conv_layer(self.out_cha, 1, strides=1,
-                                           use_bias=self.use_bias,
-                                           activation=self.activation_last,
-                                           padding='same', **kwargs))
+        if self.residual_output_add:
+            stage = []
+            stage.append(self.conv_layer(self.out_cha, 1, strides=1,
+                                               use_bias=self.use_bias,
+                                               activation=None,
+                                               padding='same', **kwargs))
+            stage.append(self.activation_layer_last)
+            self.ops.append(stage)
+        else:
+            self.ops.append(self.conv_layer(self.out_cha, 1, strides=1,
+                                               use_bias=self.use_bias,
+                                               activation=self.activation_last,
+                                               padding='same', **kwargs))
+
+    def calculate_downsampling_padding(self, tensor):
+        # calculate pad size
+        #try:
+        #imshape = tf.shape(tensor).eval() # -> not working, no def session
+        #imshape = tuple([imshape[i].value for i in range(0, len(imshape))])
+        #except:
+        imshape = tensor.get_shape().as_list()
+        #if self.data_format == 'channels_last':  # default
+        imshapenp = np.array(imshape[1:len(self.pool_size)+1]).astype(float)
+        #else:  # channels_first
+        #    imshapenp = np.array(imshape[2:len(self.pool_size)+2]).astype(float)
+        #if np.any(np.isnan(imshapenp)):
+        #    paddings = [0] * len(self.pool_size)
+        #else:
+        factor = np.power(self.pool_size, self.num_level)
+        paddings = np.ceil(imshapenp / factor) * factor - imshapenp
+        paddings = paddings.astype(np.int) // 2
+        pad = []
+        optotf_pad = []
+        for idx in range(len(self.pool_size)):
+            # pad.extend([paddings[idx], paddings[idx]])  # for optox, TODO: check if reversed order of paddings
+            pad.append((paddings[idx], paddings[idx]))
+            optotf_pad.extend([paddings[idx], paddings[idx]])
+
+        return tuple(pad), optotf_pad[::-1]
 
     def call(self, inputs):
-        x = inputs
+        pad, optotf_pad = self.calculate_downsampling_padding(inputs)
+        # x = merlintf.keras.layers.pad(len(self.pool_size), inputs, pad, 'symmetric')  # symmetric padding via optox
+        xin = self.pad_layer(optotf_pad, 'symmetric')(inputs)
+        x = xin  # xin needed for residual add forward
         xforward = []
         # encoder
         for ilevel in range(self.num_level):
@@ -144,24 +189,34 @@ class UNet(tf.keras.Model):
                     x = op(x)
 
         # output convolution
-        x = self.ops[3](x)
+        if self.residual_output_add:
+            x = self.ops[3][0](x)
+            x = tf.keras.layers.Add()([x, xin])
+            x = self.ops[3][1](x)
+        else:
+            x = self.ops[3](x)
+        x = self.crop_layer(pad)(x)
         return x
 
 class RealUNet(UNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
                  activation='relu', use_bias=True,
                  normalization='none', downsampling='mp', upsampling='tc',
-                 name='RealUNet', **kwargs):
+                 name='RealUNet', data_format='channels_last', residual_output_add=False, **kwargs):
         """
         Builds the real-valued 2D/2D+t/3D/3D+t/4D UNet model (abstract class)
         """
-        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name)
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, data_format, residual_output_add)
 
-        # get correct conv operator
+        # get correct conv and input padding/output cropping operator
         if dim == '2D':
             self.conv_layer = tf.keras.layers.Conv2D
+            self.pad_layer = optotf.keras.pad.Pad2d
+            self.crop_layer = tf.keras.layers.Cropping2D
         elif dim == '3D':
             self.conv_layer = tf.keras.layers.Conv3D
+            self.pad_layer = optotf.keras.pad.Pad3d
+            self.crop_layer = tf.keras.layers.Cropping3D
         else:
             raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
 
@@ -170,65 +225,67 @@ class RealUNet(UNet):
             self.activation_last = kwargs.get('activation_last')
         else:
             self.activation_last = activation
+        if residual_output_add:
+            self.activation_layer_last = tf.keras.layers.Activation(self.activation_last)
 
-            # get normalization operator
-            if normalization == 'BN':
-                self.norm_layer = tf.keras.layers.BatchNormalization
-                self.activation_layer = tf.keras.layers.Activation(activation)
-                self.activation = ''
-            elif normalization == 'IN':
-                self.norm_layer = tfa.layers.InstanceNormalization
-                self.activation_layer = tf.keras.layers.Activation(activation)
-                self.activation = ''
-            elif normalization == 'none':
-                self.norm_layer = None
-                self.activation_layer = None
-                self.activation = activation
-            else:
-                raise RuntimeError(f"Normalization for {normalization} not implemented!")
+        # get normalization operator
+        if normalization == 'BN':
+            self.norm_layer = tf.keras.layers.BatchNormalization
+            self.activation_layer = tf.keras.layers.Activation(activation)
+            self.activation = ''
+        elif normalization == 'IN':
+            self.norm_layer = tfa.layers.InstanceNormalization
+            self.activation_layer = tf.keras.layers.Activation(activation)
+            self.activation = ''
+        elif normalization == 'none':
+            self.norm_layer = None
+            self.activation_layer = None
+            self.activation = activation
+        else:
+            raise RuntimeError(f"Normalization for {normalization} not implemented!")
 
-            # get downsampling operator
-            if downsampling == 'mp':
-                if dim == '2D':
-                    self.down_layer = tf.keras.layers.MaxPool2D
-                elif dim == '3D':
-                    self.down_layer = tf.keras.layers.MaxPool3D
-                else:
-                    raise RuntimeError(f"MaxPooling for dim={dim} not implemented!")
-                self.strides = [1] * num_layer_per_level
-            elif downsampling == 'st':
-                self.down_layer = None
-                self.strides = [1] * (num_layer_per_level - 1) + [2]
+        # get downsampling operator
+        if downsampling == 'mp':
+            if dim == '2D':
+                self.down_layer = tf.keras.layers.MaxPool2D
+            elif dim == '3D':
+                self.down_layer = tf.keras.layers.MaxPool3D
             else:
-                raise RuntimeError(f"Downsampling operation {downsampling} not implemented!")
+                raise RuntimeError(f"MaxPooling for dim={dim} not implemented!")
+            self.strides = [1] * num_layer_per_level
+        elif downsampling == 'st':
+            self.down_layer = None
+            self.strides = [1] * (num_layer_per_level - 1) + [2]
+        else:
+            raise RuntimeError(f"Downsampling operation {downsampling} not implemented!")
 
-            # get upsampling operator
-            if upsampling == 'us':
-                if dim == '2D':
-                    self.up_layer = tf.keras.layers.UpSampling2D
-                elif dim == '3D':
-                    self.up_layer = tf.keras.layers.UpSampling3D
-                else:
-                    raise RuntimeError(f"Upsampling for dim={dim} not implemented!")
-            elif upsampling == 'tc':
-                if dim == '2D':
-                    self.up_layer = tf.keras.layers.Conv2DTranspose
-                elif dim == '3D':
-                    self.up_layer = tf.keras.layers.Conv3DTranspose
-                else:
-                    raise RuntimeError(f"Transposed convlutions for dim={dim} not implemented!")
+        # get upsampling operator
+        if upsampling == 'us':
+            if dim == '2D':
+                self.up_layer = tf.keras.layers.UpSampling2D
+            elif dim == '3D':
+                self.up_layer = tf.keras.layers.UpSampling3D
             else:
-                raise RuntimeError(f"Upsampling operation {upsampling} not implemented!")
+                raise RuntimeError(f"Upsampling for dim={dim} not implemented!")
+        elif upsampling == 'tc':
+            if dim == '2D':
+                self.up_layer = tf.keras.layers.Conv2DTranspose
+            elif dim == '3D':
+                self.up_layer = tf.keras.layers.Conv3DTranspose
+            else:
+                raise RuntimeError(f"Transposed convlutions for dim={dim} not implemented!")
+        else:
+            raise RuntimeError(f"Upsampling operation {upsampling} not implemented!")
 
 class Real2chUNet(RealUNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
                        activation='relu', use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
-                       name='Real2chUNet', **kwargs):
+                       name='Real2chUNet', data_format='channels_last', residual_output_add=False, **kwargs):
         """
         Builds the real-valued 2-channel (real/imag or mag/pha in channel dim) 2D/2D+t/3D/3D+t/4D UNet model
         """
-        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, **kwargs)
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, data_format, residual_output_add, **kwargs)
         self.out_cha = 2
         super().create_layers(**kwargs)
 
@@ -241,11 +298,11 @@ class MagUNet(RealUNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
                        activation='relu', use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
-                       name='MagUNet', **kwargs):
+                       name='MagUNet', data_format='channels_last', residual_output_add=False, **kwargs):
         """
         Builds the magnitude-based 2D/2D+t/3D/3D+t/4D UNet model (working on real or complex-valued input)
         """
-        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, **kwargs)
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, data_format, residual_output_add, **kwargs)
         self.out_cha = 1
         super().create_layers(**kwargs)
 
@@ -257,17 +314,27 @@ class ComplexUNet(UNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
                        activation='ModReLU', use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
-                       name='ComplexUNet', **kwargs):
+                       name='ComplexUNet', data_format='channels_last', residual_output_add=False, **kwargs):
         """
         Builds the complex-valued 2D/2D+t/3D/3D+t/4D UNet model
         """
-        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name)
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, data_format, residual_output_add)
 
         # get correct conv operator
         self.conv_layer = merlintf.keras.layers.ComplexConvolution(dim)
+        if dim == '2D':
+            self.pad_layer = optotf.keras.pad.Pad2d
+        elif dim == '3D':
+            self.pad_layer = optotf.keras.pad.Pad3d
+        self.crop_layer = merlintf.keras.layers.Cropping(dim)
 
         # output convolution
-        self.activation_last = activation
+        if 'activation_last' in kwargs:
+            self.activation_last = kwargs.get('activation_last')
+        else:
+            self.activation_last = activation
+        if residual_output_add:
+            self.activation_layer_last = tf.keras.layers.Activation(self.activation_last)
         self.out_cha = 1
 
         # get normalization operator
@@ -342,11 +409,11 @@ class UNetTest(unittest.TestCase):
     def _test_UNet(self, dim, filters, kernel_size, down_size=(2,2,2), network='complex', complex_input=True):
         gpus = tf.config.experimental.list_physical_devices('GPU')
         tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
-        #tf.config.experimental.set_memory_growth(gpus[0], True)
+        tf.config.experimental.set_memory_growth(gpus[0], True)
         tf.config.experimental_run_functions_eagerly(False)
 
         nBatch = 2
-        D = 16
+        D = 20
         M = 32
         N = 32
 
