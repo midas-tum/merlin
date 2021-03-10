@@ -5,6 +5,7 @@ import numpy as np
 
 import unittest
 #import numpy as np
+import optotf.keras.pad
 
 __all__ = ['Real2chUNet',
            'MagUNet',
@@ -238,11 +239,11 @@ class RealUNet(UNet):
         # get correct conv and input padding/output cropping operator
         if dim == '2D':
             self.conv_layer = tf.keras.layers.Conv2D
-            self.pad_layer = tf.keras.layers.ZeroPadding2D
+            self.pad_layer = optotf.keras.pad.Pad2d
             self.crop_layer = tf.keras.layers.Cropping2D
         elif dim == '3D':
             self.conv_layer = tf.keras.layers.Conv3D
-            self.pad_layer = tf.keras.layers.ZeroPadding3D
+            self.pad_layer = optotf.keras.pad.Pad3d
             self.crop_layer = tf.keras.layers.Cropping3D
         else:
             raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
@@ -349,7 +350,10 @@ class ComplexUNet(UNet):
 
         # get correct conv operator
         self.conv_layer = merlintf.keras.layers.ComplexConvolution(dim)
-        self.pad_layer = merlintf.keras.layers.ZeroPadding(dim)
+        if dim == '2D':
+            self.pad_layer = optotf.keras.pad.Pad2d
+        elif dim == '3D':
+            self.pad_layer = optotf.keras.pad.Pad3d
         self.crop_layer = merlintf.keras.layers.Cropping(dim)
 
         # output convolution
