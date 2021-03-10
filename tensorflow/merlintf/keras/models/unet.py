@@ -152,13 +152,14 @@ class UNet(tf.keras.Model):
         #else:
         factor = np.power(self.pool_size, self.num_level)
         paddings = np.ceil(imshapenp / factor) * factor - imshapenp
-        paddings = paddings.astype(np.int) // 2
+        paddings1 = np.floor(paddings.astype(np.int) / 2.0).astype(np.int)
+        paddings2 = np.ceil(paddings.astype(np.int) / 2.0).astype(np.int)
         pad = []
         optotf_pad = []
         for idx in range(len(self.pool_size)):
             # pad.extend([paddings[idx], paddings[idx]])  # for optox, TODO: check if reversed order of paddings
-            pad.append((paddings[idx], paddings[idx]))
-            optotf_pad.extend([paddings[idx], paddings[idx]])
+            pad.append((paddings1[idx], paddings2[idx]))
+            optotf_pad.extend([paddings1[idx], paddings2[idx]])
 
         return tuple(pad), optotf_pad[::-1]
 
@@ -400,29 +401,29 @@ class UNetTest(unittest.TestCase):
     def test_UNet_mag_3d(self):
         self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='mag', complex_input=False)
         self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='mag', complex_input=True)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='mag', complex_input=True, D=15, num_level=2)
         self._test_UNet('3D', 32, (1, 3, 3), (1, 2, 2), network='mag', complex_input=True)
 
     #def test_UNet_complex_3d(self):
     #    self._test_UNet('3D', 32, (3, 3, 3), network='complex', complex_input=False)
     #    self._test_UNet('3D', 32, (3, 3, 3), network='complex', complex_input=True)
 
-    def _test_UNet(self, dim, filters, kernel_size, down_size=(2,2,2), network='complex', complex_input=True):
+    def _test_UNet(self, dim, filters, kernel_size, down_size=(2,2,2), network='complex', complex_input=True, D=20, num_level=4):
         gpus = tf.config.experimental.list_physical_devices('GPU')
         tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
         tf.config.experimental.set_memory_growth(gpus[0], True)
         tf.config.experimental_run_functions_eagerly(False)
 
         nBatch = 2
-        D = 20
         M = 32
         N = 32
 
         if network == 'complex':
-            model = ComplexUNet(dim, filters, kernel_size, down_size)
+            model = ComplexUNet(dim, filters, kernel_size, down_size, num_level=num_level)
         elif network =='2chreal':
-            model = Real2chUNet(dim, filters, kernel_size, down_size)
+            model = Real2chUNet(dim, filters, kernel_size, down_size, num_level=num_level)
         else:
-            model = MagUNet(dim, filters, kernel_size, down_size)
+            model = MagUNet(dim, filters, kernel_size, down_size, num_level=num_level)
 
         if dim == '2D':
             if complex_input:
