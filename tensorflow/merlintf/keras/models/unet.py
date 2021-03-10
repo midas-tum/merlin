@@ -5,6 +5,7 @@ import numpy as np
 
 import unittest
 #import numpy as np
+import optotf.keras.pad
 
 __all__ = ['Real2chUNet',
            'MagUNet',
@@ -142,7 +143,6 @@ class UNet(tf.keras.Model):
         #imshape = tuple([imshape[i].value for i in range(0, len(imshape))])
         #except:
         imshape = tensor.get_shape().as_list()
-        print(imshape)
         #if self.data_format == 'channels_last':  # default
         imshapenp = np.array(imshape[1:len(self.pool_size)+1]).astype(float)
         #else:  # channels_first
@@ -154,16 +154,18 @@ class UNet(tf.keras.Model):
         paddings = np.ceil(imshapenp / factor) * factor - imshapenp
         paddings = paddings.astype(np.int) // 2
         pad = []
+        optotf_pad = []
         for idx in range(len(self.pool_size)):
             # pad.extend([paddings[idx], paddings[idx]])  # for optox, TODO: check if reversed order of paddings
             pad.append((paddings[idx], paddings[idx]))
+            optotf_pad.extend([paddings[idx], paddings[idx]])
 
-        return tuple(pad)
+        return tuple(pad), optotf_pad[::-1]
 
     def call(self, inputs):
-        pad = self.calculate_downsampling_padding(inputs)
+        pad, optotf_pad = self.calculate_downsampling_padding(inputs)
         # x = merlintf.keras.layers.pad(len(self.pool_size), inputs, pad, 'symmetric')  # symmetric padding via optox
-        xin = self.pad_layer(pad)(inputs)
+        xin = self.pad_layer(optotf_pad, 'symmetric')(inputs)
         x = xin  # xin needed for residual add forward
         xforward = []
         # encoder
@@ -209,11 +211,11 @@ class RealUNet(UNet):
         # get correct conv and input padding/output cropping operator
         if dim == '2D':
             self.conv_layer = tf.keras.layers.Conv2D
-            self.pad_layer = tf.keras.layers.ZeroPadding2D
+            self.pad_layer = optotf.keras.pad.Pad2d
             self.crop_layer = tf.keras.layers.Cropping2D
         elif dim == '3D':
             self.conv_layer = tf.keras.layers.Conv3D
-            self.pad_layer = tf.keras.layers.ZeroPadding3D
+            self.pad_layer = optotf.keras.pad.Pad3d
             self.crop_layer = tf.keras.layers.Cropping3D
         else:
             raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
@@ -320,7 +322,10 @@ class ComplexUNet(UNet):
 
         # get correct conv operator
         self.conv_layer = merlintf.keras.layers.ComplexConvolution(dim)
-        self.pad_layer = merlintf.keras.layers.ZeroPadding(dim)
+        if dim == '2D':
+            self.pad_layer = optotf.keras.pad.Pad2d
+        elif dim == '3D':
+            self.pad_layer = optotf.keras.pad.Pad3d
         self.crop_layer = merlintf.keras.layers.Cropping(dim)
 
         # output convolution
