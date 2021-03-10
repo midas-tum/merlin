@@ -137,12 +137,21 @@ class UNet(tf.keras.Model):
 
     def calculate_downsampling_padding(self, tensor):
         # calculate pad size
-        if self.data_format == 'channels_last':  # default
-            imshape = np.array(tensor.shape[1:len(self.pool_size)+1])
-        else:  # channels_first
-            imshape = np.array(tensor.shape[2:len(self.pool_size)+2])
+        #try:
+        #imshape = tf.shape(tensor).eval() # -> not working, no def session
+        #imshape = tuple([imshape[i].value for i in range(0, len(imshape))])
+        #except:
+        imshape = tensor.get_shape().as_list()
+        print(imshape)
+        #if self.data_format == 'channels_last':  # default
+        imshapenp = np.array(imshape[1:len(self.pool_size)+1]).astype(float)
+        #else:  # channels_first
+        #    imshapenp = np.array(imshape[2:len(self.pool_size)+2]).astype(float)
+        #if np.any(np.isnan(imshapenp)):
+        #    paddings = [0] * len(self.pool_size)
+        #else:
         factor = np.power(self.pool_size, self.num_level)
-        paddings = np.ceil(imshape / factor) * factor - imshape
+        paddings = np.ceil(imshapenp / factor) * factor - imshapenp
         paddings = paddings.astype(np.int) // 2
         pad = []
         for idx in range(len(self.pool_size)):
