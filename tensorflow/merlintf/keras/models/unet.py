@@ -13,9 +13,9 @@ __all__ = ['Real2chUNet',
 
 class UNet(tf.keras.Model):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
-                       activation='relu', use_bias=True,
+                       activation='relu', activation_last='relu', kernel_size_last=1, use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
-                       name='UNet', use_padding=False, residual_output_add=False, **kwargs):
+                       name='UNet', padding='none', **kwargs):
         """
         Abstract class for 2D/2D+t/3D/3D+t/4D UNet model
         input parameter:
@@ -23,16 +23,18 @@ class UNet(tf.keras.Model):
         filters                     [integer, tuple] number of filters at the base level, dyadic increase
         kernel_size                 [integer, tuple] kernel size
         pool_size                   [integer, tuple] downsampling/upsampling operator size
-        num_layer_per_level         number of convolutional layers per encocer/decoder level
-        num_level                   amount of encoder/decoder stages (excluding bottleneck layer), network depth
-        activation                  activation function
-        use_bias                    apply bias for convolutional layer
-        normalization               use normalization layers: BN (batch), IN (instance), none
+        num_layer_per_level         [integer] number of convolutional layers per encocer/decoder level
+        num_level                   [integer] amount of encoder/decoder stages (excluding bottleneck layer), network depth
+        activation                  [string] activation function
+        activation_last             [string] activation function of last layer
+        kernel_size_last            [integer, tuple] kernel size in last layer
+        use_bias                    [bool] apply bias for convolutional layer
+        normalization               [string] use normalization layers: BN (batch), IN (instance), none|None
         downsampling                downsampling operation: mp (max-pooling), st (stride)
         upsampling                  upsampling operation: us (upsampling), tc (transposed convolution)
         name                        specific identifier for network
-        use_padding                 use padding on input and cropping on output in case of not matching, True: forces eager mode execution as dynamic shape extraction in graph mode not supported (tested for TF <=2.4)
-        residual_output_add         adding aliased input to output for residual learning
+        padding                     [string] padding on input and cropping on output in case of not matching with demanded pool_size and num_layer: zero (zero-padding layer), reflect (optotf), symmetric (optotf), replicate (optotf), none|None (in_shape check required), force_none (avoid padding and eager execution)
+                                    if padding is used: forces eager mode execution as dynamic shape extraction in graph mode not supported (tested for TF <=2.4)
         """
         super().__init__(name=name)
 
@@ -46,15 +48,16 @@ class UNet(tf.keras.Model):
         self.filters = filters
         self.use_bias = use_bias
         self.activation = activation
+        self.activation_last = activation_last
+        self.kernel_size_last = merlintf.keras.utils.validate_input_dimension(dim, kernel_size_last)
         self.normalization = normalization
         self.downsampling = downsampling
         self.upsampling = upsampling
-        self.use_padding = use_padding
-        self.residual_output_add = residual_output_add
-        if not use_padding:
-            print('UNet: Check if input padding/output cropping is needed. No input shape specified, potentially switching to eager mode execution. Please provide input_shape by calling:')
-            print('model.is_padding_needed(input_shape)')
-            self.padding = self.is_padding_needed()
+        self.padding = padding
+        if 'in_shape' in kwargs:
+            self.use_padding = self.is_padding_needed(kwargs.get('in_shape'))
+        else:
+            self.use_padding = self.is_padding_needed()  # in_shape at build time not known
 
     def create_layers(self, **kwargs):
         # ------------- #
@@ -127,22 +130,15 @@ class UNet(tf.keras.Model):
         self.ops.append(stage)
 
         # output convolution
-        if self.residual_output_add:
-            stage = []
-            stage.append(self.conv_layer(self.out_cha, 3, strides=1,
-                                               use_bias=self.use_bias,
-                                               activation=None,
-                                               padding='same', **kwargs))
-            stage.append(self.activation_layer_last)
-            self.ops.append(stage)
-        else:
-            self.ops.append(self.conv_layer(self.out_cha, 3, strides=1,
-                                               use_bias=self.use_bias,
-                                               activation=None,
-                                               padding='same', **kwargs))
+        self.ops.append(self.conv_layer(self.out_cha, self.kernel_size_last, strides=1,
+                                           use_bias=self.use_bias,
+                                           activation=self.activation_last,
+                                           padding='same', **kwargs))
 
     def is_padding_needed(self, in_shape=None):
         # in_shape (excluding batch and channel dimension!)
+        if not self.padding.lower() == 'none' and in_shape is None:
+            print('merlintf.keras.models.unet: Check if input padding/output cropping is needed. No input shape specified, potentially switching to eager mode execution. Please provide input_shape by calling: model.is_padding_needed(input_shape)')
         if in_shape is None:  # input shape not specified or dynamically varying
             self.use_padding = True
             self.pad = None
@@ -153,8 +149,12 @@ class UNet(tf.keras.Model):
                 self.use_padding = False
             else:
                 self.use_padding = True
+        if self.padding.lower() == 'force_none':
+            self.use_padding = False
+            self.pad = None
+            self.optotf_pad = None
         if self.use_padding:
-            print('Enabling input padding and output cropping!')
+            print('Safety measure: Enabling input padding and output cropping!')
             print('!!! Compile model with model.compile(run_eagerly=True) !!!')
         return self.use_padding
 
@@ -192,9 +192,8 @@ class UNet(tf.keras.Model):
             else:
                 pad = self.pad  # local variable to avoid permanent storage of fixed pad value in case of dynamic input shapes
                 optotf_pad = self.optotf_pad
-            # xin = merlintf.keras.layers.pad(len(self.pool_size), inputs, optotf_pad, 'symmetric')  # symmetric padding via optox
-            xin = self.pad_layer(pad)(inputs)
-            x = xin  # xin needed for residual add forward
+            # x = merlintf.keras.layers.pad(len(self.pool_size), inputs, optotf_pad, 'symmetric')  # symmetric padding via optox
+            x = self.pad_layer(pad)(inputs)
         else:
             x = inputs
         xforward = []
@@ -219,47 +218,41 @@ class UNet(tf.keras.Model):
                     x = op(x)
 
         # output convolution
-        if self.residual_output_add:
-            x = self.ops[3][0](x)
-            x = tf.keras.layers.Add()([x, xin])
-            x = self.ops[3][1](x)
-        else:
-            x = self.ops[3](x)
+        x = self.ops[3](x)
         if self.use_padding:
             x = self.crop_layer(pad)(x)
         return x
 
 class RealUNet(UNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
-                 activation='relu', use_bias=True,
+                 activation='relu', activation_last='relu', kernel_size_last=1, use_bias=True,
                  normalization='none', downsampling='mp', upsampling='tc',
-                 name='RealUNet', use_padding=False, residual_output_add=False, **kwargs):
+                 name='RealUNet',  padding='none', **kwargs):
         """
         Builds the real-valued 2D/2D+t/3D/3D+t/4D UNet model (abstract class)
         """
-        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, use_padding, residual_output_add)
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, activation_last, kernel_size_last, use_bias, normalization, downsampling, upsampling, name, padding, **kwargs)
 
         # get correct conv and input padding/output cropping operator
         if dim == '2D':
             self.conv_layer = tf.keras.layers.Conv2D
-            self.pad_layer = tf.keras.layers.ZeroPadding2D
-            #self.pad_layer = optotf.keras.pad.Pad2d
+            if self.padding.lower() == 'zero':
+                self.pad_layer = tf.keras.layers.ZeroPadding2D
+            else:
+                self.pad_layer = optotf.keras.pad.Pad2d
             self.crop_layer = tf.keras.layers.Cropping2D
         elif dim == '3D':
             self.conv_layer = tf.keras.layers.Conv3D
-            self.pad_layer = tf.keras.layers.ZeroPadding3D
-            #self.pad_layer = optotf.keras.pad.Pad3d
+            if self.padding.lower() == 'zero':
+                self.pad_layer = tf.keras.layers.ZeroPadding3D
+            else:
+                self.pad_layer = optotf.keras.pad.Pad3d
             self.crop_layer = tf.keras.layers.Cropping3D
         else:
             raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
 
         # output convolution
-        if 'activation_last' in kwargs:
-            self.activation_last = kwargs.get('activation_last')
-        else:
-            self.activation_last = activation
-        if residual_output_add:
-            self.activation_layer_last = tf.keras.layers.Activation(self.activation_last)
+        #self.activation_layer_last = tf.keras.layers.Activation(self.activation_last)
 
         # get normalization operator
         if normalization == 'BN':
@@ -270,7 +263,7 @@ class RealUNet(UNet):
             self.norm_layer = tfa.layers.InstanceNormalization
             self.activation_layer = tf.keras.layers.Activation(activation)
             self.activation = ''
-        elif normalization == 'none':
+        elif normalization.lower() == 'none':
             self.norm_layer = None
             self.activation_layer = None
             self.activation = activation
@@ -312,13 +305,13 @@ class RealUNet(UNet):
 
 class Real2chUNet(RealUNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
-                       activation='relu', use_bias=True,
+                       activation='relu', activation_last='relu', kernel_size_last=1, use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
-                       name='Real2chUNet', use_padding=False, residual_output_add=False, **kwargs):
+                       name='Real2chUNet',  padding='none', **kwargs):
         """
         Builds the real-valued 2-channel (real/imag or mag/pha in channel dim) 2D/2D+t/3D/3D+t/4D UNet model
         """
-        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, use_padding, residual_output_add, **kwargs)
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, activation_last, kernel_size_last, use_bias, normalization, downsampling, upsampling, name, padding, **kwargs)
         self.out_cha = 2
         super().create_layers(**kwargs)
 
@@ -329,13 +322,13 @@ class Real2chUNet(RealUNet):
 
 class MagUNet(RealUNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
-                       activation='relu', use_bias=True,
+                       activation='relu', activation_last='relu', kernel_size_last=1, use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
-                       name='MagUNet', use_padding=False, residual_output_add=False, **kwargs):
+                       name='MagUNet',  padding='none', **kwargs):
         """
         Builds the magnitude-based 2D/2D+t/3D/3D+t/4D UNet model (working on real or complex-valued input)
         """
-        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, use_padding, residual_output_add, **kwargs)
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, activation_last, kernel_size_last, use_bias, normalization, downsampling, upsampling, name, padding, **kwargs)
         self.out_cha = 1
         super().create_layers(**kwargs)
 
@@ -345,32 +338,27 @@ class MagUNet(RealUNet):
 
 class ComplexUNet(UNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
-                       activation='ModReLU', use_bias=True,
+                       activation='ModReLU', activation_last='ModReLU', kernel_size_last=1, use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
-                       name='ComplexUNet', use_padding=False, residual_output_add=False, **kwargs):
+                       name='ComplexUNet',  padding='none', **kwargs):
         """
         Builds the complex-valued 2D/2D+t/3D/3D+t/4D UNet model
         """
-        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, use_bias, normalization, downsampling, upsampling, name, use_padding, residual_output_add)
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, activation_last, kernel_size_last, use_bias, normalization, downsampling, upsampling, name, padding, **kwargs)
 
         # get correct conv operator
         self.conv_layer = merlintf.keras.layers.ComplexConvolution(dim)
-        self.pad_layer = merlintf.keras.layers.ZeroPadding(dim)
-        '''
-        if dim == '2D':
-            self.pad_layer = optotf.keras.pad.Pad2d
-        elif dim == '3D':
-            self.pad_layer = optotf.keras.pad.Pad3d
-        '''
+        if self.padding.lower() == 'zero':
+            self.pad_layer = merlintf.keras.layers.ZeroPadding(dim)
+        else:
+            if dim == '2D':
+                self.pad_layer = optotf.keras.pad.Pad2d
+            elif dim == '3D':
+                self.pad_layer = optotf.keras.pad.Pad3d
         self.crop_layer = merlintf.keras.layers.Cropping(dim)
 
         # output convolution
-        if 'activation_last' in kwargs:
-            self.activation_last = kwargs.get('activation_last')
-        else:
-            self.activation_last = activation
-        if residual_output_add:
-            self.activation_layer_last = tf.keras.layers.Activation(self.activation_last)
+        #self.activation_layer_last = merlintf.keras.layers.Activation(self.activation_last)
         self.out_cha = 1
 
         # get normalization operator
@@ -382,7 +370,7 @@ class ComplexUNet(UNet):
             self.norm_layer = merlintf.keras.layers.ComplexInstanceNormalization
             self.activation_layer = merlintf.keras.layers.Activation(activation)
             self.activation = ''
-        elif normalization == 'none':
+        elif normalization.lower() == 'none':
             self.norm_layer = None
             self.activation_layer = None
             self.activation = activation
