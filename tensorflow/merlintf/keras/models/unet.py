@@ -129,16 +129,16 @@ class UNet(tf.keras.Model):
         # output convolution
         if self.residual_output_add:
             stage = []
-            stage.append(self.conv_layer(self.out_cha, 1, strides=1,
+            stage.append(self.conv_layer(self.out_cha, 3, strides=1,
                                                use_bias=self.use_bias,
                                                activation=None,
                                                padding='same', **kwargs))
             stage.append(self.activation_layer_last)
             self.ops.append(stage)
         else:
-            self.ops.append(self.conv_layer(self.out_cha, 1, strides=1,
+            self.ops.append(self.conv_layer(self.out_cha, 3, strides=1,
                                                use_bias=self.use_bias,
-                                               activation=self.activation_last,
+                                               activation=None,
                                                padding='same', **kwargs))
 
     def is_padding_needed(self, in_shape=None):
