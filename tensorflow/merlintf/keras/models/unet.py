@@ -154,6 +154,8 @@ class UNet(tf.keras.Model):
             self.pad = None
             self.optotf_pad = None
         if self.use_padding:
+            if self.padding.lower() == 'none':
+                self.padding = 'zero'  # default padding
             print('Safety measure: Enabling input padding and output cropping!')
             print('!!! Compile model with model.compile(run_eagerly=True) !!!')
         return self.use_padding
@@ -192,8 +194,11 @@ class UNet(tf.keras.Model):
             else:
                 pad = self.pad  # local variable to avoid permanent storage of fixed pad value in case of dynamic input shapes
                 optotf_pad = self.optotf_pad
+            if self.padding.lower() == 'zero':
+                x = self.pad_layer(pad)(inputs)
+            else:
+                x = self.pad_layer(inputs, optotf_pad, self.padding)
             # x = merlintf.keras.layers.pad(len(self.pool_size), inputs, optotf_pad, 'symmetric')  # symmetric padding via optox
-            x = self.pad_layer(pad)(inputs)
         else:
             x = inputs
         xforward = []
@@ -239,14 +244,14 @@ class RealUNet(UNet):
             if self.padding.lower() == 'zero':
                 self.pad_layer = tf.keras.layers.ZeroPadding2D
             else:
-                self.pad_layer = optotf.keras.pad.Pad2d
+                self.pad_layer = merlintf.keras.layers.Pad2D
             self.crop_layer = tf.keras.layers.Cropping2D
         elif dim == '3D':
             self.conv_layer = tf.keras.layers.Conv3D
             if self.padding.lower() == 'zero':
                 self.pad_layer = tf.keras.layers.ZeroPadding3D
             else:
-                self.pad_layer = optotf.keras.pad.Pad3d
+                self.pad_layer = merlintf.keras.layers.Pad3D
             self.crop_layer = tf.keras.layers.Cropping3D
         else:
             raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
@@ -351,10 +356,13 @@ class ComplexUNet(UNet):
         if self.padding.lower() == 'zero':
             self.pad_layer = merlintf.keras.layers.ZeroPadding(dim)
         else:
-            if dim == '2D':
-                self.pad_layer = optotf.keras.pad.Pad2d
-            elif dim == '3D':
-                self.pad_layer = optotf.keras.pad.Pad3d
+            if self.dim == '2D':
+                self.pad_layer = merlintf.keras.layers.Pad2D
+            elif self.dim == '3D':
+                self.pad_layer = merlintf.keras.layers.Pad3D
+            else:
+                raise RuntimeError(f"Padding for {dim} and {self.padding} not implemented!")
+
         self.crop_layer = merlintf.keras.layers.Cropping(dim)
 
         # output convolution
@@ -434,7 +442,7 @@ class UNetTest(unittest.TestCase):
     #    self._test_UNet('3D', 32, (3, 3, 3), network='complex', complex_input=False)
     #    self._test_UNet('3D', 32, (3, 3, 3), network='complex', complex_input=True)
 
-    def _test_UNet(self, dim, filters, kernel_size, down_size=(2,2,2), network='complex', complex_input=True, D=30, M=32, N=32):
+    def _test_UNet(self, dim, filters, kernel_size, down_size=(2,2,2), network='complex', complex_input=True, D=30, M=32, N=32, num_level=4):
         gpus = tf.config.experimental.list_physical_devices('GPU')
         tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
         tf.config.experimental.set_memory_growth(gpus[0], True)
