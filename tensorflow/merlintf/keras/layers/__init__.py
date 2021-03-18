@@ -22,6 +22,8 @@ from merlintf.keras.layers.convolutional.padconv import PadConvScale2DTranspose
 from merlintf.keras.layers.convolutional.padconv import PadConvScale3DTranspose
 from merlintf.keras.layers.complex_pool import MagnitudeMaxPooling
 from merlintf.keras.layers.complex_act import Activation
+from merlintf.keras.layers.complex_bn import ComplexBatchNormalization
+from merlintf.keras.layers.complex_norm import ComplexInstanceNormalization
 from merlintf.keras.layers.complex_pad import pad, pad_transpose, complex_pad, real_pad, complex_pad_transpose, real_pad_transpose
 from merlintf.keras.layers.data_consistency import DCGD
 from merlintf.keras.layers.data_consistency import DCPM
