@@ -5,7 +5,7 @@ import numpy as np
 
 import unittest
 #import numpy as np
-import optotf.keras.pad
+#import optotf.keras.pad
 
 __all__ = ['Real2chUNet',
            'MagUNet',
@@ -324,6 +324,23 @@ class Real2chUNet(RealUNet):
         x = merlintf.complex2real(inputs)
         x = super().call(x)
         return merlintf.real2complex(x)
+
+class MagPhaUNet(RealUNet):
+    def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
+                       activation='relu', activation_last='relu', kernel_size_last=1, use_bias=True,
+                       normalization='none', downsampling='mp', upsampling='tc',
+                       name='MagPhaUNet',  padding='none', **kwargs):
+        """
+        Builds the real-valued 2-channel (real/imag or mag/pha in channel dim) 2D/2D+t/3D/3D+t/4D UNet model
+        """
+        super().__init__(dim, filters, kernel_size, pool_size, num_layer_per_level, num_level, activation, activation_last, kernel_size_last, use_bias, normalization, downsampling, upsampling, name, padding, **kwargs)
+        self.out_cha = 2
+        super().create_layers(**kwargs)
+
+    def call(self, inputs):
+        x = merlintf.complex2magpha(inputs)
+        x = super().call(x)
+        return merlintf.magpha2complex(x)
 
 class MagUNet(RealUNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
