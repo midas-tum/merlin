@@ -276,6 +276,7 @@ class RealUNet(UNet):
             raise RuntimeError(f"Normalization for {normalization} not implemented!")
 
         # get downsampling operator
+        n_dim = merlintf.keras.utils.get_ndim(self.dim)
         if downsampling == 'mp':
             if dim == '2D':
                 self.down_layer = tf.keras.layers.MaxPool2D
@@ -286,7 +287,7 @@ class RealUNet(UNet):
             self.strides = [1] * num_layer_per_level
         elif downsampling == 'st':
             self.down_layer = None
-            self.strides = [1] * (num_layer_per_level - 1) + [2]
+            self.strides = [[1] * n_dim] * (num_layer_per_level - 1) + self.pool_size
         else:
             raise RuntimeError(f"Downsampling operation {downsampling} not implemented!")
 
@@ -403,12 +404,13 @@ class ComplexUNet(UNet):
             raise RuntimeError(f"Normalization for {normalization} not implemented!")
 
         # get downsampling operator
+        n_dim = merlintf.keras.utils.get_ndim(self.dim)
         if downsampling == 'mp':
             self.down_layer = merlintf.keras.layers.MagnitudeMaxPooling(dim)
             self.strides = [1] * num_layer_per_level
         elif downsampling == 'st':
             self.down_layer = None
-            self.strides = [1] * (num_layer_per_level-1) + [2]
+            self.strides = [[1] * n_dim] * (num_layer_per_level - 1) + self.pool_size
         else:
             raise RuntimeError(f"Downsampling operation {downsampling} not implemented!")
 
