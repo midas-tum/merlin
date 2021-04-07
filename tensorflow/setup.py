@@ -7,30 +7,37 @@ import tensorflow as tf
 tfCPU = not subprocess.call(["pip","-q","show","tensorflow"] )
 tfGPU = not subprocess.call(["pip","-q","show","tensorflow-gpu"] )
 tfNightly = not subprocess.call(["pip","-q","show","tf-nightly"] )
+tfaddons = not subprocess.call(["pip","-q","show","tensorflow-addons"])
 
+tfstra = ""
 if tfCPU:
-  tfstr = "tensorflow == {}".format(tf.version.VERSION)
-  tfstra = "tensorflow-addons[tensorflow]"
+  tfstr = "tensorflow=={}".format(tf.version.VERSION)
+  if not tfaddons:
+    tfstra = "tensorflow-addons[tensorflow]"
 if tfGPU:
-  tfstr = "tensorflow-gpu == {}".format(tf.version.VERSION)
-  tfstra = "tensorflow-addons[tensorflow-gpu]"
-if (tfGPU and tfCPU) or not (tfGPU or tfCPU):
+  tfstr = "tensorflow-gpu=={}".format(tf.version.VERSION)
+  if not tfaddons:
+    tfstra = "tensorflow-addons[tensorflow-gpu]"
+if not (tfGPU or tfCPU):
   tfstr = ""
   tfstra = ""
   assert False, "\n\nunexpected error, is tensorflow or tensorflow-gpu installed with pip?\n\n"
   exit(1)
 print ("=>required tensorflow for pip: %s\n"% tfstr)
-
+if not tfaddons:
+    print("=>required tensorflow-addons for pip: %s\n" % tfstra)
 
 # define requirements
-REQUIRED_PACKAGES = [
-    tfstr, # tensorflow or tensorflow-gpu
-    tfstra,
-]
+if not tfaddons:
+    REQUIRED_PACKAGES = [tfstr, # tensorflow or tensorflow-gpu
+        tfstra,
+    ]
+else:
+    REQUIRED_PACKAGES = [tfstr]
 
 setup(
     name='merlintf',
-    version='0.2.0',
+    version='0.2.1',
     author="Kerstin Hammernik, Thomas Kuestner",
     author_email="k.hammernik@imperial.ac.uk, thomas.kuestner@med.uni-tuebingen.de",
     packages=["merlintf",
@@ -49,5 +56,5 @@ setup(
                  "merlintf.keras.models": os.path.join('.', "merlintf/keras/models"),
                  "merlintf.keras.optimizers": os.path.join('.', "merlintf/keras/optimizers"),
     },
-    install_requires=REQUIRED_PACKAGES
+    install_requires=REQUIRED_PACKAGES,
 )
