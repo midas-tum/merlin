@@ -287,7 +287,7 @@ class RealUNet(UNet):
             self.strides = [1] * num_layer_per_level
         elif downsampling == 'st':
             self.down_layer = None
-            self.strides = [[1] * n_dim] * (num_layer_per_level - 1) + self.pool_size
+            self.strides = [[1] * n_dim] * (num_layer_per_level - 1) + [list(self.pool_size)]
         else:
             raise RuntimeError(f"Downsampling operation {downsampling} not implemented!")
 
@@ -410,7 +410,7 @@ class ComplexUNet(UNet):
             self.strides = [1] * num_layer_per_level
         elif downsampling == 'st':
             self.down_layer = None
-            self.strides = [[1] * n_dim] * (num_layer_per_level - 1) + self.pool_size
+            self.strides = [[1] * n_dim] * (num_layer_per_level - 1) + [list(self.pool_size)]
         else:
             raise RuntimeError(f"Downsampling operation {downsampling} not implemented!")
 
