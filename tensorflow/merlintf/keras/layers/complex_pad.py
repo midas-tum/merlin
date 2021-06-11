@@ -3,6 +3,18 @@ import optotf.pad
 import merlintf
 
 # main functions
+def Pad2D(x, pad, mode):
+    return pad(2, x, pad, mode)
+
+def Pad3D(x, pad, mode):
+    return pad(3, x, pad, mode)
+
+def Pad2DTranspose(x, pad, mode):
+    return pad_transpose(2, x, pad, mode)
+
+def Pad3DTranspose(x, pad, mode):
+    return pad_transpose(3, x, pad, mode)
+
 def pad(rank, x, pad, mode):
     if merlintf.iscomplextf(x):
         return complex_pad(rank, x, pad, mode)

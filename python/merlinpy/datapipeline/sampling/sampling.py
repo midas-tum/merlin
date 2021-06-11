@@ -2,23 +2,37 @@ import numpy as np
 import math
 import VD_CASPR_CINE as VD_CASPR_CINE
 from VISTA import vista
+import VDPD as VDPD
 
 class Sampling
+    # subsampling of phase-encoding directions (y/z) and along time (t)
     def __init__(self, dim, acc, trajectory):
         self.dim = dim  # x - y - z - t - MRcha
         self.acc = acc  # acceleration factor
         self.trajectory = trajectory  # CASPR, Poisson-Disc, Gaussian, GoldenRadial, TinyGoldenRadial,
+        self.mask = []
 
-    def generate_mask(self):
-        mask = []
-        self.mask = mask
-        return mask
+    def plot_mask(self):
+        numLin = self.dim[1]  # ky points
+        numPar = self.dim[2]  # kz points
+        nRep = self.dim[3]  # time points
+        iMaxCol = 2
+        iRows = np.ceil(nRep / iMaxCol)
+        plt.figure()
+        for iRep in range(1, nRep + 1):
+            plt.subplot(iRows, iMaxCol, iRep)
+            plt.imshow(self.mask[:, :, iRep - 1], cmap='gray')
+
+            print('#samples repetition %d = %d\n' % (iRep, np.sum(mask_rep[:, :, iRep - 1], axis=(0, 1))))
+        plt.show()
 
     def subsample(self, kspace):
         return np.multiply(kspace, self.mask)
 
 class CASPR(Sampling):
+    # variable-density CASPR subsampling (2D / 2D+time)
     def __init__(self, dim, acc, mode='interleaved', nSegments=10, nCenter=15, isVariable=1, isGolden=2, isInOut=1, isCenter=0, isSamePattern=0, iVerbose=0):
+        super().__init__(dim=dim, acc=acc, trajectory='CASPR')
         self.mode = mode  # 'interleaved' (CINE), 'noninterleaved' (free-running, CMRA, T2Mapping, ...)
         self.nSegments = nSegments  # #segments = #rings in sampling pattern
         self.nCenter = nCenter  # percentage of fully sampled center region
@@ -28,11 +42,8 @@ class CASPR(Sampling):
         self.isCenter = isCenter  # sample center point
         self.isSamePattern = isSamePattern  # same sampling pattern per phase/contrast, i.e. no golden/tiny-golden angle increment between them (but still inside the pattern if isGolden==1)
         self.iVerbose = iVerbose  # 0=silent, 1=normal output, 2=all output
-        super().__init__(dim=dim, acc=acc, trajectory='CASPR')
 
     def generate_mask(self):
-        sType = 'CINE'
-        sMode = 'interleaved'  # 'interleaved' (CINE), 'noninterleaved' (free-running, CMRA, T2Mapping, ...)
         numLin = self.dim[1]  # ky points (store it the other way round, for right dim)
         numPar = self.dim[2]  # kz points
         nRep = self.dim[3]  # time points
@@ -181,3 +192,86 @@ class VISTA(Sampling):
                            self.fs, self.s, self.tf, self.dsp)
         self.mask = mask_VISTA
         return mask_VISTA
+
+
+class VDPD(Sampling):
+    # variable-density Poisson-Disc subsampling (1D / 2D / 2D+time)
+    def __init__(self, dim, acc, nCenter=1, vd_type=4, pF_value=1, pF_x=0, smpl_type=1, ellip_mask=0, p=2, n=2, iVerbose=0):
+        super().__init__(dim=dim, acc=acc, trajectory='Poisson-Disc')
+
+        self.mode = 1  # Poisson-Disc {1}, Gaussian {2}
+        self.nCenter = nCenter  # percentage of fully sampled center region
+        self.vd_type = vd_type  # variable-density options: none {1}, central point {2}, central block {3}, central ellipse {4}, local adaptive variable-density (needs external fraction.txt file) {5}
+        self.pF_value = pF_value  # ESPReSSo / Partial Fourier compactification factor [0.5:1]
+        self.pF_x = 0  # ESPReSSo/Partial Fourier direction along width {0}, height {1}
+        self.smpl_type = smpl_type  # Poisson-Disc sampling options: 1D Poisson-Disc {0} (chosen automatically if nY=1), 2D Poisson-Disc {1} (strictly obeying neighbourhood criterion), 2D pseudo Poisson-Disc {2} (approximately obeying neighbourhood criterion)
+        self.ellip_mask = ellip_mask  # sample in elliptical scan region (>0: create inscribing ellipse with these points, =0: do not use it)
+        self.p = p  # power of variable-density scaling
+        self.n = n  # root of variable-density scaling
+        self.body_region = 0  # body-region adaptive sampling, requires local adaptive variable-density sampling and fraction.txt file; {0}: not used, keep at 0
+        self.iso_fac = 1  # isometry, keep at 1
+        self.iVerbose = iVerbose  # verbosity level
+
+    def generate_mask(self):
+        numLin = self.dim[1]  # ky points
+        numPar = self.dim[2]  # kz points
+        nRep = self.dim[3]  # time points
+
+        kSpacePolar_LinInd = np.zeros((nRep * numLin * numPar, 1))
+        kSpacePolar_ParInd = np.zeros((nRep * numLin * numPar, 1))
+        phaseInd = np.zeros((nRep * numLin * numPar, 1))
+        out_parameter = np.zeros((3, 1), dtype='float32')
+        parameter_list = np.asarray([numLin, numPar, self.acc, self.mode, self.nCenter/100, self.pF_value, self.pF_x, nRep, self.vd_type, self.smpl_type, self.ellip_mask, self.p, self.n, self.body_region, self.iso_fac, self.iVerbose], dtype='float32')
+
+        res = VDPD.run(parameter_list, kSpacePolar_LinInd, kSpacePolar_ParInd, phaseInd, out_parameter)
+        mask_rep = np.zeros((numPar, numLin, nRep))
+        for iRep in range(1, nRep + 1):
+            iVec = np.where(phaseInd == iRep - 1)
+            # iVec = np.asarray(iVec)
+            for iI in iVec[0]:
+                if (kSpacePolar_LinInd[iI] > 0) and (kSpacePolar_ParInd[iI] > 0):
+                    mask_rep[np.asscalar(kSpacePolar_ParInd[iI].astype(int)), np.asscalar(kSpacePolar_LinInd[iI].astype(int)), iRep - 1] += 1
+
+        self.mask = mask_rep
+        return mask_rep  # Z x Y x Time
+
+class Gaussian(Sampling):
+    # variable-density Gaussian subsampling (1D / 2D / 2D+time)
+    def __init__(self, dim, acc, nCenter=1, vd_type=4, pF_value=1, pF_x=0, smpl_type=1, ellip_mask=0, p=2, n=2, iVerbose=0):
+        super().__init__(dim=dim, acc=acc, trajectory='Gaussian')
+
+        self.mode = 2  # Poisson-Disc {1}, Gaussian {2}
+        self.nCenter = nCenter  # percentage of fully sampled center region
+        self.vd_type = vd_type  # variable-density options: none {1}, central point {2}, central block {3}, central ellipse {4}, local adaptive variable-density (needs external fraction.txt file) {5}
+        self.pF_value = pF_value  # ESPReSSo / Partial Fourier compactification factor [0.5:1]
+        self.pF_x = 0  # ESPReSSo/Partial Fourier direction along width {0}, height {1}
+        self.smpl_type = smpl_type  # Poisson-Disc sampling options: 1D Poisson-Disc {0} (chosen automatically if nY=1), 2D Poisson-Disc {1} (strictly obeying neighbourhood criterion), 2D pseudo Poisson-Disc {2} (approximately obeying neighbourhood criterion)
+        self.ellip_mask = ellip_mask  # sample in elliptical scan region (>0: create inscribing ellipse with these points, =0: do not use it)
+        self.p = p  # power of variable-density scaling
+        self.n = n  # root of variable-density scaling
+        self.body_region = 0  # body-region adaptive sampling, requires local adaptive variable-density sampling and fraction.txt file; {0}: not used, keep at 0
+        self.iso_fac = 1  # isometry, keep at 1
+        self.iVerbose = iVerbose  # verbosity level
+
+    def generate_mask(self):
+        numLin = self.dim[1]  # ky points
+        numPar = self.dim[2]  # kz points
+        nRep = self.dim[3]  # time points
+
+        kSpacePolar_LinInd = np.zeros((nRep * numLin * numPar, 1))
+        kSpacePolar_ParInd = np.zeros((nRep * numLin * numPar, 1))
+        phaseInd = np.zeros((nRep * numLin * numPar, 1))
+        out_parameter = np.zeros((3, 1), dtype='float32')
+        parameter_list = np.asarray([numLin, numPar, self.acc, self.mode, self.nCenter/100, self.pF_value, self.pF_x, nRep, self.vd_type, self.smpl_type, self.ellip_mask, self.p, self.n, self.body_region, self.iso_fac, self.iVerbose], dtype='float32')
+
+        res = VDPD.run(parameter_list, kSpacePolar_LinInd, kSpacePolar_ParInd, phaseInd, out_parameter)
+        mask_rep = np.zeros((numPar, numLin, nRep))
+        for iRep in range(1, nRep + 1):
+            iVec = np.where(phaseInd == iRep - 1)
+            # iVec = np.asarray(iVec)
+            for iI in iVec[0]:
+                if (kSpacePolar_LinInd[iI] > 0) and (kSpacePolar_ParInd[iI] > 0):
+                    mask_rep[np.asscalar(kSpacePolar_ParInd[iI].astype(int)), np.asscalar(kSpacePolar_LinInd[iI].astype(int)), iRep - 1] += 1
+
+        self.mask = mask_rep
+        return mask_rep  # Z x Y x Time
