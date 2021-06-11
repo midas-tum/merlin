@@ -20,12 +20,12 @@ class ComplexCNN(tf.keras.Model):
             self.ops.append(conv_layer(filters, kernel_size,
                                         use_bias=use_bias,
                                         activation=activation,
-                                        padding='same',
+                                        padding='same', **kwargs
                                         ))
         self.ops.append(conv_layer(1, kernel_size,
                                     use_bias=False,
                                     padding='same',
-                                    activation=None))
+                                    activation=None, **kwargs))
 
     def call(self, inputs):
         x = inputs
@@ -55,13 +55,13 @@ class Real2chCNN(tf.keras.Model):
                                         use_bias=use_bias,
                                         activation=activation,
                                         kernel_initializer=kernel_initializer,
-                                        padding='same',))
+                                        padding='same', **kwargs))
 
         self.ops.append(conv_layer(2, kernel_size,
                                     use_bias=False,
                                     padding='same',
                                     activation=None,
-                                    kernel_initializer=kernel_initializer))
+                                    kernel_initializer=kernel_initializer, **kwargs))
 
     def call(self, inputs):
         x = merlintf.complex2real(inputs)

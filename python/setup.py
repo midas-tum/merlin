@@ -15,5 +15,8 @@ setup(
     install_requires=[
         "numpy >= 1.15",
         "xmltodict",
+        "pyyaml",
+        "pandas",
+        "tqdm"
     ],
 )
