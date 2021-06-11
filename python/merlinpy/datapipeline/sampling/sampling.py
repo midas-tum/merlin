@@ -1,5 +1,7 @@
 import numpy as np
+import math
 import VD_CASPR_CINE as VD_CASPR_CINE
+from VISTA import vista
 import VDPD as VDPD
 
 class Sampling
@@ -74,7 +76,7 @@ class CASPR(Sampling):
 
         self.mask = mask_rep
         return mask_rep  # Z x Y x Time
-
+    
 class VDPD(Sampling):
     # variable-density Poisson-Disc subsampling (1D / 2D / 2D+time)
     def __init__(self, dim, acc, nCenter=1, vd_type=4, pF_value=1, pF_x=0, smpl_type=1, ellip_mask=0, p=2, n=2, iVerbose=0):
@@ -156,3 +158,37 @@ class Gaussian(Sampling):
 
         self.mask = mask_rep
         return mask_rep  # Z x Y x Time
+    
+    
+class VISTA(Sampling):
+    def __init__(self, dim, acc, typ, alph=0.28, sd=10, nIter=120, g=None, uni=None,
+                 ss=0.25, fl=None, fs=1, s=1.4, tf=0.0, dsp=5):
+        self.typ = typ  # 'UIS', 'VRS', 'VISTA'
+        self.alph = alph
+        self.sd = sd
+        self.nIter = nIter
+        self.g = g
+        self.uni = uni
+        self.ss = ss
+        self.fl = fl
+        self.fs = fs
+        self.s = s
+        self.tf = tf
+        self.dsp = dsp
+        super().__init__(dim=dim, acc=acc, trajectory='VISTA')
+
+    def generate_mask(self):
+        p = self.dim[1]  # Number of phase encoding steps
+        t = self.dim[3]  # Number of frames
+        R = self.acc
+        if self.g == None:
+            self.g = math.floor(self.nIter/6)
+        if self.uni == None:
+            self.uni = math.floor(self.nIter/2)
+        if self.fl == None:
+            self.fl = math.floor(self.nIter*5/6)
+
+        mask_VISTA = vista(p, t, R, self.typ, self.alph, self.sd, self.nIter, self.g, self.uni, self.ss, self.fl,
+                           self.fs, self.s, self.tf, self.dsp)
+        self.mask = mask_VISTA
+        return mask_VISTA
