@@ -311,7 +311,7 @@ class RealUNet(UNet):
 
 class Real2chUNet(RealUNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
-                       activation='relu', activation_last='relu', kernel_size_last=1, use_bias=True,
+                       activation='relu', activation_last=None, kernel_size_last=1, use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
                        name='Real2chUNet',  padding='none', **kwargs):
         """
@@ -328,7 +328,7 @@ class Real2chUNet(RealUNet):
 
 class MagPhaUNet(RealUNet):
     def __init__(self, dim='2D', filters=64, kernel_size=3, pool_size=2, num_layer_per_level=2, num_level=4,
-                       activation='relu', activation_last='relu', kernel_size_last=1, use_bias=True,
+                       activation='relu', activation_last=None, kernel_size_last=1, use_bias=True,
                        normalization='none', downsampling='mp', upsampling='tc',
                        name='MagPhaUNet',  padding='none', **kwargs):
         """
