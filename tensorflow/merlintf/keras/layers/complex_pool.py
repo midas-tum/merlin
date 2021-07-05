@@ -158,7 +158,7 @@ class MagnitudeMaxPool3Dt_1(MagnitudeMaxPool):
             batched_shape = [x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4]]
 
         if merlintf.iscomplextf(x):
-            x_pool, _  = optotf.maxpooling.maxpooling3d(x, ksize=self.pool_size, strides=self.strides, alpha=self.alpha, beta=self.beta, padding=self.padding)
+            x_pool = optotf.maxpooling.maxpooling3d(x, pooling=self.pool_size, stride=self.strides, alpha=self.alpha, beta=self.beta, mode=self.padding)
         else:
             x_pool = tf.nn.max_pool(x, ksize=self.pool_size, strides=self.strides, padding=self.padding)
 
