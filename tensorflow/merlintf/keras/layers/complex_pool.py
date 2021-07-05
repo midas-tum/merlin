@@ -37,6 +37,8 @@ class MagnitudeMaxPool(tf.keras.layers.Layer):
             strides = pool_size
         self.strides = strides
         self.padding =  padding
+        self.alpha = 1 # magnitude ratio in real part
+        self.beta = 1  # magnitude ratio in imag part
 
     def call(self, x):
         xabs = merlintf.complex_abs(x)
@@ -89,10 +91,12 @@ class MagnitudeMaxPool2D_1(tf.keras.layers.Layer):
             strides = pool_size
         self.strides = strides
         self.padding =  padding
+        self.alpha = 1 # magnitude ratio in real part
+        self.beta = 1  # magnitude ratio in imag part
 
     def call(self, x):
         if merlintf.iscomplextf(x):
-            x_pool, _ = optotf.maxpooling.maxpooling2d(x, pooling=self.pool_size, stride=self.strides, mode=self.padding)
+            x_pool, _ = optotf.maxpooling.maxpooling2d(x, pooling=self.pool_size, stride=self.strides, alpha=self.alpha, beta=self.beta,mode=self.padding)
         else:
             x_pool = tf.nn.max_pool(x,ksize=self.pool_size,strides=self.strides,padding=self.padding)
         return x_pool
@@ -111,7 +115,7 @@ class MagnitudeMaxPool2Dt_1(MagnitudeMaxPool):
 
 
         if merlintf.iscomplextf(x):
-            x_pool,_ = optotf.maxpooling.maxpooling2d(x, pooling=self.pool_size, stride=self.strides, mode=self.padding)
+            x_pool,_ = optotf.maxpooling.maxpooling2d(x, pooling=self.pool_size, stride=self.strides, alpha=self.alpha, beta=self.beta, mode=self.padding)
         else:
             x_pool = tf.nn.max_pool(x, ksize=self.pool_size, strides=self.strides, padding=self.padding)
 
@@ -129,10 +133,12 @@ class MagnitudeMaxPool3D_1(tf.keras.layers.Layer):
             strides = pool_size
         self.strides = strides
         self.padding =  padding
+        self.alpha = 1 # magnitude ratio in real part
+        self.beta = 1  # magnitude ratio in imag part
 
     def call(self, x):
         if merlintf.iscomplextf(x):
-            x_pool, _ = optotf.maxpooling.maxpooling3d(x, pooling=self.pool_size, stride=self.strides, mode=self.padding)
+            x_pool, _ = optotf.maxpooling.maxpooling3d(x, pooling=self.pool_size, stride=self.strides,  alpha=self.alpha, beta=self.beta, mode=self.padding)
         else:
             x_pool = tf.nn.max_pool3d(x,ksize=self.pool_size,strides=self.strides,padding=self.padding)
         return x_pool
@@ -152,7 +158,7 @@ class MagnitudeMaxPool3Dt_1(MagnitudeMaxPool):
             batched_shape = [x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4]]
 
         if merlintf.iscomplextf(x):
-            x_pool = merlintf.maxpooling(x, ksize=self.pool_size, strides=self.strides, padding=self.padding)
+            x_pool = optotf.maxpooling.maxpooling3d(x, ksize=self.pool_size, strides=self.strides, alpha=self.alpha, beta=self.beta, padding=self.padding)
         else:
             x_pool = tf.nn.max_pool(x, ksize=self.pool_size, strides=self.strides, padding=self.padding)
 
