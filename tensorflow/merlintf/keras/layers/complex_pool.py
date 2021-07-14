@@ -169,7 +169,101 @@ class TestMagnitudePool(unittest.TestCase):
         y = pool(x)
         magn = merlintf.complex_abs(y)
 
-    
+    def _index_transfer(self, index_input, index_1, include_batch_in_index=False):
+        # transfer from optox argmax index-> tensorflow argmax index
+
+        rank = tf.rank(index_input)
+        if rank == 4:
+            batch, height, width, channel = index_input.shape
+            batch_o, height_o, width_o, channel_o = index_1.shape
+            out_index = np.zeros((batch_o, height_o, width_o, channel_o))
+            if include_batch_in_index:
+                for b in range(batch_o):
+                    for h in range(height_o):
+                        for w in range(width_o):
+                            for c in range(channel_o):  # int idx = h1*width_in+w1;
+                                w1 = index_1[b, h, w, c] % width
+                                h1 = (index_1[b, h, w, c] - w1) // width
+                                out_index[b, h, w, c] = ((b * height + h1) * width + w1) * channel_o + c
+
+            else:
+                for b in range(batch_o):
+                    for h in range(height_o):
+                        for w in range(width_o):
+                            for c in range(channel_o):
+                                w1 = index_1[b, h, w, c] % width
+                                h1 = (index_1[b, h, w, c] - w1) // width
+                                out_index[b, h, w, c] = (h1 * width + w1) * channel_o + c
+        elif rank == 5:
+            batch, height, width, depth, channel = index_input.shape
+            batch_o, height_o, width_o, depth_o, channel_o = index_1.shape
+            out_index = np.zeros((batch_o, height_o, width_o, depth_o, channel_o))
+            if include_batch_in_index:
+                for b in range(batch_o):
+                    for h in range(height_o):
+                        for w in range(width_o):
+                            for d in range(depth_o):
+                                for c in range(channel_o):
+                                    d1 = index_1[b, h, w, d, c] % depth
+                                    temp1 = (index_1[b, h, w, d, c] - d1) // depth
+                                    w1 = temp1 % width
+                                    h1 = (temp1 - w1) // width
+                                    out_index[b, h, w, d, c] = (((
+                                                (b * height + h1) * width + w1)) * depth + d) * channel_o + c
+
+            else:
+                for b in range(batch_o):
+                    for h in range(height_o):
+                        for d in range(depth_o):
+                            for w in range(width_o):
+                                for c in range(channel_o):
+                                    d1 = index_1[b, h, w, d, c] % depth
+                                    temp1 = (index_1[b, h, w, d, c] - d1) // depth
+                                    w1 = temp1 % width
+                                    h1 = (temp1 - w1) // width
+                                    out_index[b, h, w, d, c] = (((
+                                                (height + h1) * width + w1)) * depth + d) * channel_o + c
+
+        return out_index.astype(int)
+
+    def _test_2d_corr(self, shape, pool_size=(2, 2), strides=(2, 2)):
+        print('_______')
+        print('test_2d_corr...')
+        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        # maxpooling 2D with index in optotf
+        pool = MagnitudeMaxPool2D(pool_size, strides, optox=True, argmax_index=True)
+        y, out_ind_optox = pool(x)
+        out_ind_optox = index_transfer(x, out_ind_optox, include_batch_in_index=True)
+        print(out_ind_optox)
+
+        # maxpooling 2D with index in in tf.nn.max_pool_with_argmax
+        x_abs = tf.math.abs(x)
+        x_abs, out_ind_nn = tf.nn.max_pool_with_argmax(x_abs, pool_size, strides, padding='SAME',
+                                                       include_batch_in_index=True)
+        print(out_ind_nn)
+
+        # assert out_ind_optox=out_ind_nn
+        print(out_ind_optox - out_ind_nn)
+        print(tf.math.abs(y) - x_abs)
+        self.assertTrue((tf.math.abs(y) - x_abs) == 0)
+
+    def _test_3d_corr(self, shape, pool_size=(2, 2, 2), strides=(2, 2, 2)):
+        print('_______')
+        print('test_3d_corr...')
+        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        # maxpooling 3D with index in optotf
+        pool = MagnitudeMaxPool3D(pool_size, strides, optox=True, argmax_index=True)
+        y, out_ind_optox = pool(x)
+        print(out_ind_optox)
+        out_ind_optox = index_transfer(x, out_ind_optox, include_batch_in_index=True)
+        print(out_ind_optox)
+
+        # No 3D index in tf.nn.max_pool_with_argmax
+        x_abs = tf.math.abs(x)
+        x_abs = tf.nn.max_pool3d(x_abs, pool_size, strides, padding='SAME')
+
+        print(tf.math.abs(y) - x_abs)
+        self.assertTrue((tf.math.abs(y) - x_abs) == 0)
 
     #def test1d(self):
     #    self._test([2, 2, 1])
@@ -179,16 +273,20 @@ class TestMagnitudePool(unittest.TestCase):
         self._test([2, 2, 2, 1], (2, 2))
 
     def test2dt(self):
+        # Maxpooling 2dt
         self._test_t([2, 4, 2, 2, 1])
 
     def test_1(self):
         # Maxpooling 2d
         self._test_1([2, 2, 2, 1])
         self._test_1([2, 2, 2, 1], (2, 2))
+        self._test_2d_corr([1, 8, 12, 3], pool_size=(3,2)) # input shape: [batch, height, width, channel]
+
     def test_2(self):
         # Maxpooling 3d
         self._test_2([2, 16, 8, 4, 1])
         self._test_2([2, 16, 8, 4, 1], (4, 2, 2))
+        self._test_3d_corr([2, 8, 6, 8, 2], pool_size=(3,2,2))  # input shape: [batch, height, width, depth, channel]
 
 
 if __name__ == "__main__":
