@@ -269,7 +269,7 @@ class TestMagnitudePool(unittest.TestCase):
         # maxpooling 2D with index in optotf
         pool = MagnitudeMaxPool2D(pool_size, strides, optox=True, argmax_index=True)
         y, out_ind_optox = pool(x)
-        out_ind_optox = index_transfer(x, out_ind_optox, include_batch_in_index=True)
+        out_ind_optox = self._index_transfer(x, out_ind_optox, include_batch_in_index=True)
         print(out_ind_optox)
 
         # maxpooling 2D with index in in tf.nn.max_pool_with_argmax
@@ -281,7 +281,9 @@ class TestMagnitudePool(unittest.TestCase):
         # assert out_ind_optox=out_ind_nn
         print(out_ind_optox - out_ind_nn)
         print(tf.math.abs(y) - x_abs)
-        self.assertTrue((tf.math.abs(y) - x_abs) == 0)
+        test_id=[np.random.randint(0,shape[0]),[np.random.randint(0,shape[1]),np.random.randint(0,shape[2]),np.random.randint(0,shape[3])]
+        self.assertTrue((tf.math.abs(y)[test_id[0],test_id[1],test_id[2],test_id[3]] - x_abs[test_id[0],test_id[1],test_id[2],test_id[3]]) == 0.0)
+
 
     def _test_3d_corr(self, shape, pool_size=(2, 2, 2), strides=(2, 2, 2)):
         print('_______')
@@ -291,7 +293,7 @@ class TestMagnitudePool(unittest.TestCase):
         pool = MagnitudeMaxPool3D(pool_size, strides, optox=True, argmax_index=True)
         y, out_ind_optox = pool(x)
         print(out_ind_optox)
-        out_ind_optox = index_transfer(x, out_ind_optox, include_batch_in_index=True)
+        out_ind_optox = self._index_transfer(x, out_ind_optox, include_batch_in_index=True)
         print(out_ind_optox)
 
         # No 3D index in tf.nn.max_pool_with_argmax
@@ -299,7 +301,8 @@ class TestMagnitudePool(unittest.TestCase):
         x_abs = tf.nn.max_pool3d(x_abs, pool_size, strides, padding='SAME')
 
         print(tf.math.abs(y) - x_abs)
-        self.assertTrue((tf.math.abs(y) - x_abs) == 0)
+        test_id=[np.random.randint(0,shape[0]),[np.random.randint(0,shape[1]),np.random.randint(0,shape[2]),np.random.randint(0,shape[3]),np.random.randint(0,shape[4])]
+        self.assertTrue((tf.math.abs(y)[test_id[0],test_id[1],test_id[2],test_id[3],test_id[4]] - x_abs[test_id[0],test_id[1],test_id[2],test_id[3],test_id[4]]) == 0.0)
 
     #def test1d(self):
     #    self._test([2, 2, 1])
