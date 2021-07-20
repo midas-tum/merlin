@@ -1,5 +1,5 @@
 import tensorflow as tf
-
+import numpy as np
 import optotf.maxpooling
 import merlintf
 import unittest
