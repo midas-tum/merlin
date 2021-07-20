@@ -174,7 +174,7 @@ class MagnitudeMaxPool3Dt(MagnitudeMaxPool):
         x_pool = tf.reshape(x_pool, pooled_shape)
 
         if self.argmax_index:
-            return x_pool, idx
+            return x_pool, x_pool_index
         else:
             return x_pool
 
