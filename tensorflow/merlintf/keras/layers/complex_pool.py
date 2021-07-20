@@ -281,7 +281,7 @@ class TestMagnitudePool(unittest.TestCase):
         # assert out_ind_optox=out_ind_nn
         print(out_ind_optox - out_ind_nn)
         print(tf.math.abs(y) - x_abs)
-        test_id=[np.random.randint(0,shape[0]),[np.random.randint(0,shape[1]),np.random.randint(0,shape[2]),np.random.randint(0,shape[3])]
+        test_id=[np.random.randint(0,shape[0]),np.random.randint(0,shape[1]),np.random.randint(0,shape[2]),np.random.randint(0,shape[3])]
         self.assertTrue((tf.math.abs(y)[test_id[0],test_id[1],test_id[2],test_id[3]] - x_abs[test_id[0],test_id[1],test_id[2],test_id[3]]) == 0.0)
 
 
@@ -301,7 +301,7 @@ class TestMagnitudePool(unittest.TestCase):
         x_abs = tf.nn.max_pool3d(x_abs, pool_size, strides, padding='SAME')
 
         print(tf.math.abs(y) - x_abs)
-        test_id=[np.random.randint(0,shape[0]),[np.random.randint(0,shape[1]),np.random.randint(0,shape[2]),np.random.randint(0,shape[3]),np.random.randint(0,shape[4])]
+        test_id=[np.random.randint(0,shape[0]),np.random.randint(0,shape[1]),np.random.randint(0,shape[2]),np.random.randint(0,shape[3]),np.random.randint(0,shape[4])]
         self.assertTrue((tf.math.abs(y)[test_id[0],test_id[1],test_id[2],test_id[3],test_id[4]] - x_abs[test_id[0],test_id[1],test_id[2],test_id[3],test_id[4]]) == 0.0)
 
     #def test1d(self):
