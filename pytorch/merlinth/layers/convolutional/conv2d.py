@@ -3,13 +3,13 @@ import optoth.pad
 
 import numpy as np
 
-__all__ = ['Conv2d', 'ConvScale2d', 'ConvScaleTranspose2d']
+__all__ = ['PadConv2D', 'PadConvScale2D', 'PadConvScaleTranspose2D']
 
-class Conv2d(torch.nn.Module):
+class PadConv2D(torch.nn.Module):
     def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  stride=1, dilation=1, groups=1, bias=False, 
                  zero_mean=False, bound_norm=False, pad=True):
-        super(Conv2d, self).__init__()
+        super(PadConv2D, self).__init__()
 
         self.in_channels = in_channels
         self.filters = filters
@@ -117,10 +117,10 @@ class Conv2d(torch.nn.Module):
         return s.format(**self.__dict__)
 
 
-class ConvScale2d(Conv2d):
+class PadConvScale2D(PadConv2D):
     def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  groups=1, stride=2, bias=False, zero_mean=False, bound_norm=False):
-        super(ConvScale2d, self).__init__(
+        super(PadConvScale2D, self).__init__(
             in_channels=in_channels, filters=filters, kernel_size=kernel_size, 
             invariant=invariant, stride=stride, dilation=1, groups=groups, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
@@ -143,10 +143,10 @@ class ConvScale2d(Conv2d):
         return weight
 
 
-class ConvScaleTranspose2d(ConvScale2d):
+class PadConvScaleTranspose2D(PadConvScale2D):
     def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  groups=1, stride=2, bias=False, zero_mean=False, bound_norm=False):
-        super(ConvScaleTranspose2d, self).__init__(
+        super(PadConvScaleTranspose2D, self).__init__(
             in_channels=in_channels, filters=filters, kernel_size=kernel_size, 
             invariant=invariant, groups=groups, stride=stride, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)

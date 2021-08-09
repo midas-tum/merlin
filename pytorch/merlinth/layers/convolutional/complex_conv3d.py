@@ -6,22 +6,24 @@ import optoth.pad
 import numpy as np
 
 import unittest
-from merlinth import mytorch
-from .complex_init import *
+import merlinth
+from merlinth.layers.complex_init import *
+from merlinth.layers import PadConv3D
+from merlinth.utils import validate_input_dimension
 
-__all__ = [ 'ComplexConv3d',
-            'ComplexConvScale3d',
-            'ComplexConvScaleTranspose3d',
-            'ComplexConvRealWeight3d',
-            'ComplexConv2dt']
+__all__ = [ 'ComplexPadConv3D',
+            'ComplexPadConvScale3D',
+            'ComplexPadConvScaleTranspose3D',
+            'ComplexPadConvRealWeight3D',
+            'ComplexPadConv2Dt']
 
-class ComplexConvRealWeight3d(torch.nn.Module):
-    def __init__(self, in_channels, out_channels, kernel_size_sp_x=3, kernel_size_sp_y=3, kernel_size_t=3,
+class ComplexPadConvRealWeight3D(torch.nn.Module):
+    def __init__(self, in_channels, filters, kernel_size=3,
                  stride=1, dilation=1, groups=1, bias=False, 
                  zero_mean=False, bound_norm=False):
-        super(ComplexConvRealWeight3d, self).__init__()
+        super(ComplexPadConvRealWeight3D, self).__init__()
 
-        self.conv = Conv3d(in_channels, out_channels, kernel_size_sp_x, kernel_size_sp_y, kernel_size_t,
+        self.conv = Conv3D(in_channels, filters, kernel_size,
                  stride, dilation, groups, bias, zero_mean, bound_norm)
 
     def forward(self, x):
@@ -34,153 +36,147 @@ class ComplexConvRealWeight3d(torch.nn.Module):
         KTx_im = self.conv.backward(x[...,1].contiguous(), output_shape=output_shape)
         return torch.cat([KTx_re.unsqueeze_(-1), KTx_im.unsqueeze_(-1)], dim=-1)
 
-class Conv3d(torch.nn.Module):
-    def __init__(self,
-                 in_channels,
-                 out_channels,
-                 kernel_size_sp_x=3,
-                 kernel_size_sp_y=3,
-                 kernel_size_t=3,
-                 stride=1,
-                 dilation=1,
-                 groups=1,
-                 bias=False,
-                 zero_mean=False, bound_norm=False):
-        super(Conv3d, self).__init__()
+# class PadConv3D(torch.nn.Module):
+#     def __init__(self,
+#                  in_channels,
+#                  filters,
+#                  kernel_size_sp_x=3,
+#                  kernel_size_sp_y=3,
+#                  kernel_size_t=3,
+#                  stride=1,
+#                  dilation=1,
+#                  groups=1,
+#                  bias=False,
+#                  zero_mean=False, bound_norm=False):
+#         super(PadConv3D, self).__init__()
 
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.kernel_size_sp_x = kernel_size_sp_x
-        self.kernel_size_sp_y = kernel_size_sp_y
-        self.kernel_size_t = kernel_size_t
-        self.stride = stride
-        self.dilation = dilation
-        self.groups = groups
-        self.bias = torch.nn.Parameter(torch.zeros(out_channels)) if bias else None
-        self.zero_mean = zero_mean
-        self.bound_norm = bound_norm
-        self.padding = 0
+#         self.in_channels = in_channels
+#         self.filters = filters
+#         self.kernel_size_sp_x = kernel_size_sp_x
+#         self.kernel_size_sp_y = kernel_size_sp_y
+#         self.kernel_size_t = kernel_size_t
+#         self.stride = stride
+#         self.dilation = dilation
+#         self.groups = groups
+#         self.bias = torch.nn.Parameter(torch.zeros(filters)) if bias else None
+#         self.zero_mean = zero_mean
+#         self.bound_norm = bound_norm
+#         self.padding = 0
 
-        # add the parameter
-        self.weight = torch.nn.Parameter(torch.empty(self.out_channels, self.in_channels, self.kernel_size_t, self.kernel_size_sp_y,  self.kernel_size_sp_x))
+#         # add the parameter
+#         self.weight = torch.nn.Parameter(torch.empty(self.filters, self.in_channels, self.kernel_size_t, self.kernel_size_sp_y,  self.kernel_size_sp_x))
 
-        # insert them using a normal distribution
-        torch.nn.init.normal_(self.weight.data, 0.0, np.sqrt(1/np.prod(in_channels*kernel_size_t*kernel_size_sp_y* kernel_size_sp_x)))
+#         # insert them using a normal distribution
+#         torch.nn.init.normal_(self.weight.data, 0.0, np.sqrt(1/np.prod(in_channels*kernel_size_t*kernel_size_sp_y* kernel_size_sp_x)))
 
-        # specify reduction index
-        self.weight.L_init = 1e+4
-        if zero_mean or bound_norm:    
-            self.weight.reduction_dim = (1, 2, 3, 4)
-            self.weight.reduction_dim_mean = (1, 2, 3, 4)
-            # define a projection
-            def l2_proj(surface=False):
-                # reduce the mean
-                if zero_mean:
-                    mean = torch.mean(self.weight.data, self.weight.reduction_dim_mean, True)
-                    self.weight.data.sub_(mean)
-                # normalize by the l2-norm
-                if bound_norm:
-                    norm = torch.sum(self.weight.data**2, self.weight.reduction_dim, True).sqrt_()
-                    if surface:
-                        self.weight.data.div_(norm)
-                    else:
-                        self.weight.data.div_(
-                            torch.max(norm, torch.ones_like(norm)))
-            self.weight.proj = l2_proj
+#         # specify reduction index
+#         self.weight.L_init = 1e+4
+#         if zero_mean or bound_norm:    
+#             self.weight.reduction_dim = (1, 2, 3, 4)
+#             self.weight.reduction_dim_mean = (1, 2, 3, 4)
+#             # define a projection
+#             def l2_proj(surface=False):
+#                 # reduce the mean
+#                 if zero_mean:
+#                     mean = torch.mean(self.weight.data, self.weight.reduction_dim_mean, True)
+#                     self.weight.data.sub_(mean)
+#                 # normalize by the l2-norm
+#                 if bound_norm:
+#                     norm = torch.sum(self.weight.data**2, self.weight.reduction_dim, True).sqrt_()
+#                     if surface:
+#                         self.weight.data.div_(norm)
+#                     else:
+#                         self.weight.data.div_(
+#                             torch.max(norm, torch.ones_like(norm)))
+#             self.weight.proj = l2_proj
 
-            # initially call the projection
-            self.weight.proj(True)
+#             # initially call the projection
+#             self.weight.proj(True)
     
-    def forward(self, x):
-        # construct the kernel
-        weight = self.weight
+#     def forward(self, x):
+#         # construct the kernel
+#         weight = self.weight
 
-        pad_sp_x = weight.shape[-1]//2
-        pad_sp_y = weight.shape[-2]//2
-        pad_t = weight.shape[-3]//2
+#         pad_sp_x = weight.shape[-1]//2
+#         pad_sp_y = weight.shape[-2]//2
+#         pad_t = weight.shape[-3]//2
 
-        if pad_sp_x > 0 or pad_sp_y > 0 or pad_t > 0:
-            x = optoth.pad.pad3d(x, (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
+#         if pad_sp_x > 0 or pad_sp_y > 0 or pad_t > 0:
+#             x = optoth.pad.pad3d(x, (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
 
-        # compute the convolution
-        return torch.nn.functional.conv3d(x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
+#         # compute the convolution
+#         return torch.nn.functional.conv3d(x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
 
-    def backward(self, x, output_shape=None):
-        # construct the kernel
-        weight = self.weight
+#     def backward(self, x, output_shape=None):
+#         # construct the kernel
+#         weight = self.weight
 
-        # determine the output padding
-        if not output_shape is None:
-            output_padding = (
-                output_shape[-4] - ((x.shape[-4]-1)*1+1),
-                output_shape[-3] - ((x.shape[-3]-1)*self.stride+1),
-                output_shape[-2] - ((x.shape[-2]-1)*self.stride+1)
-            )
-        else:
-            output_padding = 0
+#         # determine the output padding
+#         if not output_shape is None:
+#             output_padding = (
+#                 output_shape[-4] - ((x.shape[-4]-1)*1+1),
+#                 output_shape[-3] - ((x.shape[-3]-1)*self.stride+1),
+#                 output_shape[-2] - ((x.shape[-2]-1)*self.stride+1)
+#             )
+#         else:
+#             output_padding = 0
 
-        # compute the transpose convolution
-        x = torch.nn.functional.conv_transpose3d(x, weight, self.bias, self.stride, self.padding, output_padding, self.groups, self.dilation)
+#         # compute the transpose convolution
+#         x = torch.nn.functional.conv_transpose3d(x, weight, self.bias, self.stride, self.padding, output_padding, self.groups, self.dilation)
         
-        # transpose padding
-        pad_sp_x = weight.shape[-1]//2
-        pad_sp_y = weight.shape[-2]//2
-        pad_t = weight.shape[-3]//2
+#         # transpose padding
+#         pad_sp_x = weight.shape[-1]//2
+#         pad_sp_y = weight.shape[-2]//2
+#         pad_t = weight.shape[-3]//2
 
-        # compute the convolution
-        if pad_sp_x > 0 or pad_sp_y > 0 or pad_t > 0:
-            x = optoth.pad.pad3d_transpose(x, (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
-        return x
+#         # compute the convolution
+#         if pad_sp_x > 0 or pad_sp_y > 0 or pad_t > 0:
+#             x = optoth.pad.pad3d_transpose(x, (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode='symmetric')
+#         return x
 
-    def extra_repr(self):
-        s = "({out_channels}, {in_channels}, {kernel_size_t},  {kernel_size_sp_y},  {kernel_size_sp_x}),"
-        if self.stride != 1:
-            s += ", stride={stride}"
-        if self.dilation != 1:
-            s += ", dilation={dilation}"
-        if self.groups != 1:
-            s += ", groups={groups}"
-        if not self.bias is None:
-            s += ", bias=True"
-        if self.zero_mean:
-            s += ", zero_mean={zero_mean}"
-        if self.bound_norm:
-            s += ", bound_norm={bound_norm}"
-        return s.format(**self.__dict__)
+#     def extra_repr(self):
+#         s = "({filters}, {in_channels}, {kernel_size_t},  {kernel_size_sp_y},  {kernel_size_sp_x}),"
+#         if self.stride != 1:
+#             s += ", stride={stride}"
+#         if self.dilation != 1:
+#             s += ", dilation={dilation}"
+#         if self.groups != 1:
+#             s += ", groups={groups}"
+#         if not self.bias is None:
+#             s += ", bias=True"
+#         if self.zero_mean:
+#             s += ", zero_mean={zero_mean}"
+#         if self.bound_norm:
+#             s += ", bound_norm={bound_norm}"
+#         return s.format(**self.__dict__)
 
-class ComplexConv3d(torch.nn.Module):
+class ComplexPadConv3D(torch.nn.Module):
     def __init__(self,
                  in_channels,
-                 out_channels,
-                 kernel_size_sp_x=3,
-                 kernel_size_sp_y=3,
-                 kernel_size_t=3,
+                 filters,
+                 kernel_size=3,
                  stride=1,
                  dilation=1,
                  groups=1,
                  bias=False,
                  zero_mean=False, bound_norm=False):
-        super(ComplexConv3d, self).__init__()
+        super(ComplexPadConv3D, self).__init__()
 
         self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.kernel_size_sp_x = kernel_size_sp_x
-        self.kernel_size_sp_y = kernel_size_sp_y
-        self.kernel_size_t = kernel_size_t
-        self.stride = stride
-        self.dilation = dilation
+        self.filters = filters
+        self.kernel_size = validate_input_dimension('3D', kernel_size)
+        self.stride = validate_input_dimension('3D', stride)
+        self.dilation = validate_input_dimension('3D', dilation)
         self.groups = groups
-        self.bias = torch.nn.Parameter(torch.zeros(2, out_channels)) if bias else None
+        self.bias = torch.nn.Parameter(torch.zeros(2, filters)) if bias else None
         self.zero_mean = zero_mean
         self.bound_norm = bound_norm
         self.padding = 0
 
         # add the parameter
-        self.weight = torch.nn.Parameter(torch.empty(self.out_channels,
+        self.weight = torch.nn.Parameter(torch.empty(self.filters,
                                                      self.in_channels,
-                                                     self.kernel_size_t,
-                                                     self.kernel_size_sp_y,
-                                                     self.kernel_size_sp_x,
+                                                     *kernel_size,
                                                      2))
 
         # insert them using a normal distribution
@@ -220,11 +216,11 @@ class ComplexConv3d(torch.nn.Module):
         return weight
 
     def conv3d_forward(self, input, weight, bias):
-        return F.conv3d(input, weight, bias, (1, self.stride, self.stride),
+        return F.conv3d(input, weight, bias, self.stride,
                         self.padding, self.dilation, self.groups)
 
     def conv3d_transpose(self, input, weight, bias, output_padding):
-        return F.conv_transpose3d(input, weight, bias, (1, self.stride, self.stride),
+        return F.conv_transpose3d(input, weight, bias, self.stride,
                         self.padding, output_padding, self.groups, self.dilation)
                         
     def complex_conv3d_forward(self, input, weight, bias):
@@ -323,9 +319,9 @@ class ComplexConv3d(torch.nn.Module):
         # determine the output padding
         if not output_shape is None:
             output_padding = (
-                output_shape[-4] - ((x.shape[-4]-1)*1+1),
-                output_shape[-3] - ((x.shape[-3]-1)*self.stride+1),
-                output_shape[-2] - ((x.shape[-2]-1)*self.stride+1)
+                output_shape[-4] - ((x.shape[-4]-1)*self.stride[0]+1),
+                output_shape[-3] - ((x.shape[-3]-1)*self.stride[1]+1),
+                output_shape[-2] - ((x.shape[-2]-1)*self.stride[2]+1)
             )
         else:
             output_padding = 0
@@ -342,10 +338,10 @@ class ComplexConv3d(torch.nn.Module):
         return x
 
     def extra_repr(self):
-        s = "({out_channels}, {in_channels}, {kernel_size_t}, {kernel_size_sp_y}, {kernel_size_sp_x})"
-        if self.stride != 1:
+        s = "({filters}, {in_channels}, {kernel_size})"
+        if any(self.stride) != 1:
             s += ", stride={stride}"
-        if self.dilation != 1:
+        if any(self.dilation) != 1:
             s += ", dilation={dilation}"
         if self.groups != 1:
             s += ", groups={groups}"
@@ -358,19 +354,19 @@ class ComplexConv3d(torch.nn.Module):
         return s.format(**self.__dict__)
 
 
-class ComplexConvScale3d(ComplexConv3d):
-    def __init__(self, in_channels, out_channels, kernel_size_sp_x=3, kernel_size_sp_y=3, kernel_size_t=3,
-                 groups=1, stride=2, bias=False, zero_mean=False, bound_norm=False):
-        super(ComplexConvScale3d, self).__init__(
-            in_channels=in_channels, out_channels=out_channels, kernel_size_sp_x=kernel_size_sp_x, kernel_size_sp_y=kernel_size_sp_y,
-            kernel_size_t=kernel_size_t, stride=stride, dilation=1, groups=groups, bias=bias, 
+class ComplexPadConvScale3D(ComplexPadConv3D):
+    def __init__(self, in_channels, filters, kernel_size=3, groups=1, stride=(1, 2, 2), bias=False, zero_mean=False, bound_norm=False):
+        super(ComplexPadConvScale3D, self).__init__(
+            in_channels=in_channels, filters=filters, kernel_size=kernel_size, stride=stride, dilation=1, groups=groups, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
-        assert kernel_size_sp_x == kernel_size_sp_y
-        assert kernel_size_sp_x > 1
-        self.kernel_size_sp = kernel_size_sp_x
+
+        assert self.kernel_size[1] == self.kernel_size[2]
+        assert self.kernel_size[1] > 1
+        assert self.stride[1] == self.stride[2]
+        assert self.stride[1] > 1
 
         # create the convolution kernel
-        if self.stride > 1:
+        if self.stride[1]  > 1:
             np_k = np.asarray([1, 4, 6, 4, 1], dtype=np.float32)[:, np.newaxis]
             np_k = np_k @ np_k.T
             np_k /= np_k.sum()
@@ -379,26 +375,23 @@ class ComplexConvScale3d(ComplexConv3d):
 
     def get_weight(self):
         weight = super().get_weight()
-        if self.stride > 1:
+        if self.stride[1] > 1:
             weight = weight.permute(0, 1, 5, 2, 3, 4)
-            weight = weight.reshape(-1, 1, self.kernel_size_sp, self.kernel_size_sp)
-            for i in range(self.stride//2): 
+            weight = weight.reshape(-1, 1, self.kernel_size[1], self.kernel_size[1])
+            for i in range(self.stride[1]//2): 
                 weight = torch.nn.functional.conv2d(weight, self.blur, padding=4)
-            weight = weight.reshape(self.out_channels, self.in_channels, 2, self.kernel_size_t, self.kernel_size_sp+2*self.stride, self.kernel_size_sp+2*self.stride)
+            weight = weight.reshape(self.filters, self.in_channels, 2, self.kernel_size[0], self.kernel_size[1]+2*self.stride[1], self.kernel_size[1]+2*self.stride[1])
             weight = weight.permute(0, 1, 3, 4, 5, 2)
         return weight
 
 
-class ComplexConvScaleTranspose3d(ComplexConvScale3d):
-    def __init__(self, in_channels, out_channels, kernel_size_sp_x=3, kernel_size_sp_y=3, kernel_size_t=3, 
-                 groups=1, stride=2, bias=False, zero_mean=False, bound_norm=False):
-        super(ComplexConvScaleTranspose3d, self).__init__(
-            in_channels=in_channels, out_channels=out_channels, kernel_size_sp_x=kernel_size_sp_x, kernel_size_sp_y=kernel_size_sp_y,
-            kernel_size_t=kernel_size_t, groups=groups, stride=stride, bias=bias, 
+class ComplexPadConvScaleTranspose3D(ComplexPadConvScale3D):
+    def __init__(self, in_channels, filters, kernel_size=3, 
+                 groups=1, stride=(1, 2, 2), bias=False, zero_mean=False, bound_norm=False):
+        super(ComplexPadConvScaleTranspose3D, self).__init__(
+            in_channels=in_channels, filters=filters, kernel_size=kernel_size, groups=groups, stride=stride, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
-        assert kernel_size_sp_x == kernel_size_sp_y
-        assert kernel_size_sp_x > 1
-        self.kernel_size_sp = kernel_size_sp_x
+
         self.bias = torch.nn.Parameter(torch.zeros(2, in_channels)) if bias else None
 
     def forward(self, x, output_shape):
@@ -407,31 +400,27 @@ class ComplexConvScaleTranspose3d(ComplexConvScale3d):
     def backward(self, x):
         return super().forward(x)
 
-class ComplexConv2dt(torch.nn.Module):
-    def __init__(self, in_channels, inter_channels, out_channels, kernel_size_sp_x=3, kernel_size_sp_y=3, kernel_size_t=3,
+class ComplexPadConv2Dt(torch.nn.Module):
+    def __init__(self, in_channels, intermediate_filters, filters, kernel_size=3,
                  stride=1, dilation=1, groups=1, bias=False, zero_mean=True, bound_norm=True):
-        super(ComplexConv2dt, self).__init__()
+        super(ComplexPadConv2Dt, self).__init__()
 
         if stride > 2:
-            conv_module = ComplexConvScale3d
+            conv_module = ComplexPadConvScale3D
         else:
-            conv_module = ComplexConv3d
+            conv_module = ComplexPadConv3D
 
         self.conv_xy = conv_module(in_channels,
-                    inter_channels,
-                    kernel_size_sp_x=kernel_size_sp_x,
-                    kernel_size_sp_y=kernel_size_sp_y,
-                    kernel_size_t=1,
+                    intermediate_filters,
+                    kernel_size=kernel_size,
                     stride=stride,
                     bias=bias,
                     zero_mean=zero_mean,
                     bound_norm=bound_norm)
 
-        self.conv_t = ComplexConv3d(inter_channels,
-                 out_channels,
-                 kernel_size_sp_x=1,
-                 kernel_size_sp_y=1,
-                 kernel_size_t=kernel_size_t,
+        self.conv_t = ComplexPadConv3D(intermediate_filters,
+                 filters,
+                 kernel_size=kernel_size,
                  bias=bias,
                  zero_mean=False,
                  bound_norm=bound_norm)
@@ -446,7 +435,7 @@ class ComplexConv2dt(torch.nn.Module):
         xT_sp = self.conv_xy.backward(xT_t, output_shape)
         return xT_sp
 
-class ComplexConv3dTest(unittest.TestCase):
+class ComplexPadConv3DTest(unittest.TestCase):
     def test_constraints(self):
         nBatch = 5
         M = 120
@@ -455,11 +444,9 @@ class ComplexConv3dTest(unittest.TestCase):
         nf_in = 10
         nf_out = 32
 
-        model = ComplexConv3d(nf_in,
+        model = ComplexPadConv3D(nf_in,
                             nf_out,
-                            kernel_size_sp_x=5,
-                            kernel_size_sp_y=5,
-                            kernel_size_t=3,
+                            kernel_size=[3,5,5],
                             zero_mean=True,
                             bound_norm=True).cuda()
 
@@ -471,7 +458,7 @@ class ComplexConv3dTest(unittest.TestCase):
         weight_norm = np.sqrt(np.sum(np.conj(np_weight) * np_weight, axis=(1,2,3,4)))
         self.assertTrue(np.max(np.abs(weight_norm-1)) < 1e-6)
 
-    def _test(self, ksx, ksy, kst):
+    def _test(self, kernel_size):
         nBatch = 5
         M = 120
         N = 120
@@ -479,7 +466,7 @@ class ComplexConv3dTest(unittest.TestCase):
         nf_in = 10
         nf_out = 32
         
-        model = ComplexConv3d(nf_in, nf_out, kernel_size_sp_x=ksx, kernel_size_sp_y=ksy, kernel_size_t=kst).cuda()
+        model = ComplexPadConv3D(nf_in, nf_out, kernel_size=kernel_size).cuda()
         
         x = torch.randn(nBatch, nf_in, D, M, N, 2).cuda()
         Kx = model(x)
@@ -487,28 +474,28 @@ class ComplexConv3dTest(unittest.TestCase):
         y = torch.randn(*Kx.shape).cuda()
         KHy = model.backward(y)
 
-        rhs = mytorch.complex.complex_mult_conj(Kx, y).view(-1, 2).sum(0).detach().cpu().numpy()
-        lhs = mytorch.complex.complex_mult_conj(x, KHy).view(-1, 2).sum(0).detach().cpu().numpy()
+        rhs = merlinth.complex_mult_conj(Kx, y).view(-1, 2).sum(0).detach().cpu().numpy()
+        lhs = merlinth.complex_mult_conj(x, KHy).view(-1, 2).sum(0).detach().cpu().numpy()
 
         self.assertTrue(rhs[0]+1j*rhs[1], lhs[0] + 1j*lhs[1])
 
     def test1(self):
-        self._test(5, 5, 3)
+        self._test([3, 5, 5])
 
     def test2(self):
-        self._test(5, 1, 3)
+        self._test([5, 1, 3])
 
     def test3(self):
-        self._test(1, 5, 3)
+        self._test([1, 5, 3])
 
     def test4(self):
-        self._test(5, 5, 1)
+        self._test([1, 5, 5])
 
     def test5(self):
-        self._test(1, 1, 3)
+        self._test([3, 1, 1])
 
-class ComplexConvScale3dTest(unittest.TestCase):
-    def _test(self, ksx, ksy, kst):
+class ComplexPadConvScale3DTest(unittest.TestCase):
+    def _test(self, kernel_size):
         nBatch = 5
         D = 16
         M = 100
@@ -516,7 +503,7 @@ class ComplexConvScale3dTest(unittest.TestCase):
         nf_in = 10
         nf_out = 32
 
-        model = ComplexConvScale3d(nf_in, nf_out, kernel_size_sp_x=ksx, kernel_size_sp_y=ksy, kernel_size_t=kst, stride=2).cuda()
+        model = ComplexPadConvScale3D(nf_in, nf_out, kernel_size=kernel_size, stride=2).cuda()
 
         x = torch.randn(nBatch, nf_in, D, M, N, 2).cuda()
         Kx = model(x)
@@ -524,18 +511,18 @@ class ComplexConvScale3dTest(unittest.TestCase):
         y = torch.randn(*Kx.shape).cuda()
         KHy = model.backward(y, output_shape=x.shape)
 
-        rhs = mytorch.complex.complex_mult_conj(Kx, y).view(-1, 2).sum(0).detach().cpu().numpy()
-        lhs = mytorch.complex.complex_mult_conj(x, KHy).view(-1, 2).sum(0).detach().cpu().numpy()
+        rhs = merlinth.complex_mult_conj(Kx, y).view(-1, 2).sum(0).detach().cpu().numpy()
+        lhs = merlinth.complex_mult_conj(x, KHy).view(-1, 2).sum(0).detach().cpu().numpy()
         self.assertTrue(rhs[0]+1j*rhs[1], lhs[0] + 1j*lhs[1])
     
     def test1(self):
-        self._test(5, 5, 3)
+        self._test([3, 5, 5])
 
     def test2(self):
-        self._test(5, 5, 1)
+        self._test([1, 5, 5,])
 
-class ComplexConv3dGradientTest(unittest.TestCase):
-    def _test(self, ksx, ksy, kst):
+class ComplexPadConv3DGradientTest(unittest.TestCase):
+    def _test(self, kernel_size):
         nBatch = 1
         M = 10
         N = 10
@@ -543,7 +530,7 @@ class ComplexConv3dGradientTest(unittest.TestCase):
         nf_in = 1
         nf_out = 32
         
-        model = ComplexConv3d(nf_in, nf_out, kernel_size_sp_x=ksx, kernel_size_sp_y=ksy, kernel_size_t=kst).cuda()
+        model = ComplexPadConv3D(nf_in, nf_out, kernel_size=kernel_size).cuda()
         
         npth_img = np.arange(0,nBatch*M*N*D*nf_in).reshape(nBatch,nf_in,D,M,N,1) + 1j * np.arange(0,nBatch*M*N*D*nf_in).reshape(nBatch,nf_in,D,M,N,1)
 
@@ -568,19 +555,19 @@ class ComplexConv3dGradientTest(unittest.TestCase):
         self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-3)
 
     def test1(self):
-        self._test(5, 5, 3)
+        self._test([5, 5, 3])
 
     def test2(self):
-        self._test(5, 1, 3)
+        self._test([5, 1, 3])
 
     def test3(self):
-        self._test(1, 5, 3)
+        self._test([1, 5, 3])
 
     def test4(self):
-        self._test(5, 5, 1)
+        self._test([5, 5, 1])
 
     def test5(self):
-        self._test(1, 1, 3)
+        self._test([1, 1, 3])
 
 if __name__ == "__main__":
     unittest.test()

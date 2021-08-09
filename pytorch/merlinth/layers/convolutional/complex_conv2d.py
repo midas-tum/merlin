@@ -1,8 +1,8 @@
 
 import torch
 import torch.nn.functional as F
-from .conv2d import Conv2d
-from .complex_init import *
+from merlinth.layers import PadConv2D
+from merlinth.layers.complex_init import *
 import optoth.pad
 
 import numpy as np
@@ -11,14 +11,14 @@ import unittest
 import sys
 from merlinth import mytorch
 
-__all__ = ['ComplexConv2d',
-           'ComplexPadConv2d',
-           'ComplexPadConvRealWeight2d',
-           'ComplexPadConvScale2d',
-           'ComplexPadConvScaleTranspose2d',
-           'PseudoComplexPadConv2d']
+__all__ = ['ComplexConv2D',
+           'ComplexPadConv2D',
+           'ComplexPadConvRealWeight2D',
+           'ComplexPadConvScale2D',
+           'ComplexPadConvScaleTranspose2D',
+           'PseudoComplexPadConv2D']
 
-class ComplexConv2d(torch.nn.Module):
+class ComplexConv2D(torch.nn.Module):
     def __init__(self, in_channels, filters, kernel_size, stride=1, padding = 0, dilation = 1, groups = 1, bias = True, padding_mode='zeros'):
         super().__init__()
         self.padding = padding
@@ -98,13 +98,13 @@ class ComplexConv2d(torch.nn.Module):
 
         return torch.cat([convT_re.unsqueeze_(-1), convT_im.unsqueeze_(-1)], -1)
 
-class ComplexPadConvRealWeight2d(torch.nn.Module):
+class ComplexPadConvRealWeight2D(torch.nn.Module):
     def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  stride=1, dilation=1, groups=1, bias=False, 
                  zero_mean=False, bound_norm=False):
-        super(ComplexPadConvRealWeight2d, self).__init__()
+        super().__init__()
 
-        self.conv = Conv2d(in_channels, filters, kernel_size, invariant,
+        self.conv = PadConv2d(in_channels, filters, kernel_size, invariant,
                  stride, dilation, groups, bias, zero_mean, bound_norm)
 
     def forward(self, x):
@@ -117,11 +117,11 @@ class ComplexPadConvRealWeight2d(torch.nn.Module):
         KTx_im = self.conv.backward(x[...,1].contiguous(), output_shape=output_shape)
         return torch.cat([KTx_re.unsqueeze_(-1), KTx_im.unsqueeze_(-1)], dim=-1)
 
-class ComplexPadConv2d(torch.nn.Module):
+class ComplexPadConv2D(torch.nn.Module):
     def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  stride=1, dilation=1, groups=1, bias=False, 
                  zero_mean=False, bound_norm=False):
-        super(ComplexPadConv2d, self).__init__()
+        super().__init__()
 
         self.in_channels = in_channels
         self.filters = filters
@@ -315,7 +315,7 @@ class ComplexPadConv2d(torch.nn.Module):
             s += ", bound_norm={bound_norm}"
         return s.format(**self.__dict__)
 
-class PseudoComplexPadConv2d(ComplexPadConv2d):
+class PseudoComplexPadConv2D(ComplexPadConv2D):
     def get_weight(self):
         if self.invariant:
             weight = torch.empty(self.filters, self.in_channels, self.kernel_size, self.kernel_size, 2, device=self.weight.device)
@@ -374,10 +374,10 @@ class PseudoComplexPadConv2d(ComplexPadConv2d):
             x = optoth.pad.pad2d_transpose(x, (pad,pad,pad,pad), mode='symmetric')
         return x
 
-class ComplexPadConvScale2d(ComplexPadConv2d):
+class ComplexPadConvScale2D(ComplexPadConv2D):
     def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  groups=1, stride=2, bias=False, zero_mean=False, bound_norm=False):
-        super(ComplexPadConvScale2d, self).__init__(
+        super().__init__(
             in_channels=in_channels, filters=filters, kernel_size=kernel_size, 
             invariant=invariant, stride=stride, dilation=1, groups=groups, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
@@ -402,10 +402,10 @@ class ComplexPadConvScale2d(ComplexPadConv2d):
         return weight
 
 
-class ComplexPadConvScaleTranspose2d(ComplexPadConvScale2d):
+class ComplexPadConvScaleTranspose2D(ComplexPadConvScale2D):
     def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  groups=1, stride=2, bias=False, zero_mean=False, bound_norm=False):
-        super(ComplexPadConvScaleTranspose2d, self).__init__(
+        super().__init__(
             in_channels=in_channels, filters=filters, kernel_size=kernel_size, 
             invariant=invariant, groups=groups, stride=stride, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
@@ -427,7 +427,7 @@ class ComplexPadConv2dTest(unittest.TestCase):
         nf_in = 1
         nf_out = 32
         
-        model = ComplexPadConv2d(nf_in, nf_out, kernel_size=3).cuda()
+        model = ComplexPadConv2D(nf_in, nf_out, kernel_size=3).cuda()
         
         x = torch.randn(nBatch, nf_in, M, N, 2).cuda()
         Kx = model(x)
@@ -447,7 +447,7 @@ class ComplexPadConv2dTest(unittest.TestCase):
         nf_in = 1
         nf_out = 32
         
-        model = ComplexPadConv2d(nf_in, nf_out, kernel_size=3, zero_mean=True, bound_norm=True).double().cuda()
+        model = ComplexPadConv2D(nf_in, nf_out, kernel_size=3, zero_mean=True, bound_norm=True).double().cuda()
 
         np_weight = model.weight.data.detach().cpu().numpy()
         np_weight = np_weight[...,0] + 1j * np_weight[...,1]
@@ -465,7 +465,7 @@ class ComplexPadConv2dGradientTest(unittest.TestCase):
         nf_in = 1
         nf_out = 32
         
-        model = ComplexPadConv2d(nf_in, nf_out, kernel_size=3).cuda()
+        model = ComplexPadConv2D(nf_in, nf_out, kernel_size=3).cuda()
         
         npth_img = np.arange(0,nBatch*M*N*nf_in).reshape(nBatch,nf_in,M,N,1) + 1j * np.arange(0,nBatch*M*N*nf_in).reshape(nBatch,nf_in,M,N,1)
 
@@ -495,7 +495,7 @@ class ComplexPadConvScaleTranspose2dTest(unittest.TestCase):
         nf_in = 1
         nf_out = 32
         
-        model = ComplexPadConvScaleTranspose2d(nf_in, nf_out, kernel_size=3).cuda()
+        model = ComplexPadConvScaleTranspose2D(nf_in, nf_out, kernel_size=3).cuda()
         
         x = torch.randn(nBatch, nf_in, M, N, 2).cuda()
         Kx = model.backward(x)
@@ -516,7 +516,7 @@ class ComplexPadConvScale2dTest(unittest.TestCase):
         nf_in = 10
         nf_out = 32
 
-        model = ComplexPadConvScale2d(nf_in, nf_out, kernel_size=3, stride=2).cuda()
+        model = ComplexPadConvScale2D(nf_in, nf_out, kernel_size=3, stride=2).cuda()
 
         x = torch.randn(nBatch, nf_in, M, N, 2).cuda()
         Kx = model(x)
@@ -536,7 +536,7 @@ class PseudoComplexPadConvScale2d(unittest.TestCase):
         nf_in = 1
         nf_out = 32
 
-        model = PseudoComplexPadConv2d(nf_in, nf_out, kernel_size=3).cuda()
+        model = PseudoComplexPadConv2D(nf_in, nf_out, kernel_size=3).cuda()
 
         x = torch.randn(nBatch, nf_in*2, M, N).cuda()
         Kx = model(x)
@@ -556,7 +556,7 @@ class PseudoComplexPadConvScale2d(unittest.TestCase):
         nf_in = 1
         nf_out = 32
         
-        model = PseudoComplexPadConv2d(nf_in, nf_out, kernel_size=3, zero_mean=True, bound_norm=True).double().cuda()
+        model = PseudoComplexPadConv2D(nf_in, nf_out, kernel_size=3, zero_mean=True, bound_norm=True).double().cuda()
 
         np_weight = model.weight.data.detach().cpu().numpy()
         np_weight = np_weight[...,0] + 1j * np_weight[...,1]
