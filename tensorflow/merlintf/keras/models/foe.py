@@ -122,10 +122,6 @@ class MagnitudeFoE(FoEBase):
         return merlintf.complex_scale(xn, magn)
 
 class ComplexFoE(FoEBase):
-    """
-    Fields of Experts regularizer used in the publication
-    Effland, A. et al. "An optimal control approach to early stopping variational methods for image restoration". FoE 2019.
-    """
     def __init__(self, config=None):
         super(ComplexFoE, self).__init__(config=config)
 
