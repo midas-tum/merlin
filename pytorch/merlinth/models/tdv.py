@@ -2,7 +2,7 @@ import torch
 import numpy as np
 
 from merlinth.models.foe import Regularizer
-from merlinth.layers import PadConv2d, PadConvScale2d, PadConvScaleTranspose2d
+from merlinth.layers import PadConv2D, PadConvScale2D, PadConvScaleTranspose2D
 
 import unittest
 
@@ -36,9 +36,9 @@ class MicroBlock(torch.nn.Module):
     def __init__(self, num_features, bound_norm=False, invariant=False):
         super(MicroBlock, self).__init__()
         
-        self.conv1 = PadConv2d(num_features, num_features, kernel_size=3, invariant=invariant, bound_norm=bound_norm, bias=False)
+        self.conv1 = PadConv2D(num_features, num_features, kernel_size=3, invariant=invariant, bound_norm=bound_norm, bias=False)
         self.act = StudentT2(alpha=1)
-        self.conv2 = PadConv2d(num_features, num_features, kernel_size=3, invariant=invariant, bound_norm=bound_norm, bias=False)
+        self.conv2 = PadConv2D(num_features, num_features, kernel_size=3, invariant=invariant, bound_norm=bound_norm, bias=False)
 
         # save the gradient of the the activation function for the backward path
         self.act_prime = None
@@ -82,10 +82,10 @@ class MacroBlock(torch.nn.Module):
         self.conv_up = []
         for i in range(1, num_scales):
             self.conv_down.append(
-                PadConvScale2d(num_features * multiplier**(i-1), num_features * multiplier**i, kernel_size=3, bias=False, invariant=invariant, bound_norm=bound_norm)
+                PadConvScale2D(num_features * multiplier**(i-1), num_features * multiplier**i, kernel_size=3, bias=False, invariant=invariant, bound_norm=bound_norm)
             )
             self.conv_up.append(
-                PadConvScaleTranspose2d(num_features * multiplier**(i-1), num_features * multiplier**i, kernel_size=3, bias=False, invariant=invariant, bound_norm=bound_norm)
+                PadConvScaleTranspose2D(num_features * multiplier**(i-1), num_features * multiplier**i, kernel_size=3, bias=False, invariant=invariant, bound_norm=bound_norm)
             )
         self.conv_down = torch.nn.ModuleList(self.conv_down)
         self.conv_up = torch.nn.ModuleList(self.conv_up)
@@ -182,12 +182,12 @@ class TDV(Regularizer):
             self.num_scales = 3
 
         # construct the regularizer
-        self.K1 = PadConv2d(self.in_channels, self.num_features, 3, zero_mean=self.zero_mean, invariant=False, bound_norm=True, bias=False)
+        self.K1 = PadConv2D(self.in_channels, self.num_features, 3, zero_mean=self.zero_mean, invariant=False, bound_norm=True, bias=False)
 
         self.mb = torch.nn.ModuleList([MacroBlock(self.num_features, num_scales=self.num_scales, bound_norm=False, invariant=False, multiplier=self.multiplier) 
                                         for _ in range(self.num_mb)])
 
-        self.KN = PadConv2d(self.num_features, 1, 1, invariant=False, bound_norm=False, bias=False)
+        self.KN = PadConv2D(self.num_features, 1, 1, invariant=False, bound_norm=False, bias=False)
 
         if not state_dict is None:
             self.load_state_dict(state_dict)
