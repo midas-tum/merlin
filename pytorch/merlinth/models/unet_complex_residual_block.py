@@ -3,12 +3,15 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import unittest
-from .complex_reg_2dt import *
-from .complex_conv3d import *
-from .complex_init import *
-from .complex_regularizer import *
-from .complex_norm import get_normalization
-from .complex_pool import *
+from merlinth.models.unet_complex_reg_2dt import (
+    ComplexConvBlock2dt, 
+    ComplexConvBlock3d,
+    ComplexSplitFast)
+#from merlinth.layers.convolutional.complex_conv3d import *
+from merlinth.layers.complex_init import *
+#from merlinth.layers.complex_regularizer import *
+from merlinth.layers.complex_norm import get_normalization
+from merlinth.layers.complex_pool import MagnitudeMaxPool3D
 
 __all__ = ['ComplexResidualBlock3d', 'ComplexResidualBlock2dt', 'ComplexResidualBlockSplitFast']
 
@@ -53,7 +56,6 @@ class ComplexResidualBlock(nn.Module):
         Returns:
             (torch.Tensor): Output tensor of shape [batch_size, self.out_channels, height, width]
         """       
-
         return  input + self.residual(input)
 
 class ComplexResidualBlock3d(ComplexResidualBlock):
@@ -184,10 +186,10 @@ class ComplexResidualBlockSplitFast(ComplexResidualBlock):
                                      kernel_size_t=kernel_size_t) for l in range(num_layers)])
 
 class TestComplexResidualBlock3d(unittest.TestCase):
-    def _test_unet(self, depth, height, width, nf, nl,activation):
-        x = torch.randn(1, nf, depth, height, width, 2).cuda()
+    def _test_unet(self, depth, height, width, nl, activation):
+        x = torch.randn(1, nl, depth, height, width, 2).cuda()
         model =  ComplexResidualBlock3d(
-            nf, nl,
+            nl, nl,
             bias=True,
             activation=activation).cuda()
         count = sum([np.prod(p.size()) for p in model.parameters() if p.requires_grad])
@@ -196,15 +198,15 @@ class TestComplexResidualBlock3d(unittest.TestCase):
         y = model(x)
     
     def test1(self):
-        self._test_unet(10, 180, 180, 16, 1, 'cPReLU')
+        self._test_unet(10, 180, 180, 16, 'cPReLU')
     def test2(self):
-        self._test_unet(10, 180, 180, 16, 2, 'ModReLU')
+        self._test_unet(10, 180, 180, 16, 'ModReLU')
 
 class TestComplexResidualBlock2dt(unittest.TestCase):
-    def _test_unet(self, depth, height, width, nf, nl,activation):
-        x = torch.randn(1, nf, depth, height, width, 2).cuda()
+    def _test_unet(self, depth, height, width, nl, activation):
+        x = torch.randn(1, nl, depth, height, width, 2).cuda()
         model =  ComplexResidualBlock2dt(
-            nf, nl,
+            nl, nl//2, nl,
             bias=True,
             activation=activation).cuda()
         count = sum([np.prod(p.size()) for p in model.parameters() if p.requires_grad])
@@ -213,15 +215,15 @@ class TestComplexResidualBlock2dt(unittest.TestCase):
         y = model(x)
     
     def test1(self):
-        self._test_unet(10, 180, 180, 16, 1, 'cPReLU')
+        self._test_unet(10, 180, 180, 16, 'cPReLU')
     def test2(self):
-        self._test_unet(10, 180, 180, 16, 2, 'ModReLU')
+        self._test_unet(10, 180, 180, 16, 'ModReLU')
 
 class TestComplexResidualBlockFast(unittest.TestCase):
-    def _test_unet(self, depth, height, width, nf, nl,activation):
-        x = torch.randn(1, nf, depth, height, width, 2).cuda()
+    def _test_unet(self, depth, height, width, nl, activation):
+        x = torch.randn(1, nl, depth, height, width, 2).cuda()
         model =  ComplexResidualBlockSplitFast(
-            nf, nl,
+            nl, nl//2, nl,
             bias=True,
             activation=activation).cuda()
         count = sum([np.prod(p.size()) for p in model.parameters() if p.requires_grad])
@@ -229,9 +231,9 @@ class TestComplexResidualBlockFast(unittest.TestCase):
         y = model(x)
     
     def test1(self):
-        self._test_unet(10, 180, 180, 16, 1, 'cPReLU')
+        self._test_unet(10, 180, 180, 16, 'cPReLU')
     def test2(self):
-        self._test_unet(10, 180, 180, 16, 2, 'ModReLU')
+        self._test_unet(10, 180, 180, 16, 'ModReLU')
 
 if __name__ == "__main__":
     unittest.test()

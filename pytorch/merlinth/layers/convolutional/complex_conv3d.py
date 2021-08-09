@@ -23,11 +23,11 @@ __all__ = [ 'ComplexPadConv3D',
 class ComplexPadConvRealWeight3D(torch.nn.Module):
     def __init__(self, in_channels, filters, kernel_size=3,
                  stride=1, dilation=1, groups=1, bias=False, 
-                 zero_mean=False, bound_norm=False):
+                 zero_mean=False, bound_norm=False, pad=True):
         super(ComplexPadConvRealWeight3D, self).__init__()
 
         self.conv = Conv3D(in_channels, filters, kernel_size,
-                 stride, dilation, groups, bias, zero_mean, bound_norm)
+                 stride, dilation, groups, bias, zero_mean, bound_norm, pad)
 
     def forward(self, x):
         Kx_re = self.conv(x[...,0].contiguous())
@@ -48,7 +48,7 @@ class ComplexPadConv3D(torch.nn.Module):
                  dilation=1,
                  groups=1,
                  bias=False,
-                 zero_mean=False, bound_norm=False):
+                 zero_mean=False, bound_norm=False, pad=True):
         super(ComplexPadConv3D, self).__init__()
 
         self.in_channels = in_channels
@@ -61,6 +61,7 @@ class ComplexPadConv3D(torch.nn.Module):
         self.zero_mean = zero_mean
         self.bound_norm = bound_norm
         self.padding = 0
+        self.pad = pad
 
         # add the parameter
         self.weight = torch.nn.Parameter(torch.empty(self.filters,
@@ -173,7 +174,7 @@ class ComplexPadConv3D(torch.nn.Module):
         # then pad
         pad = self._compute_optox_padding()
 
-        if any(pad):
+        if self.pad and any(pad):
             x = complex_pad3d(x, pad)
 
         # compute the convolution
@@ -199,7 +200,7 @@ class ComplexPadConv3D(torch.nn.Module):
         x = self.complex_conv3d_transpose(x, weight, self.bias, output_padding)
         # transpose padding
         pad = self._compute_optox_padding()
-        if any(pad):
+        if self.pad and any(pad):
             x = complex_pad3d_transpose(x, pad)
 
         return x
@@ -222,10 +223,10 @@ class ComplexPadConv3D(torch.nn.Module):
 
 
 class ComplexPadConvScale3D(ComplexPadConv3D):
-    def __init__(self, in_channels, filters, kernel_size=3, groups=1, stride=(1, 2, 2), bias=False, zero_mean=False, bound_norm=False):
+    def __init__(self, in_channels, filters, kernel_size=3, groups=1, stride=(1, 2, 2), bias=False, zero_mean=False, bound_norm=False, pad=True):
         super(ComplexPadConvScale3D, self).__init__(
             in_channels=in_channels, filters=filters, kernel_size=kernel_size, stride=stride, dilation=1, groups=groups, bias=bias, 
-            zero_mean=zero_mean, bound_norm=bound_norm)
+            zero_mean=zero_mean, bound_norm=bound_norm, pad=pad)
 
         assert self.kernel_size[1] == self.kernel_size[2]
         assert self.kernel_size[1] > 1
@@ -254,10 +255,10 @@ class ComplexPadConvScale3D(ComplexPadConv3D):
 
 class ComplexPadConvScaleTranspose3D(ComplexPadConvScale3D):
     def __init__(self, in_channels, filters, kernel_size=3, 
-                 groups=1, stride=(1, 2, 2), bias=False, zero_mean=False, bound_norm=False):
+                 groups=1, stride=(1, 2, 2), bias=False, zero_mean=False, bound_norm=False, pad=True):
         super(ComplexPadConvScaleTranspose3D, self).__init__(
             in_channels=in_channels, filters=filters, kernel_size=kernel_size, groups=groups, stride=stride, bias=bias, 
-            zero_mean=zero_mean, bound_norm=bound_norm)
+            zero_mean=zero_mean, bound_norm=bound_norm, pad=pad)
 
         self.bias = torch.nn.Parameter(torch.zeros(2, in_channels)) if bias else None
 
@@ -269,7 +270,7 @@ class ComplexPadConvScaleTranspose3D(ComplexPadConvScale3D):
 
 class ComplexPadConv2Dt(torch.nn.Module):
     def __init__(self, in_channels, intermediate_filters, filters, kernel_size=3,
-                 stride=1, dilation=1, groups=1, bias=False, zero_mean=True, bound_norm=True):
+                 stride=1, dilation=1, groups=1, bias=False, zero_mean=True, bound_norm=True, pad=True):
         super(ComplexPadConv2Dt, self).__init__()
 
         if stride > 2:
@@ -283,14 +284,16 @@ class ComplexPadConv2Dt(torch.nn.Module):
                     stride=stride,
                     bias=bias,
                     zero_mean=zero_mean,
-                    bound_norm=bound_norm)
+                    bound_norm=bound_norm,
+                    pad=pad)
 
         self.conv_t = ComplexPadConv3D(intermediate_filters,
                  filters,
                  kernel_size=kernel_size,
                  bias=bias,
                  zero_mean=False,
-                 bound_norm=bound_norm)
+                 bound_norm=bound_norm,
+                 pad=pad)
 
     def forward(self, x):
         x_sp = self.conv_xy(x)
