@@ -15,6 +15,14 @@ from merlinth.layers.convolutional.complex_conv3d import ComplexPadConvScale3D
 from merlinth.layers.convolutional.complex_conv3d import ComplexPadConvScale3D
 from merlinth.layers.convolutional.complex_conv3d import ComplexPadConvRealWeight3D
 from merlinth.layers.convolutional.complex_conv3d import ComplexPadConv2Dt
+from merlinth.layers.pad import real_pad2d
+from merlinth.layers.pad import real_pad2d_transpose
+from merlinth.layers.pad import real_pad3d
+from merlinth.layers.pad import real_pad3d_transpose
+from merlinth.layers.pad import complex_pad2d
+from merlinth.layers.pad import complex_pad2d_transpose
+from merlinth.layers.pad import complex_pad3d
+from merlinth.layers.pad import complex_pad3d_transpose
 
 
 # from .complex_regularizer import *

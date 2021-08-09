@@ -1,9 +1,12 @@
 import torch
-import optoth.pad
-
 import numpy as np
 
 from merlinth.utils import validate_input_dimension
+from merlinth.layers.pad import (
+    real_pad3d,
+    real_pad3d_transpose
+)
+import unittest
 
 __all__ = ['PadConv3D', 'PadConvScale3D', 'PadConvScaleTranspose3D']
 
@@ -59,13 +62,19 @@ class PadConv3D(torch.nn.Module):
     def get_weight(self):
         return self.weight
 
+    def _compute_optox_padding(self):
+        pad = []
+        for w in self.get_weight().shape[2:5][::-1]:
+            pad += [w//2, w//2]
+        return pad
+
     def forward(self, x):
         # construct the kernel
         weight = self.get_weight()
         # then pad
-        pad = (weight.shape[-3]//2, weight.shape[-2]//2, weight.shape[-1]//2)
+        pad = self._compute_optox_padding()
         if self.pad and any(pad) > 0:
-            x = optoth.pad.pad3d(x, (pad[-1],pad[-1],pad[-2],pad[-2],pad[-3],pad[-3]), mode='symmetric')
+            x = real_pad3d(x, pad)
         # compute the convolution
         return torch.nn.functional.conv3d(x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
 
@@ -85,9 +94,9 @@ class PadConv3D(torch.nn.Module):
 
         # compute the convolution
         x = torch.nn.functional.conv_transpose3d(x, weight, self.bias, self.stride, self.padding, output_padding, self.groups, self.dilation)
-        pad = (weight.shape[-3]//2, weight.shape[-2]//2, weight.shape[-1]//2)
+        pad = self._compute_optox_padding()
         if self.pad and any(pad) > 0:
-            x = optoth.pad.pad3d_transpose(x, (pad[-1],pad[-1],pad[-2],pad[-2],pad[-3],pad[-3]), mode='symmetric')
+            x = real_pad3d_transpose(x, pad, mode='symmetric')
         return x
 
     def extra_repr(self):
@@ -130,15 +139,15 @@ class PadConvScale3D(PadConv3D):
     def get_weight(self):
         weight = super().get_weight()
         if self.stride[1] > 1:
-            weight = weight.reshape(-1, 1, self.kernel_size, self.kernel_size)
+            weight = weight.reshape(-1, 1, self.kernel_size[1], self.kernel_size[2])
             for i in range(self.stride[1]//2): 
                 weight = torch.nn.functional.conv2d(weight, self.blur, padding=4)
-            weight = weight.reshape(self.filters, self.in_channels, self.kernel_size, self.kernel_size[1]+2*self.stride[1], self.kernel_size[1]+2*self.stride[1])
+            weight = weight.reshape(self.filters, self.in_channels, self.kernel_size[0], self.kernel_size[1]+2*self.stride[1], self.kernel_size[1]+2*self.stride[1])
         return weight
 
 
 class PadConvScaleTranspose3D(PadConvScale3D):
-    def __init__(self, in_channels, filters, kernel_size=3, groups=1, stride=2, bias=False, zero_mean=False, bound_norm=False):
+    def __init__(self, in_channels, filters, kernel_size=3, groups=1, stride=(1,2,2), bias=False, zero_mean=False, bound_norm=False):
         super(PadConvScaleTranspose3D, self).__init__(
             in_channels=in_channels, filters=filters, kernel_size=kernel_size, 
             groups=groups, stride=stride, bias=bias, 
@@ -149,3 +158,47 @@ class PadConvScaleTranspose3D(PadConvScale3D):
 
     def backward(self, x):
         return super().forward(x)
+
+class PadConvScaleTranspose3dTest(unittest.TestCase):
+    def test_conv_transpose3d_complex(self):
+        nBatch = 5
+        M = 320
+        N = 320
+        D = 10
+        nf_in = 1
+        nf_out = 32
+        
+        model = PadConvScaleTranspose3D(nf_in, nf_out, kernel_size=3).cuda()
+        
+        x = torch.randn(nBatch, nf_in, D, M, N).cuda()
+        Kx = model.backward(x)
+        
+        y = torch.randn(*Kx.shape).cuda()
+        KHy = model.forward(y, output_shape=x.shape)
+
+        rhs = torch.sum(Kx * y).detach().cpu().numpy()
+        lhs = torch.sum(x * KHy).detach().cpu().numpy()
+
+        self.assertTrue(rhs, lhs)
+
+class PadConvScale3dTest(unittest.TestCase):
+    def test_conv3d_complex(self):
+        nBatch = 5
+        M = 256
+        N = 256
+        D = 10
+        nf_in = 10
+        nf_out = 32
+
+        model = PadConvScale3D(nf_in, nf_out, kernel_size=3).cuda()
+
+        x = torch.randn(nBatch, nf_in, D, M, N).cuda()
+        Kx = model(x)
+
+        y = torch.randn(*Kx.shape).cuda()
+        KHy = model.backward(y, output_shape=x.shape)
+
+        rhs = torch.sum(Kx * y).detach().cpu().numpy()
+        lhs = torch.sum(x * KHy).detach().cpu().numpy()
+
+        self.assertTrue(rhs, lhs)

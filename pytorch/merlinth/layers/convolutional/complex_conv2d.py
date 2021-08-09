@@ -3,13 +3,17 @@ import torch
 import torch.nn.functional as F
 from merlinth.layers import PadConv2D
 from merlinth.layers.complex_init import *
-import optoth.pad
-
+from merlinth.layers.pad import (
+    real_pad2d,
+    real_pad2d_transpose,
+    complex_pad2d,
+    complex_pad2d_transpose
+)
+from merlinth.complex import complex_mult_conj
 import numpy as np
 
 import unittest
 import sys
-from merlinth import mytorch
 
 __all__ = ['ComplexConv2D',
            'ComplexPadConv2D',
@@ -120,7 +124,7 @@ class ComplexPadConvRealWeight2D(torch.nn.Module):
 class ComplexPadConv2D(torch.nn.Module):
     def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  stride=1, dilation=1, groups=1, bias=False, 
-                 zero_mean=False, bound_norm=False):
+                 zero_mean=False, bound_norm=False, pad=True):
         super().__init__()
 
         self.in_channels = in_channels
@@ -134,6 +138,7 @@ class ComplexPadConv2D(torch.nn.Module):
         self.zero_mean = zero_mean
         self.bound_norm = bound_norm
         self.padding = 0
+        self.pad = pad
 
         # add the parameter
         if self.invariant:
@@ -185,6 +190,12 @@ class ComplexPadConv2D(torch.nn.Module):
         else:
             weight = self.weight
         return weight
+
+    def _compute_optox_padding(self):
+        pad = []
+        for w in self.get_weight().shape[2:4][::-1]:
+            pad += [w//2, w//2]
+        return pad
 
     def conv2d_forward(self, input, weight, bias):
         return F.conv2d(input, weight, bias, self.stride,
@@ -242,37 +253,15 @@ class ComplexPadConv2D(torch.nn.Module):
 
         return torch.cat([convT_re.unsqueeze_(-1), convT_im.unsqueeze_(-1)], -1)
 
-    def complex_pad2d(self, x, pad):
-        xp_re = optoth.pad.pad2d(x[...,0].contiguous(), (pad,pad,pad,pad), mode='symmetric')
-        xp_im = optoth.pad.pad2d(x[...,1].contiguous(), (pad,pad,pad,pad), mode='symmetric')
 
-        new_shape = list(xp_re.shape)
-        new_shape.append(2)
-        xp = torch.zeros(*new_shape, device=x.device, dtype=x.dtype)
-        xp[...,0] = xp_re
-        xp[...,1] = xp_im
-
-        return xp
-
-    def complex_pad2d_transpose(self, x, pad):
-        xp_re = optoth.pad.pad2d_transpose(x[...,0].contiguous(), (pad,pad,pad,pad), mode='symmetric')
-        xp_im = optoth.pad.pad2d_transpose(x[...,1].contiguous(), (pad,pad,pad,pad), mode='symmetric')
-
-        new_shape = list(xp_re.shape)
-        new_shape.append(2)
-        xp = torch.zeros(*new_shape, device=x.device, dtype=x.dtype)
-        xp[...,0] = xp_re
-        xp[...,1] = xp_im
-
-        return xp
 
     def forward(self, x):
         # construct the kernel
         weight = self.get_weight()
         # then pad
-        pad = weight.shape[-2]//2
-        if pad > 0:
-            x = self.complex_pad2d(x, pad)
+        pad = self._compute_optox_padding()
+        if any(pad) > 0:
+            x = complex_pad2d(x, pad)
         # compute the convolution
         x = self.complex_conv2d_forward(x, weight, self.bias)
         return x
@@ -284,18 +273,18 @@ class ComplexPadConv2D(torch.nn.Module):
         # determine the output padding
         if not output_shape is None:
             output_padding = (
-                output_shape[2] - ((x.shape[2]-1)*self.stride+1),
-                output_shape[3] - ((x.shape[3]-1)*self.stride+1)
+                (output_shape[2] - ((x.shape[2]-1)*self.stride+1)),
+                (output_shape[3] - ((x.shape[3]-1)*self.stride+1))
             )
         else:
             output_padding = 0
 
         # compute the convolution
         x = self.complex_conv2d_transpose(x, weight, self.bias, output_padding)
-        pad = weight.shape[-2]//2
+        pad = self._compute_optox_padding()
 
-        if pad > 0:
-            x = self.complex_pad2d_transpose(x, pad)
+        if self.pad and any(pad) > 0:
+            x = complex_pad2d_transpose(x, pad)
 
         return x
 
@@ -333,9 +322,9 @@ class PseudoComplexPadConv2D(ComplexPadConv2D):
         # construct the kernel
         weight = self.get_weight()
         # then pad
-        pad = weight.shape[-1]//2
-        if pad > 0:
-            x = optoth.pad.pad2d(x, (pad,pad,pad,pad), mode='symmetric')
+        pad = self._compute_optox_padding()
+        if any(pad) > 0:
+            x = real_pad2d(x, pad)
 
         # compute the convolution
         return torch.nn.functional.conv2d(x,
@@ -369,9 +358,9 @@ class PseudoComplexPadConv2D(ComplexPadConv2D):
                             self.groups,
                             self.dilation)
 
-        pad = weight.shape[-1]//2
-        if pad > 0:
-            x = optoth.pad.pad2d_transpose(x, (pad,pad,pad,pad), mode='symmetric')
+        pad = self._compute_optox_padding()
+        if any(pad) > 0:
+            x = real_pad2d_transpose(x, pad)
         return x
 
 class ComplexPadConvScale2D(ComplexPadConv2D):
@@ -435,8 +424,8 @@ class ComplexPadConv2dTest(unittest.TestCase):
         y = torch.randn(*Kx.shape).cuda()
         KHy = model.backward(y, output_shape=x.shape)
 
-        rhs = mytorch.complex.complex_mult_conj(Kx, y).view(-1, 2).sum(0).detach().cpu().numpy()
-        lhs = mytorch.complex.complex_mult_conj(x, KHy).view(-1, 2).sum(0).detach().cpu().numpy()
+        rhs = complex_mult_conj(Kx, y).view(-1, 2).sum(0).detach().cpu().numpy()
+        lhs = complex_mult_conj(x, KHy).view(-1, 2).sum(0).detach().cpu().numpy()
 
         self.assertTrue(rhs[0] + 1j*rhs[1], lhs[0] + 1j*lhs[1])
 
@@ -503,8 +492,8 @@ class ComplexPadConvScaleTranspose2dTest(unittest.TestCase):
         y = torch.randn(*Kx.shape).cuda()
         KHy = model.forward(y, output_shape=x.shape)
 
-        rhs = mytorch.complex.complex_mult_conj(Kx, y).view(-1, 2).sum(0).detach().cpu().numpy()
-        lhs = mytorch.complex.complex_mult_conj(x, KHy).view(-1, 2).sum(0).detach().cpu().numpy()
+        rhs = complex_mult_conj(Kx, y).view(-1, 2).sum(0).detach().cpu().numpy()
+        lhs = complex_mult_conj(x, KHy).view(-1, 2).sum(0).detach().cpu().numpy()
 
         self.assertTrue(rhs[0] + 1j*rhs[1], lhs[0] + 1j*lhs[1])
 
@@ -524,8 +513,8 @@ class ComplexPadConvScale2dTest(unittest.TestCase):
         y = torch.randn(*Kx.shape).cuda()
         KHy = model.backward(y, output_shape=x.shape)
 
-        rhs = mytorch.complex.complex_mult_conj(Kx, y).view(-1, 2).sum(0).detach().cpu().numpy()
-        lhs = mytorch.complex.complex_mult_conj(x, KHy).view(-1, 2).sum(0).detach().cpu().numpy()
+        rhs = complex_mult_conj(Kx, y).view(-1, 2).sum(0).detach().cpu().numpy()
+        lhs = complex_mult_conj(x, KHy).view(-1, 2).sum(0).detach().cpu().numpy()
         self.assertTrue(rhs[0] + 1j*rhs[1], lhs[0] + 1j*lhs[1])
 
 class PseudoComplexPadConvScale2d(unittest.TestCase):
@@ -544,8 +533,8 @@ class PseudoComplexPadConvScale2d(unittest.TestCase):
         y = torch.randn(*Kx.shape).cuda()
         KHy = model.backward(y, output_shape=x.shape)
 
-        rhs = (Kx * y).sum().detach().cpu().numpy()
-        lhs = (x * KHy).sum().detach().cpu().numpy()
+        rhs = torch.sum(Kx * y).detach().cpu().numpy()
+        lhs = torch.sum(x * KHy).detach().cpu().numpy()
 
         self.assertTrue(rhs, lhs)
 
