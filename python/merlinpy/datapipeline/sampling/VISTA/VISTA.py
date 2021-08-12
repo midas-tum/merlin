@@ -3,9 +3,9 @@ from scipy.linalg import toeplitz
 import math
 import datetime
 import matplotlib.pyplot as plt
-from dispdup import dispdup
-from fillK import fillK
-from randp import randp
+from .dispdup import dispdup
+from .fillK import fillK
+from .randp import randp
 
 
 def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
@@ -127,7 +127,7 @@ def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
         ph[ind: ind + n_tmp] = p_tmp
         ind = ind + n_tmp
 
-    print('Computing VISTA, plese wait as it may take a while ...', datetime.datetime.now())
+    print('Computing VISTA, please wait as it may take a while ...', datetime.datetime.now())
     stp = np.ones((1, nIter)).flatten()    # Gradient descent displacement, shape(120,)
     a = W * np.ones((1, nIter)).flatten()  # Temporal axis scaling
 

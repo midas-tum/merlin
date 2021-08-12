@@ -8,11 +8,17 @@ setup(
     author_email="k.hammernik@imperial.ac.uk and thomas.kuestner@med.uni-tuebingen.de",
     packages=["merlinpy",
               "merlinpy.fastmri",
-              "merlinpy.wandb"
+              "merlinpy.wandb",
+              "merlinpy.datapipeline",
+              "merlinpy.datapipeline.sampling",
+              "merlinpy.datapipeline.sampling.VISTA"
               ],
     package_dir={"merlinpy": os.path.join('.', "merlinpy"),
                  "merlinpy.fastmri": os.path.join('.', "merlinpy/fastmri"),
                  "merlinpy.wandb": os.path.join('.', "merlinpy/wandb"),
+                 "merlinpy.datapipeline": os.path.join('.', "merlinpy/datapipeline"),
+                 "merlinpy.datapipeline.sampling": os.path.join('.', "merlinpy/datapipeline/sampling"),
+                 "merlinpy.datapipeline.sampling.VISTA": os.path.join('.', "merlinpy/datapipeline/sampling/VISTA"),
     },
     install_requires=[
         "numpy >= 1.15",

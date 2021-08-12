@@ -1,10 +1,10 @@
 import numpy as np
 import math
-import VD_CASPR_CINE as VD_CASPR_CINE
-from VISTA import vista
-import VDPD as VDPD
-
-class Sampling
+#import VD_CASPR_CINE as VD_CASPR_CINE
+from .VISTA import vista
+#import VDPD as VDPD
+import matplotlib.pyplot as plt
+class Sampling:
     # subsampling of phase-encoding directions (y/z) and along time (t)
     def __init__(self, dim, acc, trajectory):
         self.dim = dim  # x - y - z - t - MRcha
