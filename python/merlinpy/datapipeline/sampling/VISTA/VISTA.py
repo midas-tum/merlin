@@ -97,6 +97,12 @@ def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
         to = np.concatenate((ti, ti - t, ti - t, ti - t, ti, ti, ti + t, ti + t, ti + t))
         return po, to
 
+    if R == 1:
+        return noacc(p, t)
+
+    if typ == 'UIS':
+        return samp_UIS(p, t, R)
+
     # Use VRS as initialization for VISTA(variable density random sampling)
     p1 = []
     for _ in range(-math.floor(p / 2), math.ceil(p / 2)):
@@ -126,6 +132,16 @@ def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
         ti[ind: ind + n_tmp] = i
         ph[ind: ind + n_tmp] = p_tmp
         ind = ind + n_tmp
+
+    if typ == 'VRS':
+        ph, ti = dispdup(ph, ti, p, t)
+        samp = np.zeros((p, t))
+        samp = np.reshape(samp, (p * t,), order='F')
+        ind_list = p * (ti + math.floor(t / 2)) + (ph + math.floor(p / 2) + 1)
+        for i in ind_list:
+            ind = round(i)
+            samp[ind] = 1
+        return np.reshape(samp, (p, t), order='F')
 
     print('Computing VISTA, please wait as it may take a while ...', datetime.datetime.now())
     stp = np.ones((1, nIter)).flatten()    # Gradient descent displacement, shape(120,)
@@ -279,22 +295,4 @@ def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
     samp[ind] = 1
     samp = np.reshape(samp, (p, t), order='F')
     print('VISTA computed at', datetime.datetime.now())
-
-    if R == 1:
-        samp = noacc(p, t)
-
-    else:
-        if typ == 'UIS':
-            samp = samp_UIS(p, t, R)
-
-        elif typ == 'VRS':
-            ph, ti = dispdup(ph, ti, p, t)
-            samp = np.zeros((p, t))
-            samp = np.reshape(samp, (p * t,), order='F')
-            ind_list = p * (ti + math.floor(t / 2)) + (ph + math.floor(p / 2) + 1)
-            for i in ind_list:
-                ind = round(i)
-                samp[ind] = 1
-            samp = np.reshape(samp, (p, t), order='F')
-
     return samp
