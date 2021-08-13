@@ -139,7 +139,7 @@ def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
         samp = np.reshape(samp, (p * t,), order='F')
         ind_list = p * (ti + math.floor(t / 2)) + (ph + math.floor(p / 2) + 1)
         for i in ind_list:
-            ind = round(i)
+            ind = round(i) - 1
             samp[ind] = 1
         return np.reshape(samp, (p, t), order='F')
 
