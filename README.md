@@ -17,7 +17,7 @@ Tensorflow `merlintf.keras` contains following folders
 
 Pytorch `merlinth` contains following folders (not restructured yet):
 - `optim`: Custom optimizer such as BlockAdam
-- `ddr_complex`: Data-driven regularizer following [this repository](https://github.com/VLOGroup/tdv), extended to complex-valued layers
+- `layers`: Data-driven regularizer following [this repository](https://github.com/VLOGroup/tdv), extended to complex-valued layers and similar setup as layers in `merintf.keras`
 
 **!!! Attention !!!** This package is work in progress and still under construction.
 Major changes in structure will appear. Especially, tensorflow/keras
