@@ -33,11 +33,11 @@ class StudentT2(torch.nn.Module):
 
 
 class MicroBlock(torch.nn.Module):
-    def __init__(self, num_features, bound_norm=False, invariant=False):
+    def __init__(self, num_features, alpha=1, bound_norm=False, invariant=False):
         super(MicroBlock, self).__init__()
         
         self.conv1 = PadConv2D(num_features, num_features, kernel_size=3, invariant=invariant, bound_norm=bound_norm, bias=False)
-        self.act = StudentT2(alpha=1)
+        self.act = StudentT2(alpha=alpha)
         self.conv2 = PadConv2D(num_features, num_features, kernel_size=3, invariant=invariant, bound_norm=bound_norm, bias=False)
 
         # save the gradient of the the activation function for the backward path
@@ -58,7 +58,7 @@ class MicroBlock(torch.nn.Module):
 
 
 class MacroBlock(torch.nn.Module):
-    def __init__(self, num_features, num_scales=3, multiplier=1, bound_norm=False, invariant=False):
+    def __init__(self, num_features, num_scales=3, multiplier=1, bound_norm=False, invariant=False, alpha=1.0):
         super(MacroBlock, self).__init__()
 
         self.num_scales = num_scales
@@ -67,13 +67,13 @@ class MacroBlock(torch.nn.Module):
         self.mb = []
         for i in range(num_scales-1):
             b = torch.nn.ModuleList([
-                MicroBlock(num_features * multiplier**i, bound_norm=bound_norm, invariant=invariant),
-                MicroBlock(num_features * multiplier**i, bound_norm=bound_norm, invariant=invariant)
+                MicroBlock(num_features * multiplier**i, bound_norm=bound_norm, invariant=invariant, alpha=alpha),
+                MicroBlock(num_features * multiplier**i, bound_norm=bound_norm, invariant=invariant, alpha=alpha)
             ])
             self.mb.append(b)
         # the coarsest scale has only one microblock
         self.mb.append(torch.nn.ModuleList([
-                MicroBlock(num_features * multiplier**(num_scales-1), bound_norm=bound_norm, invariant=invariant)
+                MicroBlock(num_features * multiplier**(num_scales-1), bound_norm=bound_norm, invariant=invariant, alpha=alpha)
         ]))
         self.mb = torch.nn.ModuleList(self.mb)
 
@@ -180,11 +180,15 @@ class TDV(Regularizer):
             self.num_scales = config['num_scales']
         else:
             self.num_scales = 3
-
+        if 'alpha' in config.keys():
+            self.alpha = config['alpha']
+        else:
+            self.alpha = 1.0
+            
         # construct the regularizer
         self.K1 = PadConv2D(self.in_channels, self.num_features, 3, zero_mean=self.zero_mean, invariant=False, bound_norm=True, bias=False)
 
-        self.mb = torch.nn.ModuleList([MacroBlock(self.num_features, num_scales=self.num_scales, bound_norm=False, invariant=False, multiplier=self.multiplier) 
+        self.mb = torch.nn.ModuleList([MacroBlock(self.num_features, num_scales=self.num_scales, bound_norm=False, invariant=False, multiplier=self.multiplier, alpha=self.alpha) 
                                         for _ in range(self.num_mb)])
 
         self.KN = PadConv2D(self.num_features, 1, 1, invariant=False, bound_norm=False, bias=False)
