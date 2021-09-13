@@ -1,17 +1,64 @@
 '''
-Copyright: 2016-2019 Thomas Kuestner (thomas.kuestner@med.uni-tuebingen.de) under Apache2 license
+Copyright: 2016-2021 Thomas Kuestner (thomas.kuestner@med.uni-tuebingen.de) under Apache2 license
 @author: Thomas Kuestner
 '''
 
 import numpy as np
 import math
-#import tensorflow as tf
 
 #########################################################################################################################################
-#Module: patching                                                                                                                     #
-#The module patching is responsible for splitting the dicom numpy array in patches depending on the patchSize and the                 #
-#patchOverlap.                                                                                                                        #
-#The patching-module contains two function:                                                                                           #
+#Module: compute_patchedshape (MAIN)                                                                                                    #
+#Compute the shape of the patched array after patching depending on the patchSize and the patchOverlap.                                 #
+#The patching-module contains two function:                                                                                             #
+#Input: dicom_numpy_array ---> 3D dicom array (height, width, number of slices)                                                         #
+#                              OR                                                                                                       #
+#                              list/tuple of dicom_numpy_array shape                                                                    #
+#########################################################################################################################################
+def compute_patchedshape(dicom_numpy_array, patchSize, patchOverlap):
+    if isinstance(dicom_numpy_array, (list, tuple)):
+        dicom_numpy_array_shape = np.asarray(dicom_numpy_array)
+    else:
+        if type(dicom_numpy_array) is not np.ndarray:
+            dicom_numpy_array = np.ndarray(dicom_numpy_array, dtype='f')
+        dicom_numpy_array_shape = np.shape(dicom_numpy_array)
+
+    if len(patchSize) > len(dicom_numpy_array_shape):
+        print('Warning: dimension of patchSize (=%d) > image shape (=%d), cropping patchSize dimensions' % (len(patchSize), len(dicom_numpy_array_shape)))
+        patchSize = patchSize[:np.ndim(dicom_numpy_array)]
+
+    if patchOverlap < 1:
+        dOverlap = np.multiply(patchSize, patchOverlap)
+        dNotOverlap = np.round(np.multiply(patchSize, (1 - np.asarray(patchOverlap))))
+    else:
+        dOverlap = np.asarray(patchSize) - np.asarray(patchOverlap)
+        dNotOverlap = np.multiply(np.ones_like(patchSize), patchOverlap)
+
+    if len(patchSize) == 2:
+        size_zero_pad = np.array(
+            ([math.ceil((dicom_numpy_array_shape[0] - dOverlap[0]) / (dNotOverlap[0])) * dNotOverlap[0] + dOverlap[
+                0],
+              math.ceil((dicom_numpy_array_shape[1] - dOverlap[1]) / (dNotOverlap[1])) * dNotOverlap[1] + dOverlap[1]]))
+        nbPatches = int(((size_zero_pad[0] - patchSize[0]) / (dNotOverlap[0]) + 1) * (
+                    (size_zero_pad[1] - patchSize[1]) / (dNotOverlap[1]) + 1) * dicom_numpy_array_shape[2])
+
+        return np.array((patchSize[0], patchSize[1], nbPatches))
+    else:
+        size_zero_pad = np.array(
+            ([math.ceil((dicom_numpy_array_shape[0] - dOverlap[0]) / (dNotOverlap[0])) * dNotOverlap[0] + dOverlap[0],
+              math.ceil((dicom_numpy_array_shape[1] - dOverlap[1]) / (dNotOverlap[1])) * dNotOverlap[1] + dOverlap[1],
+              math.ceil((dicom_numpy_array_shape[2] - dOverlap[2]) / (dNotOverlap[2])) * dNotOverlap[2] + dOverlap[2]]))
+        nbPatches_in_Y = int((size_zero_pad[0] - dOverlap[0]) / dNotOverlap[0])
+        nbPatches_in_X = int((size_zero_pad[1] - dOverlap[1]) / dNotOverlap[1])
+        nbPatches_in_Z = int((size_zero_pad[2] - dOverlap[2]) / dNotOverlap[2])
+        nbPatches = nbPatches_in_X * nbPatches_in_Y * nbPatches_in_Z
+
+        return np.array((patchSize[0], patchSize[1], patchSize[2], nbPatches))
+
+#########################################################################################################################################
+#Module: patching (MAIN)                                                                                                                #
+#The module patching is responsible for splitting the dicom numpy array in patches depending on the patchSize and the                   #
+#patchOverlap.                                                                                                                          #
+#The patching-module contains two function:                                                                                             #
 #patching2D: For 2D Patch-Splitting                                                                                                     #
 #patching3D: For 3D Patch-Splitting                                                                                                     #
 #########################################################################################################################################
@@ -19,23 +66,26 @@ def patching(dicom_numpy_array, patchSize, patchOverlap):
     if type(dicom_numpy_array) is not np.ndarray:
         dicom_numpy_array = np.ndarray(dicom_numpy_array, dtype='f')
 
+    if len(patchSize) > np.ndim(dicom_numpy_array):
+        print('Warning: dimension of patchSize (=%d) > image shape (=%d), cropping patchSize dimensions' % (len(patchSize), np.ndim(dicom_numpy_array)))
+        patchSize = patchSize[:np.ndim(dicom_numpy_array)]
+
     if len(patchSize) == 2:
         return patching2D(dicom_numpy_array, patchSize, patchOverlap)
     else:
         return patching3D(dicom_numpy_array, patchSize, patchOverlap)
 
 #########################################################################################################################################
-#Function: patching2D                                                                                                               #
-#The function patching2D is responsible for splitting the dicom numpy array in patches depending on the patchSize and the           #
-#patchOverlap.                                                 #
+#Function: patching2D                                                                                                                   #
+#The function patching2D is responsible for splitting the dicom numpy array in patches depending on the patchSize and the patchOverlap. #                                                 #
 #                                                                                                                                       #
 #Input: dicom_numpy_array ---> 3D dicom array (height, width, number of slices)                                                         #
 #       patchSize ---> size of patches, example: [40, 40], patchSize[0] = height, patchSize[1] = weight, height and weight can differ   #
 #       patchOverlap ---> patchOverlap < 1: the ratio for overlapping, example: 0.25; patchOverlap >= 1: stride to move patch, e.g. 2   #
-#                         can be scalar (same used for all dimensions) or list/tuple with same length as patchSize (i.e. #dimensions/
-#                         rank of input)
+#                         can be scalar (same used for all dimensions) or list/tuple with same length as patchSize (i.e. #dimensions/   #
+#                         rank of input)                                                                                                #
 #Output: dPatches ---> 3D-Numpy-Array, which contain all Patches.                                                                       #
-#                                                            #
+#                                                                                                                                       #
 #########################################################################################################################################
 
 def patching2D(dicom_numpy_array, patchSize, patchOverlap):
@@ -72,17 +122,18 @@ def patching2D(dicom_numpy_array, patchSize, patchOverlap):
 
 
 #########################################################################################################################################
-#Function: patching3D                                                                                                               #
-#The function patching3D is responsible for splitting the dicom numpy array in patches depending on the patchSize and the           #
-#patchOverlap.                                                  #
+#Function: patching3D                                                                                                                   #
+#The function patching3D is responsible for splitting the dicom numpy array in patches depending on the patchSize and the               #
+#patchOverlap.                                                                                                                          #
 #                                                                                                                                       #
 #Input: dicom_numpy_array ---> 3D dicom array (height, width, number of slices)                                                         #
-#       patchSize ---> size of patches, example: [40, 40, 40], patchSize[0] = height, patchSize[1] = weight, patchSize[2] = depth       #
+#       patchSize ---> size of patches, example: [40, 40, 40], patchSize[0] = height >=1, patchSize[1] = weight >=1,                    #
+#                       patchSize[2] = depth >=1  #                                                                                     #
 #       patchOverlap ---> patchOverlap < 1: the ratio for overlapping, example: 0.25; patchOverlap >= 1: stride to move patch, e.g. 2   #
-#                         can be scalar (same used for all dimensions) or list/tuple with same length as patchSize (i.e. #dimensions/
-#                         rank of input)
+#                         can be scalar (same used for all dimensions) or list/tuple with same length as patchSize (i.e. #dimensions/   #
+#                         rank of input)                                                                                                #
 #Output: dPatches ---> 3D-Numpy-Array, which contain all Patches.                                                                       #
-#                                                                           #
+#                                                                                                                                       #
 #########################################################################################################################################
 
 def patching3D(dicom_numpy_array, patchSize, patchOverlap):
@@ -110,9 +161,9 @@ def patching3D(dicom_numpy_array, patchSize, patchOverlap):
                                (zero_pad_part[2], zero_pad[2] - zero_pad_part[2])),
                               mode='constant')
 
-    nbPatches = ((size_zero_pad[0] - patchSize[0]) / (dNotOverlap[0]) + 1) * (
-                (size_zero_pad[1] - patchSize[1]) / (dNotOverlap[1]) + 1) * (
-                            (size_zero_pad[2] - patchSize[2]) / (np.round(dNotOverlap[2])) + 1)
+    #nbPatches = ((size_zero_pad[0] - patchSize[0]) / (dNotOverlap[0]) + 1) * (
+    #            (size_zero_pad[1] - patchSize[1]) / (dNotOverlap[1]) + 1) * (
+    #                        (size_zero_pad[2] - patchSize[2]) / (np.round(dNotOverlap[2])) + 1)
 
     nbPatches_in_Y = int((size_zero_pad[0] - dOverlap[0]) / dNotOverlap[0])
     nbPatches_in_X = int((size_zero_pad[1] - dOverlap[1]) / dNotOverlap[1])
@@ -133,37 +184,42 @@ def patching3D(dicom_numpy_array, patchSize, patchOverlap):
 
 
 #########################################################################################################################################
-#Module: Unpatching                                                                                                                     #
+#Module: Unpatching (MAIN)                                                                                                              #
 #The module Unpatching is responsible for reconstructing the probability/images. To reconstruct the images the means of all             #
 #probabilities from overlapping patches are calculated and are assigned to every pixel-image. It's important to consider the order of   #
 #dimensions within the algorithm of the module RigidPatching. In this case the order is: weight(x), height(y), depth(z)                 #
 #The Unpatching-module contains two function:                                                                                           #
-#unpatching2D: For 2D Patch-Splitting                                                                                                     #
-#unpatching3D: For 3D Patch-Splitting                                                                                                     #
+#unpatching2D: For 2D Patch-Splitting                                                                                                   #
+#unpatching3D: For 3D Patch-Splitting                                                                                                   #
 #########################################################################################################################################
-def unpatching(patches, patchSize, patchOverlap, actualSize):
+def unpatching(patches, patchSize, patchOverlap, actualSize, overlapRegion='avg'):
     if type(patches) is not np.ndarray:
         patches = np.ndarray(patches, dtype='f')
 
+    if len(patchSize) > len(actualSize):
+        print('Warning: dimension of patchSize (=%d) > image shape (=%d), cropping patchSize dimensions' % (len(patchSize), len(actualSize)))
+        patchSize = patchSize[:np.ndim(dicom_numpy_array)]
+
     if patches.ndim == 3:
-        return unpatching2D(patches, patchSize, patchOverlap, actualSize)
+        return unpatching2D(patches, patchSize, patchOverlap, actualSize, overlapRegion)
     else:
-        return unpatching3D(patches, patchSize, patchOverlap, actualSize)
+        return unpatching3D(patches, patchSize, patchOverlap, actualSize, overlapRegion)
 
 #########################################################################################################################################
-#Function: unpatching2D                                                                                                                   #
-#The function unpatching2D has the task to reconstruct the images.  Every patch contains the probability of every class.                                                                      #
+#Function: unpatching2D                                                                                                                 #
+#The function unpatching2D has the task to reconstruct the images.  Every patch contains the probability of every class.                #                                                        #
 #To visualize the probabilities it is important to reconstruct the probability-images. This function is used for 2D patching.           #                                                                                                                                    #
-#Input: patches ---> patch array: patchSizeX x patchSizeY x nPatches (not one-hot encoded classes for seg masks!)                                                                                               #
+#Input: patches ---> patch array: patchSizeX x patchSizeY x nPatches (not one-hot encoded classes for seg masks!)                       #                                                                        #
 #       patchSize ---> size of patches, example: [40, 40, 10], patchSize[0] = height, patchSize[1] = weight, patchSize[2] = depth       #
 #       patchOverlap ---> patchOverlap < 1: the ratio for overlapping, example: 0.25; patchOverlap >= 1: stride to move patch, e.g. 2   #
-#                         can be scalar (same used for all dimensions) or list/tuple with same length as patchSize (i.e. #dimensions/
-#                         rank of input)
+#                         can be scalar (same used for all dimensions) or list/tuple with same length as patchSize (i.e. #dimensions/   #
+#                         rank of input)                                                                                                #
 #       actualSize ---> the actual size of the chosen mrt-layer: example: ab, t1_tse_tra_Kopf_0002; actual size = [256, 196, 40]        #                                                          #
+#       overlapRegion --> handling of overlapping regions: 'avg' = average, 'add' = addition, 'owr' = overwrite                         #
 #Output: unpatchImg ---> 3D-Numpy-Array, which contains the probability of every image pixel.                                           #
 #########################################################################################################################################
 
-def unpatching2D(patches, patchSize, patchOverlap, actualSize):
+def unpatching2D(patches, patchSize, patchOverlap, actualSize, overlapRegion='avg'):
     iCorner = [0, 0, 0]
     if patchOverlap < 1:
         dOverlap = np.multiply(patchSize, patchOverlap)
@@ -186,11 +242,15 @@ def unpatching2D(patches, patchSize, patchOverlap, actualSize):
 
         lMask[iCorner[0]:iCorner[0] + int(patchSize[0]), iCorner[1]:iCorner[1] + int(patchSize[1]), iCorner[2]] = 1
 
-        unpatchImg[iCorner[0]:iCorner[0] + int(patchSize[0]), iCorner[1]:iCorner[1] + int(patchSize[1]), iCorner[2]] \
-            = np.add(unpatchImg[iCorner[0]:iCorner[0] + int(patchSize[0]),
-                     iCorner[1]:iCorner[1] + int(patchSize[1]),
-                     iCorner[2]],
-                     patches[:, :, iIndex])
+        if overlapRegion == 'owr':
+            unpatchImg[iCorner[0]:iCorner[0] + int(patchSize[0]), iCorner[1]:iCorner[1] + int(patchSize[1]), iCorner[2]] \
+                = patches[:, :, iIndex]
+        else:  # 'avg', 'add'
+            unpatchImg[iCorner[0]:iCorner[0] + int(patchSize[0]), iCorner[1]:iCorner[1] + int(patchSize[1]), iCorner[2]] \
+                = np.add(unpatchImg[iCorner[0]:iCorner[0] + int(patchSize[0]),
+                         iCorner[1]:iCorner[1] + int(patchSize[1]),
+                         iCorner[2]],
+                         patches[:, :, iIndex])
 
         lMask = lMask == 1
         numVal[lMask] = numVal[lMask] + 1
@@ -207,7 +267,8 @@ def unpatching2D(patches, patchSize, patchOverlap, actualSize):
             iCorner[2] = int(iCorner[2] + 1)
             #print(str(iCorner[2] / actualSize[2] * 100) + "%")
 
-    unpatchImg = np.divide(unpatchImg, numVal)
+    if overlapRegion == 'avg':
+        unpatchImg = np.divide(unpatchImg, numVal)
 
     if paddedSize == actualSize:
         pass
@@ -224,19 +285,20 @@ def unpatching2D(patches, patchSize, patchOverlap, actualSize):
 
 
 #########################################################################################################################################
-#Function: unpatching3D                                                                                                                   #
-#The function unpatching3D has the task to reconstruct the images. Every patch contains the probability of every class.       #
+#Function: unpatching3D                                                                                                                 #
+#The function unpatching3D has the task to reconstruct the images. Every patch contains the probability of every class.                 #
 #To visualize the probabilities it is inportant to reconstruct the probability-images. This function is used for 3D patching.           #                                                                                                                                    #
-#Input: patches ---> patch array: patchSizeX x patchSizeY x patchSizeZ x nPatches (not one-hot encoded classes for seg masks!)                                                                                                       #
+#Input: patches ---> patch array: patchSizeX x patchSizeY x patchSizeZ x nPatches (not one-hot encoded classes for seg masks!)          #                                                                                            #
 #       patchSize ---> size of patches, example: [40, 40, 10], patchSize[0] = height, patchSize[1] = weight, patchSize[2] = depth       #
 #       patchOverlap ---> patchOverlap < 1: the ratio for overlapping, example: 0.25; patchOverlap >= 1: stride to move patch, e.g. 2   #
-#                         can be scalar (same used for all dimensions) or list/tuple with same length as patchSize (i.e. #dimensions/
-#                         rank of input)
-#       actualSize ---> the actual size of the chosen mrt-layer: example: ab, t1_tse_tra_Kopf_0002; actual size = [256, 196, 40]        #                                                       #
+#                         can be scalar (same used for all dimensions) or list/tuple with same length as patchSize (i.e. #dimensions/   #
+#                         rank of input)                                                                                                #
+#       actualSize ---> the actual size of the chosen mrt-layer: example: ab, t1_tse_tra_Kopf_0002; actual size = [256, 196, 40]        #
+#       overlapRegion --> handling of overlapping regions: 'avg' = average, 'add' = addition, 'owr' = overwrite                         #
 #Output: unpatchImg ---> 3D-Numpy-Array, which contains the probability of every image pixel.                                           #
 #########################################################################################################################################
 
-def unpatching3D(patches, patchSize, patchOverlap, actualSize):
+def unpatching3D(patches, patchSize, patchOverlap, actualSize, overlapRegion='avg'):
     iCorner = [0, 0, 0]
     if patchOverlap < 1:
         dOverlap = np.multiply(patchSize, patchOverlap)
@@ -259,13 +321,17 @@ def unpatching3D(patches, patchSize, patchOverlap, actualSize):
         lMask = np.zeros((paddedSize[0], paddedSize[1], paddedSize[2]))
         lMask[iCorner[0]: iCorner[0] + patchSize[0], iCorner[1]: iCorner[1] + patchSize[1], iCorner[2]: iCorner[2] + patchSize[2]] = 1
 
-        unpatchImg[iCorner[0]:iCorner[0] + patchSize[0], iCorner[1]: iCorner[1] + patchSize[1], iCorner[2]: iCorner[2] + patchSize[2]] \
-            = np.add(unpatchImg[iCorner[0]: iCorner[0] + patchSize[0], iCorner[1]: iCorner[1] + patchSize[1],
-                     iCorner[2]: iCorner[2] + patchSize[2]], patches[:,:,:,iIndex])
+        if overlapRegion == 'owr':
+            unpatchImg[iCorner[0]:iCorner[0] + patchSize[0], iCorner[1]: iCorner[1] + patchSize[1],
+            iCorner[2]: iCorner[2] + patchSize[2]] \
+                =  patches[:, :, :, iIndex]
+        else:  # 'avg', 'add'
+            unpatchImg[iCorner[0]:iCorner[0] + patchSize[0], iCorner[1]: iCorner[1] + patchSize[1], iCorner[2]: iCorner[2] + patchSize[2]] \
+                = np.add(unpatchImg[iCorner[0]: iCorner[0] + patchSize[0], iCorner[1]: iCorner[1] + patchSize[1],
+                         iCorner[2]: iCorner[2] + patchSize[2]], patches[:,:,:,iIndex])
 
         lMask = lMask == 1
         numVal[lMask] = numVal[lMask] + 1
-
 
         iCorner[1] = int(iCorner[1] + dNotOverlap[1])
 
@@ -279,7 +345,8 @@ def unpatching3D(patches, patchSize, patchOverlap, actualSize):
             iCorner[2] = int(iCorner[2] + dNotOverlap[2])
             #print(str(iCorner[2] / actualSize[2] * 100) + "%")
 
-    unpatchImg = np.divide(unpatchImg, numVal)
+    if overlapRegion == 'avg':
+        unpatchImg = np.divide(unpatchImg, numVal)
 
     if paddedSize == actualSize:
         pass
@@ -296,17 +363,34 @@ def unpatching3D(patches, patchSize, patchOverlap, actualSize):
 
     return unpatchImg
 
+class PatchingTest(unittest.TestCase):
+    def test_patching2D(self):
+        imgin = np.ones((120,120,30))
+        patches2D = patching(imgin,[64, 32], 0.5)
+        imgunpatch2D = unpatching(patches2D, [64, 32], 0.5, np.shape(imgin))
+
+        self.assertTrue(np.sum(imgin - imgunpatch2D) == 0)
+
+    def test_patching3D(self):
+        imgin = np.ones((120, 120, 30))
+        patches3D = patching(imgin, [32, 32, 32], 0.5)
+        imgunpatch3D = unpatching(patches3D, [32, 32, 32], 0.5, np.shape(imgin))
+
+        self.assertTrue(np.sum(imgin - imgunpatch3D) == 0)
+
+    def test_patching3D_2D(self):
+        imgin = np.ones((120, 120, 30))
+        patches3D_2 = patching(imgin, [32, 32, 1], 0)
+        imgunpatch3D_2 = unpatching(patches3D_2, [32, 32, 1], 0, np.shape(imgin))
+
+        self.assertTrue(np.sum(imgin - imgunpatch3D_2) == 0)
+
+
 if __name__ == '__main__':
-    # some test functions
-    import scipy.io as sio
-    data = sio.loadmat("/mnt/c/Users/Admin/Documents/MATLAB/brain_test.mat")
-    imgin = np.abs(data['imgbrain'])
+    unittest.main()
 
-    # patching
-    patches2D = patching(imgin,[32, 32], 0)
-    imgunpatch2D = unpatching(patches2D, [64,64], 0.5, np.shape(imgin))
+    #patchShape_2 = compute_patchedshape(imgin, [32, 32, 1], 0)
+    #patchShape_21 = compute_patchedshape(np.shape(imgin), [32, 32, 1], 0)
 
-    patches3D = patching(imgin, [32, 32, 32], 0)
-    imgunpatch3D = unpatching(patches3D, [64, 64, 16], 0.5, np.shape(imgin))
 
-    sio.savemat("/mnt/c/Users/Admin/Documents/MATLAB/patching_test.mat", {'imgin': imgin, 'patches2D': patches2D, 'imgunpatch2D': imgunpatch2D, 'patches3D': patches3D, 'imgunpatch3D': imgunpatch3D})
+
