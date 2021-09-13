@@ -1,1 +1,1 @@
-from merlinpy.datapipeline.sampling.VISTA.VISTA import vista
+from merlinpy.datapipeline.sampling.VISTA.main import vista
