@@ -5,6 +5,7 @@ Copyright: 2016-2021 Thomas Kuestner (thomas.kuestner@med.uni-tuebingen.de) unde
 
 import numpy as np
 import math
+import unittest
 
 #########################################################################################################################################
 #Module: compute_patchedshape (MAIN)                                                                                                    #
