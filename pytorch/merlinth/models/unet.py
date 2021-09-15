@@ -3,14 +3,18 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import unittest
-from .complex_reg_2dt import *
-from .complex_conv3d import *
-from .complex_init import *
-from .complex_regularizer import *
-from .complex_norm import get_normalization
-from .complex_pool import *
-from .complex_residual_block import *
-from .complex_pad import *
+from merlinth.layers.convolutional.complex_conv3d import (
+    ComplexPadConv3D,
+    ComplexPadConvScale3D,
+    ComplexPadConvScaleTranspose3D
+)
+from merlinth.layers.complex_init import *
+from merlinth.layers.complex_norm import get_normalization
+from merlinth.layers.complex_pool import MagnitudeMaxPool3D
+from merlinth.layers.complex_regularizer import ComplexRegularizerWrapper3d
+from merlinth.models.unet_complex_residual_block import *
+from merlinth.models.unet_complex_reg_2dt import *
+from merlinth.layers.pad import complex_pad3d
 
 __all__ = ['ResidualUnetModel3d', 'ResidualUnetModel2dt', 'ResidualUnetModelFast']
 
@@ -57,9 +61,9 @@ class ResidualUnetModel(nn.Module):
         #print('mode=', self.mode, 'ortho=', self.ortho)
 
     def weight_init(self, module):
-        if isinstance(module, ComplexConv3d) \
-            or isinstance(module, ComplexConvScale3d) \
-            or isinstance(module, ComplexConvScaleTranspose3d):
+        if isinstance(module, ComplexPadConv3D) \
+            or isinstance(module, ComplexPadConvScale3D) \
+            or isinstance(module, ComplexPadConvScaleTranspose3D):
 
             if self.ortho:
                 complex_independent_filters_init(module.weight, mode=self.mode)
@@ -299,7 +303,7 @@ class ResidualUnetModel2dt(ResidualUnetModel):
                                            normalization=normalization,
                                      kernel_size_sp=kernel_size_sp,
                                      kernel_size_t=kernel_size_t)]
-            self.ds_enc += [torch.nn.Sequential(MagnitudeMaxPool3d(),
+            self.ds_enc += [torch.nn.Sequential(MagnitudeMaxPool3D(),
                             ComplexConvBlock2dt(in_channels=layer_ch,
                                              inter_channels=layer_ch*multiplier,
                                              out_channels=layer_ch*multiplier,
@@ -357,7 +361,7 @@ class ResidualUnetModel2dt(ResidualUnetModel):
                                      kernel_size_t=kernel_size_t)]
             layer_ch //= multiplier
         
-        # self.conv_out = ComplexConvRealWeight3d(layer_ch,
+        # self.conv_out = ComplexPadConvRealWeight3d(layer_ch,
         #                                         out_channels,
         #                                         kernel_size_sp_x=1,
         #                                         kernel_size_sp_y=1,
@@ -371,14 +375,12 @@ class ResidualUnetModel2dt(ResidualUnetModel):
         out_zero_mean = kwargs.pop('out_zero_mean', False)
         #print('bias=', out_bias, 'zero_mean=', out_zero_mean)
 
-        self.conv_out = ComplexConv3d(layer_ch,
+        self.conv_out = ComplexPadConv3D(layer_ch,
                                                 out_channels,
-                                                kernel_size_sp_x=1,
-                                                kernel_size_sp_y=1,
-                                                kernel_size_t=1,
+                                                kernel_size = (1, 1, 1),
                                                 bias=out_bias,
                                                 zero_mean=out_zero_mean,
-                                                # bound_norm=False
+                                                # bound_norm=False,
                                                 )
         
         self.apply(self.weight_init)
@@ -458,7 +460,7 @@ class ResidualUnetModelFast(ResidualUnetModel):
                                            normalization=normalization,
                                      kernel_size_sp=kernel_size_sp,
                                      kernel_size_t=kernel_size_t)]
-            self.ds_enc += [torch.nn.Sequential(MagnitudeMaxPool3d(),
+            self.ds_enc += [torch.nn.Sequential(MagnitudeMaxPool3D(),
                             ComplexSplitFast(in_channels=layer_ch,
                                              inter_channels=layer_ch*multiplier,
                                              out_channels=layer_ch*multiplier,
@@ -488,7 +490,7 @@ class ResidualUnetModelFast(ResidualUnetModel):
                                                  inter_channels=layer_ch,
                                                  out_channels=layer_ch//multiplier,
                                                  bias=bias,
-                                                 stride=2,
+                                                 stride=(1, 2, 2),
                                                  activation=activation,
                                                  normalization=normalization,
                                      kernel_size_sp=kernel_size_sp,
@@ -511,7 +513,7 @@ class ResidualUnetModelFast(ResidualUnetModel):
                                      kernel_size_t=kernel_size_t)]
             layer_ch //= multiplier
         
-        # self.conv_out = ComplexConvRealWeight3d(layer_ch,
+        # self.conv_out = ComplexPadConvRealWeight3d(layer_ch,
         #                                         out_channels,
         #                                         kernel_size_sp_x=1,
         #                                         kernel_size_sp_y=1,
@@ -525,11 +527,9 @@ class ResidualUnetModelFast(ResidualUnetModel):
         out_zero_mean = kwargs.pop('out_zero_mean', False)
         #print('bias=', out_bias, 'zero_mean=', out_zero_mean)
 
-        self.conv_out = ComplexConv3d(layer_ch,
+        self.conv_out = ComplexPadConv3D(layer_ch,
                                                 out_channels,
-                                                kernel_size_sp_x=1,
-                                                kernel_size_sp_y=1,
-                                                kernel_size_t=1,
+                                                kernel_size = (1, 1, 1),
                                                 bias=out_bias,
                                                 zero_mean=out_zero_mean,
                                                 # bound_norm=False
@@ -602,7 +602,7 @@ class ResidualUnetModel3d(ResidualUnetModel):
                                            activation=activation,
                                            normalization=normalization,
                                      kernel_size_sp=kernel_size_sp,)]
-            self.ds_enc += [torch.nn.Sequential(MagnitudeMaxPool3d(),
+            self.ds_enc += [torch.nn.Sequential(MagnitudeMaxPool3D(),
                             ComplexConvBlock3d(in_channels=layer_ch,
                                              out_channels=layer_ch*multiplier,
                                              bias=bias,
@@ -629,7 +629,7 @@ class ResidualUnetModel3d(ResidualUnetModel):
             self.us_dec +=  [ComplexConvBlock3dUpsampling(in_channels=layer_ch,
                                                  out_channels=layer_ch//multiplier,
                                                  bias=bias,
-                                                 stride=2,
+                                                 stride=(1, 2, 2),
                                                  activation=activation,
                                                  normalization=normalization,
                                      kernel_size_sp=kernel_size_sp,
@@ -650,7 +650,7 @@ class ResidualUnetModel3d(ResidualUnetModel):
                                      kernel_size_t=kernel_size_t)]
             layer_ch //= multiplier
         
-        # self.conv_out = ComplexConvRealWeight3d(layer_ch,
+        # self.conv_out = ComplexPadConvRealWeight3d(layer_ch,
         #                                         out_channels,
         #                                         kernel_size_sp_x=1,
         #                                         kernel_size_sp_y=1,
@@ -663,11 +663,9 @@ class ResidualUnetModel3d(ResidualUnetModel):
         out_zero_mean = kwargs.pop('out_zero_mean', False)
         #print('bias=', out_bias, 'zero_mean=', out_zero_mean)
 
-        self.conv_out = ComplexConv3d(layer_ch,
+        self.conv_out = ComplexPadConv3D(layer_ch,
                                                 out_channels,
-                                                kernel_size_sp_x=1,
-                                                kernel_size_sp_y=1,
-                                                kernel_size_t=1,
+                                                kernel_size = (1, 1, 1),
                                                 bias=out_bias,
                                                 zero_mean=out_zero_mean,
                                                 # bound_norm=False
@@ -711,9 +709,9 @@ class TestUnet3d(unittest.TestCase):
         y = model(x)
     
     def test1(self):
-        self._test_unet(10, 180, 180, 8, 2, 1, 'cPReLU', False)
+        self._test_unet(64, 180, 180, 16, 2, 1, 'cPReLU', False)
     def test2(self):
-        self._test_unet(10, 180, 180, 8, 2, 1, 'ModReLU', True)
+        self._test_unet(64, 180, 180, 16, 2, 1, 'ModReLU', True)
 
 # class InitTest(unittest.TestCase):
 #     def _test_complex_init(self, ksp, kst, nf, mode, activation, ortho):
@@ -735,9 +733,9 @@ class TestUnet3d(unittest.TestCase):
 #             )).cuda()
 
 #         def weight_init(module):
-#             if isinstance(module, ComplexConv3d) \
-#                 or isinstance(module, ComplexConvScale3d) \
-#                 or isinstance(module, ComplexConvScaleTranspose3d):
+#             if isinstance(module, ComplexPadConv3D) \
+#                 or isinstance(module, ComplexPadConvScale3D) \
+#                 or isinstance(module, ComplexPadConvScaleTranspose3D):
 
 #                 if ortho:
 #                     complex_independent_filters_init(module.weight, mode=mode)

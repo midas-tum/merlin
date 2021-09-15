@@ -9,7 +9,8 @@ import unittest
 
 import optotf.pad
 
-__all__ = ['PadConv2D',
+__all__ = ['PadConv1D',
+           'PadConv2D',
            'PadConv3D',
            'PadConvScale2D',
            'PadConvScale3D',
@@ -107,20 +108,24 @@ class PadConv(Conv):
         return pad
 
     def _pad(self, rank, inputs, pad, mode):
-        if rank == 2:
+        if rank == 1:
+            return optotf.pad.pad1d(inputs, pad, mode=mode)
+        elif rank == 2:
             return optotf.pad.pad2d(inputs, pad, mode=mode)
         elif rank == 3:
             return optotf.pad.pad3d(inputs, pad, mode=mode)
         else:
-            raise ValueError("pad does only exist for 2D and 3D")
+            raise ValueError("pad does only exist for 1D, 2D and 3D")
 
     def _pad_transpose(self, rank, inputs, pad, mode):
-        if rank == 2:
+        if rank == 1:
+            return optotf.pad.pad1d_transpose(inputs, pad, mode=mode)
+        elif rank == 2:
             return optotf.pad.pad2d_transpose(inputs, pad, mode=mode)
         elif rank == 3:
             return optotf.pad.pad3d_transpose(inputs, pad, mode=mode)
         else:
-            raise ValueError("pad does only exist for 2D and 3D")
+            raise ValueError("pad does only exist for 1D, 2D and 3D")
 
     def call(self, inputs):
         # first pad
@@ -136,7 +141,9 @@ class PadConv(Conv):
         return outputs
 
     def _conv_transpose_op(self, x, weight, output_shape):
-        if self.rank == 2:
+        if self.rank == 1:
+            conv_fun = tf.nn.conv1d_transpose
+        elif self.rank == 2:
             conv_fun = tf.nn.conv2d_transpose
         elif self.rank == 3:
             conv_fun = tf.nn.conv3d_transpose
@@ -176,6 +183,49 @@ class PadConv(Conv):
         if self.pad and any(pad):
             x = self._pad_transpose(self.rank, x, pad, mode=self.optox_padding)
         return x
+
+class PadConv1D(PadConv):
+    def __init__(self,
+               filters,
+               kernel_size,
+               strides=(1,),
+               padding='symmetric',
+               data_format=None,
+               dilation_rate=(1,),
+               #groups=1,
+               use_bias=False,
+               kernel_initializer='random_uniform',
+               bias_initializer='zeros',
+               kernel_regularizer=None,
+               bias_regularizer=None,
+               activity_regularizer=None,
+               kernel_constraint=None,
+               bias_constraint=None,
+               zero_mean=False,
+               bound_norm=False,
+               pad=True,
+               **kwargs):
+        super(PadConv1D, self).__init__(
+            rank=1,
+            filters=filters,
+            kernel_size=kernel_size,
+            strides=strides,
+            padding=padding,
+            data_format=data_format,
+            dilation_rate=dilation_rate,
+            #groups=groups,
+            use_bias=use_bias,
+            kernel_initializer=initializers.get(kernel_initializer),
+            bias_initializer=initializers.get(bias_initializer),
+            kernel_regularizer=regularizers.get(kernel_regularizer),
+            bias_regularizer=regularizers.get(bias_regularizer),
+            activity_regularizer=regularizers.get(activity_regularizer),
+            kernel_constraint=constraints.get(kernel_constraint),
+            bias_constraint=constraints.get(bias_constraint),
+            zero_mean=zero_mean,
+            bound_norm=bound_norm,
+            pad=pad,
+            **kwargs)
 
 class PadConv2D(PadConv):
   def __init__(self,
@@ -534,6 +584,46 @@ class PadConvScale3DTranspose(PadConvScale3D):
 
     def backward(self, x):
         return super().call(x)
+
+class PadConv1DTest(unittest.TestCase):
+    def test_constraints(self):
+        nf_in = 1
+        nf_out = 32
+        
+        model = PadConv1D(nf_out, kernel_size=3, zero_mean=True, bound_norm=True)
+        model.build((None, None, nf_in))
+        np_weight = model.weights[0].numpy()
+        reduction_dim = model.weights[0].reduction_dim
+
+        weight_mean = np.mean(np_weight, axis=reduction_dim)
+        self.assertTrue(np.max(np.abs(weight_mean)) < 1e-6)
+
+        weight_norm = np.sqrt(np.sum(np.conj(np_weight) * np_weight, axis=reduction_dim))
+        self.assertTrue(np.max(np.abs(weight_norm-1)) < 1e-6)
+
+    def _test_grad(self, conv_fun, kernel_size, strides, dilation_rate, padding):
+        nBatch = 5
+        N = 256
+        nf_in = 10
+        nf_out = 32
+        shape = [nBatch, N, nf_in]
+
+        model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=False)
+        x = tf.random.normal(shape)
+
+        with tf.GradientTape() as g:
+            g.watch(x)
+            Kx = model(x)
+            loss = 0.5 * tf.reduce_sum(tf.math.conj(Kx) * Kx)
+        grad_x = g.gradient(loss, x)
+        x_autograd = grad_x.numpy()
+
+        KHKx = model.backward(Kx, x.shape)
+        x_bwd = KHKx.numpy()
+        self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
+
+    def test1(self):
+        self._test_grad(PadConv1D, 5, 1, 1, 'symmetric')
 
 class PadConv2DTest(unittest.TestCase):
     def test_constraints(self):

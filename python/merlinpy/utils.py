@@ -85,3 +85,31 @@ def save_reconstructions(reconstructions, out_dir):
         fname = fname.split('/')[-1]
         with h5py.File(out_dir / fname, 'w') as f:
             f.create_dataset('reconstruction', data=recons)
+
+def np_ensure_complex(x):
+    """
+    [Code from https://github.com/khammernik/sigmanet]
+    This function is used to recover complex dtype if current dtype is float16,
+    otherwise dtype of x is unchanged.
+
+    Args:
+        x: Input data of any datatype.
+    """
+    if x.dtype == np.float16:
+        return np.ascontiguousarray(x.astype(np.float32)).view(dtype=np.complex64)
+    else:
+        return x
+
+def np_ensure_float32(x):
+    """
+    [Code from https://github.com/khammernik/sigmanet]
+    This function is used to recover complex dtype if current dtype is float16,
+    otherwise dtype of x is unchanged.
+
+    Args:
+        x: Input data of any datatype.
+    """
+    if x.dtype == np.float16:
+        return np.ascontiguousarray(x.astype(np.float32))
+    else:
+        return x

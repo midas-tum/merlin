@@ -1,6 +1,7 @@
 import tensorflow as tf
 import merlintf
 import unittest
+
 class ComplexCNN(tf.keras.Model):
     def __init__(self, dim='2D', filters=64, kernel_size=3, num_layer=5,
                        activation='ModReLU', use_bias=True,
@@ -69,7 +70,6 @@ class Real2chCNN(tf.keras.Model):
             x = op(x)
         return merlintf.real2complex(x)
 
-
 class Real2chCNNTest(unittest.TestCase):
     def test_cnn_real2ch_2d(self):
         self._test_cnn_real2ch('2D', 3)
@@ -86,7 +86,7 @@ class Real2chCNNTest(unittest.TestCase):
         M = 128
         N = 128
 
-        cofiltersig = {
+        config = {
             'dim': dim,
             'filters': 64,
             'kernel_size': kernel_size,
@@ -94,7 +94,7 @@ class Real2chCNNTest(unittest.TestCase):
             'activation': 'relu'
         }
 
-        model = Real2chCNN(**cofiltersig)
+        model = Real2chCNN(**config)
 
         if dim == '2D':
             x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
@@ -122,7 +122,7 @@ class ComplexCNNTest(unittest.TestCase):
         M = 128
         N = 128
 
-        cofiltersig = {
+        config = {
             'dim': dim,
             'filters': 64,
             'kernel_size': kernel_size,
@@ -130,7 +130,7 @@ class ComplexCNNTest(unittest.TestCase):
             'activation': activation
         }
 
-        model = ComplexCNN(**cofiltersig)
+        model = ComplexCNN(**config)
 
         if dim == '2D':
             x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)

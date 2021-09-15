@@ -1,15 +1,18 @@
 import torch
-import optoth.pad
-
 import numpy as np
+from merlinth.layers.pad import (
+    real_pad2d,
+    real_pad2d_transpose
+)
+import unittest
 
-__all__ = ['Conv2d', 'ConvScale2d', 'ConvScaleTranspose2d']
+__all__ = ['PadConv2D', 'PadConvScale2D', 'PadConvScaleTranspose2D']
 
-class Conv2d(torch.nn.Module):
+class PadConv2D(torch.nn.Module):
     def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  stride=1, dilation=1, groups=1, bias=False, 
                  zero_mean=False, bound_norm=False, pad=True):
-        super(Conv2d, self).__init__()
+        super(PadConv2D, self).__init__()
 
         self.in_channels = in_channels
         self.filters = filters
@@ -70,15 +73,22 @@ class Conv2d(torch.nn.Module):
             weight = self.weight
         return weight
 
+    def _compute_optox_padding(self):
+        pad = []
+        for w in self.get_weight().shape[2:4][::-1]:
+            pad += [w//2, w//2]
+        return pad
+
     def forward(self, x):
         # construct the kernel
         weight = self.get_weight()
         # then pad
-        pad = weight.shape[-1]//2
-        if self.pad and pad > 0:
-            x = optoth.pad.pad2d(x, (pad,pad,pad,pad), mode='symmetric')
+        pad = self._compute_optox_padding()
+        if self.pad and any(pad) > 0:
+            x = real_pad2d(x, pad)
         # compute the convolution
-        return torch.nn.functional.conv2d(x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
+        x = torch.nn.functional.conv2d(x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
+        return x
 
     def backward(self, x, output_shape=None):
         # construct the kernel
@@ -90,14 +100,16 @@ class Conv2d(torch.nn.Module):
                 output_shape[2] - ((x.shape[2]-1)*self.stride+1),
                 output_shape[3] - ((x.shape[3]-1)*self.stride+1)
             )
+            # output_padding = (output_padding[0]//2 + self.kernel_size // 2, output_padding[1]//2 + self.kernel_size // 2)
         else:
             output_padding = 0
 
         # compute the convolution
         x = torch.nn.functional.conv_transpose2d(x, weight, self.bias, self.stride, self.padding, output_padding, self.groups, self.dilation)
-        pad = weight.shape[-1]//2
-        if self.pad and pad > 0:
-            x = optoth.pad.pad2d_transpose(x, (pad,pad,pad,pad), mode='symmetric')
+
+        pad = self._compute_optox_padding()
+        if self.pad and any(pad) > 0:
+            x = real_pad2d_transpose(x, pad)
         return x
 
     def extra_repr(self):
@@ -117,10 +129,10 @@ class Conv2d(torch.nn.Module):
         return s.format(**self.__dict__)
 
 
-class ConvScale2d(Conv2d):
+class PadConvScale2D(PadConv2D):
     def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  groups=1, stride=2, bias=False, zero_mean=False, bound_norm=False):
-        super(ConvScale2d, self).__init__(
+        super(PadConvScale2D, self).__init__(
             in_channels=in_channels, filters=filters, kernel_size=kernel_size, 
             invariant=invariant, stride=stride, dilation=1, groups=groups, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
@@ -143,10 +155,10 @@ class ConvScale2d(Conv2d):
         return weight
 
 
-class ConvScaleTranspose2d(ConvScale2d):
+class PadConvScaleTranspose2D(PadConvScale2D):
     def __init__(self, in_channels, filters, kernel_size=3, invariant=False,
                  groups=1, stride=2, bias=False, zero_mean=False, bound_norm=False):
-        super(ConvScaleTranspose2d, self).__init__(
+        super(PadConvScaleTranspose2D, self).__init__(
             in_channels=in_channels, filters=filters, kernel_size=kernel_size, 
             invariant=invariant, groups=groups, stride=stride, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
@@ -156,3 +168,45 @@ class ConvScaleTranspose2d(ConvScale2d):
 
     def backward(self, x):
         return super().forward(x)
+
+class PadConvScaleTranspose2dTest(unittest.TestCase):
+    def test_conv_transpose2d_complex(self):
+        nBatch = 5
+        M = 320
+        N = 320
+        nf_in = 1
+        nf_out = 32
+        
+        model = PadConvScaleTranspose2D(nf_in, nf_out, kernel_size=3).cuda()
+        
+        x = torch.randn(nBatch, nf_in, M, N).cuda()
+        Kx = model.backward(x)
+        
+        y = torch.randn(*Kx.shape).cuda()
+        KHy = model.forward(y, output_shape=x.shape)
+
+        rhs = torch.sum(Kx * y).detach().cpu().numpy()
+        lhs = torch.sum(x * KHy).detach().cpu().numpy()
+
+        self.assertTrue(rhs, lhs)
+
+class PadConvScale2dTest(unittest.TestCase):
+    def test_conv2d_complex(self):
+        nBatch = 5
+        M = 256
+        N = 256
+        nf_in = 10
+        nf_out = 32
+
+        model = PadConvScale2D(nf_in, nf_out, kernel_size=3, stride=2).cuda()
+
+        x = torch.randn(nBatch, nf_in, M, N).cuda()
+        Kx = model(x)
+
+        y = torch.randn(*Kx.shape).cuda()
+        KHy = model.backward(y, output_shape=x.shape)
+
+        rhs = torch.sum(Kx * y).detach().cpu().numpy()
+        lhs = torch.sum(x * KHy).detach().cpu().numpy()
+
+        self.assertTrue(rhs, lhs)
