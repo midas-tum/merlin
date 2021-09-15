@@ -1,6 +1,7 @@
 from setuptools import setup
 from setuptools.dist import Distribution
 import os
+from distutils.core import setup, Extension
 
 class BinaryDistribution(Distribution):
     def has_ext_modules(self):
@@ -8,7 +9,7 @@ class BinaryDistribution(Distribution):
 
 setup(
     name='merlinpy',
-    version='0.2.1',
+    version='0.3.0',
     author="Kerstin Hammernik and Thomas Kuestner",
     author_email="k.hammernik@imperial.ac.uk and thomas.kuestner@med.uni-tuebingen.de",
     packages=["merlinpy",
