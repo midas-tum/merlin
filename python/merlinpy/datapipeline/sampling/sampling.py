@@ -3,6 +3,7 @@ import math
 import VD_CASPR_CINE as VD_CASPR_CINE
 from VISTA import vista
 import VDPD as VDPD
+import matplotlib.pyplot as plt
 
 class Sampling
     # subsampling of phase-encoding directions (y/z) and along time (t)
@@ -79,7 +80,7 @@ class CASPR(Sampling):
     
 class VDPD(Sampling):
     # variable-density Poisson-Disc subsampling (1D / 2D / 2D+time)
-    def __init__(self, dim, acc, nCenter=1, vd_type=4, pF_value=1, pF_x=0, smpl_type=1, ellip_mask=0, p=2, n=2, iVerbose=0):
+    def __init__(self, dim, acc, nCenter=6.5, vd_type=4, pF_value=1, pF_x=0, smpl_type=1, ellip_mask=0, p=2, n=2, iVerbose=0):
         super().__init__(dim=dim, acc=acc, trajectory='Poisson-Disc')
 
         self.mode = 1  # Poisson-Disc {1}, Gaussian {2}
@@ -120,7 +121,7 @@ class VDPD(Sampling):
 
 class Gaussian(Sampling):
     # variable-density Gaussian subsampling (1D / 2D / 2D+time)
-    def __init__(self, dim, acc, nCenter=1, vd_type=4, pF_value=1, pF_x=0, smpl_type=1, ellip_mask=0, p=2, n=2, iVerbose=0):
+    def __init__(self, dim, acc, nCenter=6.5, vd_type=4, pF_value=1, pF_x=0, smpl_type=1, ellip_mask=0, p=2, n=2, iVerbose=0):
         super().__init__(dim=dim, acc=acc, trajectory='Gaussian')
 
         self.mode = 2  # Poisson-Disc {1}, Gaussian {2}

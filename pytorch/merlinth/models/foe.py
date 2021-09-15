@@ -1,21 +1,13 @@
-import tensorflow as tf
-import merlintf
-from merlintf.keras.layers import ComplexPadConv2D, ComplexPadConv3D
-from merlintf.keras.layers import ComplexPadConv2Dt
-from merlintf.keras.layers import PadConv1D, PadConv2D, PadConv3D
-from optotf.activations import TrainableActivationKeras as TrainableActivation
-
+import torch
+from merlinth.layers import PadConv2D, PadConv3D, ComplexPadConv2D, ComplexPadConv3D, ComplexPadConv2Dt
+from optoth.activations import TrainableActivation
+import merlinth
 import unittest
 import numpy as np
 
-__all__ = ['Regularizer',
-           'MagnitudeFoE',
-           'PolarFoE',
-           'ComplexFoE',
-           'FoE',
-           'Real2chFoE']
+__all__ = ['Regularizer']
 
-class Regularizer(tf.keras.Model):
+class Regularizer(torch.nn.Module):
     """
     Basic regularization function
     """
@@ -23,13 +15,22 @@ class Regularizer(tf.keras.Model):
     def __init__(self):
         super(Regularizer, self).__init__()
 
-    def call(self, x):
+    def forward(self, x):
         return self.grad(x)
 
     def energy(self, x):
         raise NotImplementedError
 
     def grad(self, x):
+        raise NotImplementedError
+
+    def get_theta(self):
+        """
+        return all parameters of the regularization
+        """
+        return self.named_parameters()
+
+    def get_vis(self):
         raise NotImplementedError
 
 class FoEBase(Regularizer):
@@ -55,10 +56,8 @@ class FoEBase(Regularizer):
 class FoE(FoEBase):
     def __init__(self, config=None):
         super().__init__(config=config)
-        if config['dim'] == '1D':
-            self.K1 = PadConv1D(**self.config["K1"])
-        elif config['dim'] == '2D':
-            self.K1 = PadConv2D(**self.config["K1"])
+        if config['dim'] == '2D':
+                self.K1 = PadConv2D(**self.config["K1"])
         elif config['dim'] == '3D':
             self.K1 = PadConv3D(**self.config["K1"])
         else:
@@ -67,13 +66,13 @@ class FoE(FoEBase):
         self.f1 = TrainableActivation(**self.config["f1"])
 
     def _activation(self, x):
-        return self.f1(x) / tf.cast(tf.shape(x)[-1], x.dtype)
+        return self.f1(x) / x.shape[1]
 
 class Real2chFoE(FoE):
     def grad(self, x):
-        xreal = merlintf.complex2real(x)
+        xreal = merlinth.complex2real(x)
         xreal = super().grad(xreal)
-        return merlintf.real2complex(xreal)
+        return merlinth.real2complex(xreal)
 
 class PolarFoE(FoEBase):
     def __init__(self, config=None):
@@ -93,13 +92,29 @@ class PolarFoE(FoEBase):
         self.f1_phi = TrainableActivation(**self.config["f1_phi"])
 
     def _activation(self, x):
-        magn = self.f1_abs(merlintf.complex_abs(x)) #/ x.shape[-1]
-        angle = self.f1_phi(merlintf.complex_angle(x))
+        magn = self.f1_abs(merlinth.complex_abs(x, eps=1e-6)) #/ x.shape[1]
+        angle = self.f1_phi(merlinth.complex_angle(x, eps=1e-6))
 
-        re = magn * tf.math.cos(angle)
-        im = magn * tf.math.sin(angle)
+        re = magn * torch.cos(angle)
+        im = magn * torch.sin(angle)
 
-        return tf.complex(re, im)
+        fx = torch.cat([re.unsqueeze_(-1), im.unsqueeze_(-1)], -1)
+
+        return fx
+
+    def get_vis(self):
+        kernels = {'K1.re' : self.K1.weight[:,0], 'K1.im' : self.K1.weight[:,1]}
+
+        x, fxmagn = self.f1_abs.draw_complex(draw_type='abs', scale=0, offset=1)
+        _, fxphase = self.f1_phi.draw_complex(draw_type='phase', scale=0, offset=1)
+
+        fxmagn /= x.shape[1]
+        fxmagn.unsqueeze_(-1)
+        fxphase.unsqueeze_(-1)
+
+        fx = torch.cat([fxmagn * torch.cos(fxphase), fxmagn * torch.sin(fxphase)], -1)
+
+        return kernels, (x, fx)
 
 class MagnitudeFoE(FoEBase):
     def __init__(self, config=None):
@@ -118,10 +133,21 @@ class MagnitudeFoE(FoEBase):
         self.f1_abs = TrainableActivation(**self.config["f1_abs"])
 
     def _activation(self, x):
-        magn = self.f1_abs(merlintf.complex_abs(x))
-        magn /= tf.cast(tf.shape(x)[-1], magn.dtype)
-        xn = merlintf.complex_norm(x)
-        return merlintf.complex_scale(xn, magn)
+        magn = self.f1_abs(merlinth.complex_abs(x, eps=1e-6, keepdim=True)) / x.shape[1]
+        norm = merlinth.complex_normalization(x, eps=1e-6)
+        fx = magn * norm
+        return fx
+
+    def get_vis(self):
+        kernels = {'K1.weight.re' : self.K1.weight[:,0], 'K1.weight.im' : self.K1.weight[:,1]}
+        x, fxmagn = self.f1.draw_complex(draw_type='abs', scale=0, offset=1)
+        x_im = torch.transpose(x, -2, -1)
+        x_complex = torch.cat([torch.unsqueeze(x, -1), x_im.unsqueeze_(-1)], -1)
+        norm = merlinth.complex_normalization(x_complex.to(fxmagn.device), eps=1e-12)
+        # fxmagn /= x.shape[1]
+        fxmagn.unsqueeze_(-1)
+        fx = fxmagn * norm
+        return kernels, (x, fx)
 
 class ComplexFoE(FoEBase):
     def __init__(self, config=None):
@@ -140,11 +166,17 @@ class ComplexFoE(FoEBase):
         self.f1 = TrainableActivation(**self.config["f1"])
 
     def _activation(self, x):
-        x_re = self.f1(tf.math.real(x))
-        x_im = self.f1(tf.math.imag(x))
-        nf = tf.cast(tf.shape(x)[-1], x_re.dtype)
-        return tf.complex(x_re / nf, x_im  / nf)
+        x_re = self.f1(x[...,0]) / x.shape[1]
+        x_im = self.f1(x[...,1]) / x.shape[1]
+        return torch.cat([x_re.unsqueeze_(-1), x_im.unsqueeze_(-1)], -1)
 
+    def get_vis(self):
+        kernels = {'K1.weight.re' : self.K1.weight[:,0], 'K1.weight.im' : self.K1.weight[:,1]}
+        x, fxre = self.f1.draw_complex(draw_type='real', scale=1)
+        _, fxim = self.f1.draw_complex(draw_type='imag', scale=1)
+        fx = torch.cat([fxre.unsqueeze_(-1), fxim.unsqueeze_(-1)], -1)
+
+        return kernels, (x, fx)
 
 class PolarFoETest(unittest.TestCase):
     def test_FoE_polar_2d(self):
@@ -153,7 +185,7 @@ class PolarFoETest(unittest.TestCase):
     def test_FoE_polar_3d(self):
         self._test_FoE_polar('3D', (3, 5, 5))
 
-    def test_FoE_polar_2dt(self):
+    def test_FoE_polar_2Dt(self):
         self._test_FoE_polar('2Dt', (5, 7, 7))
 
     def _test_FoE_polar(self, dim, kernel_size):
@@ -167,12 +199,14 @@ class PolarFoETest(unittest.TestCase):
         config = {
             'dim': dim,
             'K1': {
+                'in_channels' : 1,
                 'filters': nf_in,
                 'kernel_size': kernel_size,
                 'bound_norm': True,
                 'zero_mean': True,
             },
             'f1_abs': {
+                'num_channels': nf_in,
                 'vmin': 0,
                 'vmax': 2,
                 'num_weights': nw,
@@ -181,6 +215,7 @@ class PolarFoETest(unittest.TestCase):
                 'init_scale': 0.01,
             },
             'f1_phi': {
+                'num_channels': nf_in,
                 'vmin': -np.pi,
                 'vmax':  np.pi,
                 'num_weights': nw,
@@ -192,12 +227,12 @@ class PolarFoETest(unittest.TestCase):
         if dim == '2Dt':
             config['K1'].update({'intermediate_filters' : nf_in})
 
-        model = PolarFoE(config)
+        model = PolarFoE(config).cuda()
 
         if dim == '2D':
-            x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
+            x = torch.randn(nBatch, 1, M, N, 2).cuda()
         elif dim == '3D' or dim == '2Dt':
-            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
+            x = torch.randn(nBatch, 1, D, M, N, 2).cuda()
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
         
@@ -211,7 +246,7 @@ class MagnitudeFoETest(unittest.TestCase):
     def test_FoE_magnitude_3d(self):
         self._test_FoE_magnitude('3D', (3, 5, 5))
 
-    def test_FoE_magnitude_2dt(self):
+    def test_FoE_magnitude_2Dt(self):
         self._test_FoE_magnitude('2Dt', (5, 7, 7))
 
     def _test_FoE_magnitude(self, dim, kernel_size):
@@ -225,12 +260,14 @@ class MagnitudeFoETest(unittest.TestCase):
         config = {
             'dim': dim,
             'K1': {
+                'in_channels' : 1,
                 'filters': nf_in,
                 'kernel_size': kernel_size,
                 'bound_norm': True,
                 'zero_mean': True,
             },
             'f1_abs': {
+                'num_channels': nf_in,
                 'vmin': 0,
                 'vmax': 2,
                 'num_weights': nw,
@@ -242,12 +279,12 @@ class MagnitudeFoETest(unittest.TestCase):
         if dim == '2Dt':
             config['K1'].update({'intermediate_filters' : nf_in})
 
-        model = MagnitudeFoE(config)
+        model = MagnitudeFoE(config).cuda()
 
         if dim == '2D':
-            x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
+            x = torch.randn(nBatch, 1, M, N, 2).cuda()
         elif dim == '3D' or dim == '2Dt':
-            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
+            x = torch.randn(nBatch, 1, D, M, N, 2).cuda()
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')        
         
@@ -261,7 +298,7 @@ class ComplexFoETest(unittest.TestCase):
     def test_FoE_complex_3d(self):
         self._test_FoE_complex('3D', (3, 5, 5))
 
-    def test_FoE_complex_2dt(self):
+    def test_FoE_complex_2Dt(self):
         self._test_FoE_complex('2Dt', (5, 7, 7))
 
     def _test_FoE_complex(self, dim, kernel_size):
@@ -275,12 +312,14 @@ class ComplexFoETest(unittest.TestCase):
         config = {
             'dim': dim,
             'K1': {
+                'in_channels' : 1,
                 'filters': nf_in,
                 'kernel_size': kernel_size,
                 'bound_norm': True,
                 'zero_mean': True,
             },
             'f1': {
+                'num_channels': nf_in,
                 'vmin': -1,
                 'vmax':  1,
                 'num_weights': nw,
@@ -292,12 +331,12 @@ class ComplexFoETest(unittest.TestCase):
         if dim == '2Dt':
             config['K1'].update({'intermediate_filters' : nf_in})
 
-        model = ComplexFoE(config)
+        model = ComplexFoE(config).cuda()
 
         if dim == '2D':
-            x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
+            x = torch.randn(nBatch, 1, M, N, 2).cuda()
         elif dim == '3D' or dim == '2Dt':
-            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
+            x = torch.randn(nBatch, 1, D, M, N, 2).cuda()
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
 
@@ -322,12 +361,14 @@ class Real2chFoETest(unittest.TestCase):
         config = {
             'dim': dim,
             'K1': {
+                'in_channels' : 2,
                 'filters': nf_in,
                 'kernel_size': kernel_size,
                 'bound_norm': True,
                 'zero_mean': True,
             },
             'f1': {
+                'num_channels' : nf_in,
                 'vmin': -1,
                 'vmax':  1,
                 'num_weights': nw,
@@ -339,12 +380,12 @@ class Real2chFoETest(unittest.TestCase):
         if dim == '2Dt':
             config['K1'].update({'intermediate_filters' : nf_in})
 
-        model = Real2chFoE(config)
+        model = Real2chFoE(config).cuda()
 
         if dim == '2D':
-            x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
+            x = torch.randn(nBatch, 1, M, N, 2).cuda()
         elif dim == '3D' or dim == '2Dt':
-            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
+            x = torch.randn(nBatch, 1, D, M, N, 2).cuda()
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
         
@@ -352,9 +393,6 @@ class Real2chFoETest(unittest.TestCase):
         self.assertTrue(Kx.shape == x.shape)
 
 class RealFoETest(unittest.TestCase):
-    def test_FoE_real_1d(self):
-        self._test_FoE_real('1D', 11)
-
     def test_FoE_real_2d(self):
         self._test_FoE_real('2D', 11)
 
@@ -372,12 +410,14 @@ class RealFoETest(unittest.TestCase):
         config = {
             'dim': dim,
             'K1': {
+                'in_channels' : 1,
                 'filters': nf_in,
                 'kernel_size': kernel_size,
                 'bound_norm': True,
                 'zero_mean': True,
             },
             'f1': {
+                'num_channels': nf_in,
                 'vmin': -1,
                 'vmax':  1,
                 'num_weights': nw,
@@ -389,14 +429,12 @@ class RealFoETest(unittest.TestCase):
         if dim == '2Dt':
             config['K1'].update({'intermediate_filters' : nf_in})
 
-        model = FoE(config)
+        model = FoE(config).cuda()
 
-        if dim == '1D':
-            x = tf.random.normal((nBatch, N, 1), dtype=tf.float32)
-        elif dim == '2D':
-            x = tf.random.normal((nBatch, M, N, 1), dtype=tf.float32)
+        if dim == '2D':
+            x = torch.randn(nBatch, 1, M, N).cuda()
         elif dim == '3D' or dim == '2Dt':
-            x = tf.random.normal((nBatch, D, M, N, 1), dtype=tf.float32)
+            x = torch.randn(nBatch, 1, D, M, N).cuda()
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
         

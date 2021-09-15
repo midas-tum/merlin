@@ -1,6 +1,27 @@
 import torch
 import numpy as np
 
+def get_ndim(dim):
+    if dim == '2D':
+        n_dim = 2
+    elif dim == '3D':
+        n_dim = 3
+    elif dim == '2Dt':
+        n_dim = 3
+    elif dim == '3Dt':
+        n_dim = 4
+    return n_dim
+
+def validate_input_dimension(dim, param):
+    n_dim = get_ndim(dim)
+    if isinstance(param, tuple) or isinstance(param, list):
+        if not len(param) == n_dim:
+            raise RuntimeError("Parameter dimensions {} do not match requested dimensions {}!".format(len(param), n_dim))
+        else:
+            return param
+    else:
+        return tuple([param for _ in range(n_dim)])
+
 def _get_np_float_dtype(complex_dtype):
     """ Get equivalent float type given current complex dtype """
     if complex_dtype == np.complex64:
@@ -43,7 +64,7 @@ def numpy_to_torch_float(arr):
     else:
         arr = arr.astype(np.float32)
     return numpy_to_torch(arr)
-    
+
 class ToTorchIO():
     def __init__(self, input_keys, output_keys):
         self.input_keys = input_keys

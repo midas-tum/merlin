@@ -88,8 +88,10 @@ class TestMagnitudePool(unittest.TestCase):
     #def test1d(self):
     #    self._test([2, 2, 1])
 
-    def test2d(self):
+    def test2d_1(self):
         self._test([2, 2, 2, 1])
+    
+    def test2d_2(self):
         self._test([2, 2, 2, 1], (2, 2))
 
     def test2dt(self):
