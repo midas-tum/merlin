@@ -21,8 +21,8 @@ def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
     :param uni: At uni iteration, reset to equivalent uniform sampling. Default value: floor(nIter/2)
     :param ss: Step-size for gradient descent. Default value: 0.25
     :param fl: Start checking fully sampledness at fl^th iteration. Default value: floor(nIter*5/6)
-    :param fs: Does time average has to be fully sampled, 0 for no, 1 for yes. Only works with VISTA. Default value: 1
-    :param s: Exponent of the potenital energy term. Default value 1.4
+    :param fs: Performed time average has to be fully sampled, 0 for no, 1 for yes. Only works with VISTA. Default value: 1
+    :param s: Exponent of the potential energy term. Default value 1.4
     :param tf: Step-size in time direction wrt to phase-encoding direction; use zero for constant temporal resolution. 
                Default value: 0.0
     :param dsp: Display the distribution at every dsp^th iteration
@@ -103,7 +103,7 @@ def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
     if typ == 'UIS':
         return samp_UIS(p, t, R)
 
-    # Use VRS as initialization for VISTA(variable density random sampling)
+    # Use VRS as initialization for VISTA (variable density random sampling)
     p1 = []
     for _ in range(-math.floor(p / 2), math.ceil(p / 2)):
         p1.append(_)
