@@ -7,6 +7,11 @@ def square(num):
 
 
 # Index to (x,y)
+def y_mod(every_ind, X):
+    y = math.ceil(every_ind / X)
+    return y
+
+
 def ind2xy(ind, X):
     x = []
     y = []
