@@ -1,5 +1,5 @@
 import torch
-from merlinth import mytorch
+from merlinth.complex import complex_abs
 import unittest
 from optoth.activations import TrainableActivation
 import numpy as np
@@ -52,7 +52,7 @@ class Identity(torch.nn.Module):
     
 #     def forward(self, z):
 #         eps=1e-9
-#         magn = mytorch.complex.complex_abs(z, eps=eps, keepdim=True)
+#         magn = complex_abs(z, eps=eps, keepdim=True)
 #         bias = self.bias.view(1, -1, *[1 for _ in range(z.ndim - 2)])
 #         return (self.relu(magn + bias) * z) / magn
 
@@ -66,7 +66,7 @@ class ComplexModReLU_fun(torch.autograd.Function):
         ctx.save_for_backward(z)
         ctx.bias = bias
         ctx.eps = eps
-        magn = mytorch.complex.complex_abs(z, eps=eps, keepdim=True)
+        magn = complex_abs(z, eps=eps, keepdim=True)
         return torch.clamp(magn + bias, min=0) * z / magn
 
     @staticmethod
@@ -75,22 +75,22 @@ class ComplexModReLU_fun(torch.autograd.Function):
         bias = ctx.bias
         eps = ctx.eps
 
-        magn = mytorch.complex.complex_abs(z, eps=eps, keepdim=True)
+        magn = complex_abs(z, eps=eps, keepdim=True)
 
-        grad_inH = mytorch.complex.complex_conj(grad_in)
+        grad_inH = complex_conj(grad_in)
         dz = 1 + bias / (2 * magn)
         dz = torch.stack([dz[...,0], torch.zeros(*dz.shape[:-1], dtype=z.dtype, device=z.device)], dim=-1)
 
-        dzH = - bias * mytorch.complex.complex_mult(z, z) / (2 * magn**3)
-        grad_out = mytorch.complex.complex_mult(grad_in, dz) + mytorch.complex.complex_mult(grad_inH, dzH)
+        dzH = - bias * complex_mult(z, z) / (2 * magn**3)
+        grad_out = complex_mult(grad_in, dz) + complex_mult(grad_inH, dzH)
        
         re = torch.where((magn + bias)[...,0] > 0, grad_out[...,0], torch.zeros(*grad_out.shape[:-1], dtype=grad_out.dtype, device=grad_out.device) )
         im = torch.where((magn + bias)[...,0] > 0, grad_out[...,1], torch.zeros(*grad_out.shape[:-1], dtype=grad_out.dtype, device=grad_out.device) )
         grad_in = torch.cat([re.unsqueeze_(-1), im.unsqueeze_(-1)], -1)
         
         dbias = z/magn
-        dbiasH = mytorch.complex.complex_conj(dbias)
-        grad_bias = mytorch.complex.complex_mult(grad_inH, dbias) + mytorch.complex.complex_mult(grad_in, dbiasH)
+        dbiasH = complex_conj(dbias)
+        grad_bias = complex_mult(grad_inH, dbias) + complex_mult(grad_in, dbiasH)
         #grad_bias = grad_bias[...,0].unsqueeze_(-1)
         grad_bias = grad_bias.sum(-1, keepdim=True)
         grad_bias = torch.where(magn + bias > 0, grad_bias, torch.zeros(*magn.shape, dtype=magn.dtype, device=magn.device) )
@@ -176,7 +176,7 @@ class ComplexStudentT_fun(torch.autograd.Function):
         ctx.alpha = alpha
         ctx.beta = beta
 
-        magn = mytorch.complex.complex_abs(x, keepdim=True, eps=1e-9)
+        magn = complex_abs(x, keepdim=True, eps=1e-9)
         norm = x / magn
 
         d = 1 + alpha * magn**2 # + beta
@@ -191,25 +191,25 @@ class ComplexStudentT_fun(torch.autograd.Function):
         beta = ctx.beta
 
         axes = (0, *[d for d in range(2,x.ndim)])
-        magn = mytorch.complex.complex_abs(x, keepdim=True, eps=1e-9)
+        magn = complex_abs(x, keepdim=True, eps=1e-9)
 
         d = 1 + alpha * magn ** 2 # + beta
 
         dx = beta * (torch.log(d) / 2 + alpha * magn ** 2 / d) / (2 * alpha * magn)
         dx = torch.stack([dx[...,0], torch.zeros(*dx.shape[:-1], dtype=x.dtype, device=x.device)], dim=-1)
-        dxH = beta * (mytorch.complex.complex_mult(x, x) / (2 * alpha) * (alpha / (d * magn) - torch.log(d) / (2 * magn ** 3)))
+        dxH = beta * (complex_mult(x, x) / (2 * alpha) * (alpha / (d * magn) - torch.log(d) / (2 * magn ** 3)))
 
-        grad_inH = mytorch.complex.complex_conj(grad_in)
-        grad_out = mytorch.complex.complex_mult(grad_in, dx) + mytorch.complex.complex_mult(grad_inH, dxH)
+        grad_inH = complex_conj(grad_in)
+        grad_out = complex_mult(grad_in, dx) + complex_mult(grad_inH, dxH)
 
         dalpha = ( (alpha * magn / d - torch.log(d) / magn) / (2 * alpha ** 2)) * x * beta
-        grad_alpha = mytorch.complex.complex_mult(grad_inH, dalpha)+\
-                     mytorch.complex.complex_mult(grad_in, mytorch.complex.complex_conj(dalpha))
+        grad_alpha = complex_mult(grad_inH, dalpha)+\
+                     complex_mult(grad_in, complex_conj(dalpha))
         grad_alpha = grad_alpha.sum(dim=axes, keepdim=True) / 2
 
         dbeta = x * torch.log(d) / (2 * alpha * magn)
-        grad_beta = mytorch.complex.complex_mult(grad_inH, dbeta)+\
-                    mytorch.complex.complex_mult(grad_in, mytorch.complex.complex_conj(dbeta))
+        grad_beta = complex_mult(grad_inH, dbeta)+\
+                    complex_mult(grad_in, complex_conj(dbeta))
         grad_beta = grad_beta.sum(dim=axes, keepdim=True)/ 2
 
         return grad_out, grad_alpha, grad_beta
@@ -258,8 +258,8 @@ class ComplexTrainablePolarActivation(torch.nn.Module):
         self.f_phi.weight.lrscale = 10
 
     def forward(self, x):
-        magn = self.f_abs(mytorch.complex.complex_abs(x, eps=1e-9) )
-        angle = self.f_phi(mytorch.complex.complex_angle(x, eps=1e-9) )
+        magn = self.f_abs(complex_abs(x, eps=1e-9) )
+        angle = self.f_phi(complex_angle(x, eps=1e-9) )
         re = magn * torch.cos(angle)
         im = magn * torch.sin(angle)
 
@@ -285,9 +285,9 @@ class ComplexTrainableMagnitudeActivation(torch.nn.Module):
         self.f_abs.weight.lrscale = 10
 
     def forward(self, x):
-        magn = self.f_abs(mytorch.complex.complex_abs(x, eps=1e-9) )
+        magn = self.f_abs(complex_abs(x, eps=1e-9) )
 
-        angle = mytorch.complex.complex_angle(x, eps=1e-9)
+        angle = complex_angle(x, eps=1e-9)
 
         re = magn * torch.cos(angle)
         im = magn * torch.sin(angle)
@@ -330,8 +330,8 @@ class ComplexTrainablePolarActivationBias(torch.nn.Module):
         bias_abs = self.bias_abs.view(1, -1, *[1 for i in range(x.ndim-3)])
         bias_phase = self.bias_phase.view(1, -1, *[1 for i in range(x.ndim-3)])
 
-        magn = self.f_abs(mytorch.complex.complex_abs(x, eps=1e-9) + bias_abs)
-        angle = self.f_phi(mytorch.complex.complex_angle(x, eps=1e-9) + bias_phase)
+        magn = self.f_abs(complex_abs(x, eps=1e-9) + bias_abs)
+        angle = self.f_phi(complex_angle(x, eps=1e-9) + bias_phase)
         re = magn * torch.cos(angle)
         im = magn * torch.sin(angle)
 
@@ -360,9 +360,9 @@ class ComplexTrainableMagnitudeActivationBias(torch.nn.Module):
     def forward(self, x):
         bias_abs = self.bias_abs.view(1, -1, *[1 for i in range(x.ndim-3)])
 
-        magn = self.f_abs(mytorch.complex.complex_abs(x, eps=1e-9) + bias_abs)
+        magn = self.f_abs(complex_abs(x, eps=1e-9) + bias_abs)
         #print(magn.max(), magn.min())
-        angle = mytorch.complex.complex_angle(x, eps=1e-9)
+        angle = complex_angle(x, eps=1e-9)
 
         re = magn * torch.cos(angle)
         im = magn * torch.sin(angle)

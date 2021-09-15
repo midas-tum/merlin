@@ -1,9 +1,57 @@
 import torch
 import optoth.pad
 
-def complex_pad3d(x, pad_sp_x, pad_sp_y, pad_t, mode='symmetric'):
-    xp_re = optoth.pad.pad3d(x[...,0].contiguous(), (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode=mode)
-    xp_im = optoth.pad.pad3d(x[...,1].contiguous(), (pad_sp_x,pad_sp_x,pad_sp_y,pad_sp_y,pad_t,pad_t), mode=mode)
+def real_pad2d(x, pad, mode='symmetric'):
+    return optoth.pad.pad2d(x, pad, mode=mode)
+
+def real_pad2d_transpose(x, pad, mode='symmetric'):
+    return optoth.pad.pad2d_transpose(x, pad, mode=mode)
+
+def real_pad3d(x, pad, mode='symmetric'):
+    return optoth.pad.pad3d(x, pad, mode=mode)
+
+def real_pad3d_transpose(x, pad, mode='symmetric'):
+    return optoth.pad.pad3d_transpose(x, pad, mode=mode)
+
+def complex_pad2d(x, pad, mode='symmetric'):
+    xp_re = optoth.pad.pad2d(x[...,0].contiguous(), pad, mode=mode)
+    xp_im = optoth.pad.pad2d(x[...,1].contiguous(), pad, mode=mode)
+
+    new_shape = list(xp_re.shape)
+    new_shape.append(2)
+    xp = torch.zeros(*new_shape, device=x.device, dtype=x.dtype)
+    xp[...,0] = xp_re
+    xp[...,1] = xp_im
+
+    return xp
+
+def complex_pad2d_transpose(x, pad, mode='symmetric'):
+    xp_re = optoth.pad.pad2d_transpose(x[...,0].contiguous(), pad, mode=mode)
+    xp_im = optoth.pad.pad2d_transpose(x[...,1].contiguous(), pad, mode=mode)
+
+    new_shape = list(xp_re.shape)
+    new_shape.append(2)
+    xp = torch.zeros(*new_shape, device=x.device, dtype=x.dtype)
+    xp[...,0] = xp_re
+    xp[...,1] = xp_im
+
+    return xp
+
+def complex_pad3d(x, pad, mode='symmetric'):
+    xp_re = optoth.pad.pad3d(x[...,0].contiguous(), pad, mode=mode)
+    xp_im = optoth.pad.pad3d(x[...,1].contiguous(), pad, mode=mode)
+
+    new_shape = list(xp_re.shape)
+    new_shape.append(2)
+    xp = torch.zeros(*new_shape, device=x.device, dtype=x.dtype)
+    xp[...,0] = xp_re
+    xp[...,1] = xp_im
+
+    return xp
+
+def complex_pad3d_transpose(x, pad, mode='symmetric'):
+    xp_re = optoth.pad.pad3d_transpose(x[...,0].contiguous(), pad, mode=mode)
+    xp_im = optoth.pad.pad3d_transpose(x[...,1].contiguous(), pad, mode=mode)
 
     new_shape = list(xp_re.shape)
     new_shape.append(2)
@@ -19,7 +67,7 @@ import numpy as np
 
 class Testpad3dFunction(unittest.TestCase):
     
-    def _test_adjointness(self, dtype, mode):                   
+    def _test_adjointness(dtype, mode):                   
         # setup the hyper parameters for each test
         S, C, D, M, N =4, 3, 16, 32, 32
 

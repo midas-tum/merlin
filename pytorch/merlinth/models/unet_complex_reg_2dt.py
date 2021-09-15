@@ -1,15 +1,18 @@
 
 import torch
 import torch.nn.functional as F
-from .complex_conv3d import *
-from .complex_init import *
-from .complex_norm import *
+from merlinth.layers.convolutional.complex_conv3d import (
+    ComplexPadConv3D,
+    ComplexPadConvScale3D,
+    ComplexPadConvScaleTranspose3D
+)
+from merlinth.layers.complex_init import *
+from merlinth.layers.complex_norm import get_normalization
 
 import numpy as np
 
 import unittest
-from merlinth import mytorch
-from .complex_act import *
+from merlinth.layers.complex_act import *
 
 __all__ = ['ComplexSplitFast',
            'ComplexSplitFastUpsampling',
@@ -41,18 +44,16 @@ def get_activation(activation, num_parameters):
 class ComplexConvBlock3d(torch.nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size_sp=3, kernel_size_t=3,
                  stride=1, dilation=1, groups=1, bias=False, activation='cPReLU',
-                 zero_mean=False, bound_norm=False, normalization='None'):
+                 zero_mean=False, bound_norm=False, normalization='no'):
         super(ComplexConvBlock3d, self).__init__()
         if stride > 2:
-            conv_module = ComplexConvScale3d
+            conv_module = ComplexPadConvScale3D
         else:
-            conv_module = ComplexConv3d
+            conv_module = ComplexPadConv3D
 
         self.conv = conv_module(in_channels,
                     out_channels,
-                    kernel_size_sp_x=kernel_size_sp,
-                    kernel_size_sp_y=kernel_size_sp,
-                    kernel_size_t=kernel_size_t,
+                    kernel_size = (kernel_size_t, kernel_size_sp, kernel_size_sp),
                     stride=stride,
                     bias=bias,
                     zero_mean=zero_mean,
@@ -66,14 +67,12 @@ class ComplexConvBlock3d(torch.nn.Module):
 
 class ComplexConvBlock3dUpsampling(torch.nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size_sp=3, kernel_size_t=3,
-                 stride=1, dilation=1, groups=1, bias=False, activation = 'cPReLU', normalization='None'):
+                 stride=1, dilation=1, groups=1, bias=False, activation = 'cPReLU', normalization='no'):
         super(ComplexConvBlock3dUpsampling, self).__init__()
 
-        self.conv = ComplexConvScaleTranspose3d(out_channels,
+        self.conv = ComplexPadConvScaleTranspose3D(out_channels,
                     in_channels,
-                    kernel_size_sp_x=kernel_size_sp,
-                    kernel_size_sp_y=kernel_size_sp,
-                    kernel_size_t=kernel_size_t,
+                    kernel_size = (kernel_size_t, kernel_size_sp, kernel_size_sp),
                     stride=stride,
                     bias=bias)
         self.norm = get_normalization(normalization)
@@ -84,7 +83,7 @@ class ComplexConvBlock3dUpsampling(torch.nn.Module):
 
 class ComplexSplitFast(torch.nn.Module):
     def __init__(self, in_channels, inter_channels, out_channels, kernel_size_sp=3, kernel_size_t=3,
-                 stride=1, dilation=1, groups=1, bias=False, activation='cPReLU', normalization='None'):
+                 stride=1, dilation=1, groups=1, bias=False, activation='cPReLU', normalization='no'):
         super(ComplexSplitFast, self).__init__()
 
         nom = kernel_size_sp ** 2 * kernel_size_t * in_channels * out_channels
@@ -92,30 +91,24 @@ class ComplexSplitFast(torch.nn.Module):
         inter_channels = int(np.floor(nom/denom))
 
         if stride > 2:
-            conv_module = ComplexConvScale3d
+            conv_module = ComplexPadConvScale3D
         else:
-            conv_module = ComplexConv3d
+            conv_module = ComplexPadConv3D
 
         self.conv_xy = conv_module(in_channels,
                     inter_channels,
-                    kernel_size_sp_x=kernel_size_sp,
-                    kernel_size_sp_y=kernel_size_sp,
-                    kernel_size_t=1,
+                    kernel_size = (1, kernel_size_sp, kernel_size_sp),
                     stride=stride,
                     bias=bias)
 
-        self.conv_xt = ComplexConv3d(inter_channels,
+        self.conv_xt = ComplexPadConv3D(inter_channels,
                  out_channels,
-                 kernel_size_sp_x=kernel_size_sp,
-                 kernel_size_sp_y=1,
-                 kernel_size_t=kernel_size_t,
+                 kernel_size = (kernel_size_t, 1, kernel_size_sp),
                  bias=bias)
 
-        self.conv_yt = ComplexConv3d(inter_channels,
+        self.conv_yt = ComplexPadConv3D(inter_channels,
                  out_channels,
-                 kernel_size_sp_x=1,
-                 kernel_size_sp_y=kernel_size_sp,
-                 kernel_size_t=kernel_size_t,
+                 kernel_size = (kernel_size_t, kernel_size_sp, 1),
                  bias=bias)
 
         # self.conv_t = ComplexConv3d(out_channels*2,
@@ -148,33 +141,27 @@ class ComplexSplitFast(torch.nn.Module):
 
 class ComplexSplitFastUpsampling(torch.nn.Module):
     def __init__(self, in_channels, inter_channels, out_channels, kernel_size_sp=3, kernel_size_t=3,
-                 stride=1, dilation=1, groups=1, bias=False, activation='cPReLU', normalization='None'):
+                 stride=1, dilation=1, groups=1, bias=False, activation='cPReLU', normalization='no'):
         super(ComplexSplitFastUpsampling, self).__init__()
 
         nom = kernel_size_sp ** 2 * kernel_size_t * in_channels * out_channels
         denom = kernel_size_sp ** 2 * in_channels + 2 * kernel_size_sp * kernel_size_t * out_channels
         inter_channels = int(np.floor(nom/denom))
         
-        self.conv_xy = ComplexConvScaleTranspose3d(inter_channels,
+        self.conv_xy = ComplexPadConvScaleTranspose3D(inter_channels,
                     in_channels,
-                    kernel_size_sp_x=kernel_size_sp,
-                    kernel_size_sp_y=kernel_size_sp,
-                    kernel_size_t=1,
+                    kernel_size = (1, kernel_size_sp, kernel_size_sp),
                     stride=stride,
                     bias=bias)
 
-        self.conv_xt = ComplexConv3d(inter_channels,
+        self.conv_xt = ComplexPadConv3D(inter_channels,
                  out_channels,
-                 kernel_size_sp_x=kernel_size_sp,
-                 kernel_size_sp_y=1,
-                 kernel_size_t=kernel_size_t,
+                 kernel_size = (kernel_size_t, 1, kernel_size_sp),
                  bias=bias)
 
-        self.conv_yt = ComplexConv3d(inter_channels,
+        self.conv_yt = ComplexPadConv3D(inter_channels,
                  out_channels,
-                 kernel_size_sp_x=1,
-                 kernel_size_sp_y=kernel_size_sp,
-                 kernel_size_t=kernel_size_t,
+                 kernel_size = (kernel_size_t, kernel_size_sp, 1),
                  bias=bias)
 
         # self.norm_xy = get_normalization(normalization)
@@ -203,13 +190,13 @@ class ComplexSplitFastUpsampling(torch.nn.Module):
 
 class ComplexConvBlock2dt(torch.nn.Module):
     def __init__(self, in_channels, inter_channels, out_channels, kernel_size_sp=3, kernel_size_t=3,
-                 stride=1, dilation=1, groups=1, bias=False, activation='cPReLU', activation_xy = False, normalization='None'):
+                 stride=1, dilation=1, groups=1, bias=False, activation='cPReLU', activation_xy = False, normalization='no'):
         super(ComplexConvBlock2dt, self).__init__()
 
         if stride > 2:
-            conv_module = ComplexConvScale3d
+            conv_module = ComplexPadConvScale3D
         else:
-            conv_module = ComplexConv3d
+            conv_module = ComplexPadConv3D
 
         nom = kernel_size_sp ** 2 * kernel_size_t * in_channels * out_channels
         denom = kernel_size_sp ** 2 * in_channels + kernel_size_t * out_channels
@@ -217,17 +204,13 @@ class ComplexConvBlock2dt(torch.nn.Module):
 
         self.conv_xy = conv_module(in_channels,
                     inter_channels,
-                    kernel_size_sp_x=kernel_size_sp,
-                    kernel_size_sp_y=kernel_size_sp,
-                    kernel_size_t=1,
+                    kernel_size = (1, kernel_size_sp, kernel_size_sp),
                     stride=stride,
                     bias=bias)
 
-        self.conv_t = ComplexConv3d(inter_channels,
+        self.conv_t = ComplexPadConv3D(inter_channels,
                  out_channels,
-                 kernel_size_sp_x=1,
-                 kernel_size_sp_y=1,
-                 kernel_size_t=kernel_size_t,
+                 kernel_size = (kernel_size_t, 1, 1),
                  bias=bias)
         #self.conv_t.weight.lrscale = 2
 
@@ -249,26 +232,22 @@ class ComplexConvBlock2dt(torch.nn.Module):
 
 class ComplexConvBlock2dtUpsampling(torch.nn.Module):
     def __init__(self, in_channels, inter_channels, out_channels, kernel_size_sp=3, kernel_size_t=3,
-                 stride=1, dilation=1, groups=1, bias=False, activation='cPReLU', activation_xy = False, normalization='None'):
+                 stride=1, dilation=1, groups=1, bias=False, activation='cPReLU', activation_xy = False, normalization='no'):
         super(ComplexConvBlock2dtUpsampling, self).__init__()
 
         nom = kernel_size_sp ** 2 * kernel_size_t * in_channels * out_channels
         denom = kernel_size_sp ** 2 * in_channels + kernel_size_t * out_channels
         inter_channels = int(np.floor(nom/denom))
 
-        self.conv_xy = ComplexConvScaleTranspose3d(inter_channels,
+        self.conv_xy = ComplexPadConvScaleTranspose3D(inter_channels,
                     in_channels,
-                    kernel_size_sp_x=kernel_size_sp,
-                    kernel_size_sp_y=kernel_size_sp,
-                    kernel_size_t=1,
+                    kernel_size = (1, kernel_size_sp, kernel_size_sp),
                     stride=stride,
                     bias=bias)
 
-        self.conv_t = ComplexConv3d(inter_channels,
+        self.conv_t = ComplexPadConv3D(inter_channels,
                  out_channels,
-                 kernel_size_sp_x=1,
-                 kernel_size_sp_y=1,
-                 kernel_size_t=kernel_size_t,
+                 kernel_size = (kernel_size_t, 1, 1),
                  bias=bias)
         #self.conv_t.weight.lrscale = 2
 
@@ -325,9 +304,9 @@ class InitTest(unittest.TestCase):
         model = ComplexConvBlock3d(nf_in, nf_out, kernel_size_sp=ksp, kernel_size_t=kst, stride=1, activation=activation).cuda()
 
         def weight_init(module):
-            if isinstance(module, ComplexConv3d) \
-            or isinstance(module, ComplexConvScale3d) \
-            or isinstance(module, ComplexConvScaleTranspose3d):
+            if isinstance(module, ComplexPadConv3D) \
+            or isinstance(module, ComplexPadConvScale3D) \
+            or isinstance(module, ComplexPadConvScaleTranspose3D):
                 #print('weight init ortho', ortho, module)
                 #print('before: ', module.weight.min(), module.weight.max())
                 if ortho:
