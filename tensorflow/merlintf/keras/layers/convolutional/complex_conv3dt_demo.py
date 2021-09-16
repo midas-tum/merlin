@@ -431,14 +431,14 @@ class Conv3Dt(tf.keras.layers.Layer):
             **kwargs)
 
         if data_format=='channels_first':
-            conv_t_filters = filters * self.shape[2]
-        else:
             conv_t_filters = filters * self.shape[1]
+        else:
+            conv_t_filters = filters * self.shape[-1]
 
         self.conv_t = ComplexConv3D(
             filters=conv_t_filters,
-            kernel_size=(1, 1, 1),
-            strides=(1, 1, 1),
+            kernel_size=(kernel_size[0], 1, 1),
+            strides=(strides[0], 1, 1),
             padding=padding,
             data_format=data_format,
             dilation_rate=(dilation_rate[0], 1, 1),
@@ -472,16 +472,16 @@ class Conv3Dt(tf.keras.layers.Layer):
             shape_t[-1] = self.intermediate_filters
 
         self.conv_xyz.build(shape_xyz)
-        if self.data_format == 'channels_first':
-            self.conv_t.build(shape_t*self.shape[2])
-        else: # channels last
-            self.conv_t.build(shape_t * self.shape[1])
+        self.conv_t.build(shape_t)
+        #if self.data_format == 'channels_first':
+        #    self.conv_t.build(shape_t * self.shape[2])
+        #else: # channels last
+        #    self.conv_t.build(shape_t * self.shape[1])
 
     def call(self, x):
-        if self.data_format == 'channels_first': #[batch, chs, time, x,y,z]
+        if self.data_format == 'channels_first':  # [batch, chs, time, x,y,z]
 
-            x_sp_list = [self.conv_xyz(x[:, :, i, :, :, :]) for i in range(0, self.shape[2])]# split 'time' dimension, and 3D conv (depthwise) for each
-            x_sp=tf.stack(x_sp_list, axis=2)
+            x_sp = tf.stack([self.conv_xyz(x[:, :, i, :, :, :]) for i in range(0, self.shape[2])], axis=2)  # split 'time' dimension, and 3D conv (depthwise) for each
 
             if self.axis_conv_t==1:
                 x_t_list =[self.conv_t(x_sp[:, i,:, :, :, :]) for i in range(0, self.shape[self.axis_conv_t])]
@@ -492,13 +492,12 @@ class Conv3Dt(tf.keras.layers.Layer):
             elif self.axis_conv_t==5:
                 x_t_list = [self.conv_t(x_sp[:, :, :, :, :, i]) for i in range(0, self.shape[self.axis_conv_t])]
             else:
-                x_t_list=[self.conv_t(x_sp[:, :,i, :, :, :]) for i in range(0, self.shape[self.axis_conv_t])]
+                x_t_list=[self.conv_t(x_sp[:, :, i, :, :, :]) for i in range(0, self.shape[self.axis_conv_t])]
 
             x_t = tf.stack(x_t_list, axis=self.axis_conv_t) # stack time
-        else: # channels last #[batch,  time, x,y,z,chs]
+        else: # channels last #[batch, time, x,y,z,chs]
 
-            x_sp_list = [self.conv_xyz(x[:, i, :, :, :, :]) for i in
-                         range(0, self.shape[1])]  # split 'time' dimension, and 3D conv (depthwise) for each
+            x_sp_list = [self.conv_xyz(x[:, i, :, :, :, :]) for i in range(0, self.shape[1])]  # split 'time' dimension, and 3D conv (depthwise) for each
             x_sp = tf.stack(x_sp_list, axis=1)
 
             if self.axis_conv_t == 2:
