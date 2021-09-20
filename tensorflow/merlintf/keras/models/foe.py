@@ -4,6 +4,7 @@ from merlintf.keras.layers import ComplexPadConv2D, ComplexPadConv3D
 from merlintf.keras.layers import ComplexPadConv2Dt
 from merlintf.keras.layers import PadConv1D, PadConv2D, PadConv3D
 from optotf.activations import TrainableActivationKeras as TrainableActivation
+from tensorflow.python.eager import context
 
 import unittest
 import numpy as np
@@ -47,9 +48,13 @@ class FoEBase(Regularizer):
         return NotImplementedError
 
     def grad(self, x):
+        input_shape = x.shape
         x = self._transformation(x)
         x = self._activation(x)
         x = self._transformation_T(x)
+        if not context.executing_eagerly():
+            # Infer the static output shape:
+            x.set_shape(input_shape)
         return x
 
 class FoE(FoEBase):
