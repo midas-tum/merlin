@@ -144,3 +144,5 @@ dmypy.json
 .idea/
 
 *.png
+
+samplingPattern.txt

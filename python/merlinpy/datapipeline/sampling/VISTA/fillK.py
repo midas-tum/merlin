@@ -57,7 +57,6 @@ def excludeOuter(tmp, p):
 def fillK(P, T, Pacc, Tacc, p, R, alph, s=1.4, fr=1):
     """
     Ensures time-average of VISTA is fully sampled(except for the outer mostregion)
-
     p: Number of phase encoding steps
     fr: What fraction of the time-averaged should be fully sampled. Default value: 1
     """
