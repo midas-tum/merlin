@@ -165,7 +165,7 @@ def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
     if typ == 'VRS':
         return ph, ti, p, t
 
-    print('Computing VISTA, plese wait as it may take a while ...', datetime.datetime.now())
+    print('Computing VISTA, please wait as it may take a while ...', datetime.datetime.now())
     stp = np.ones((1, nIter)).flatten()  # Gradient descent displacement, shape(120,)
     a = W * np.ones((1, nIter)).flatten()  # Temporal axis scaling
 
