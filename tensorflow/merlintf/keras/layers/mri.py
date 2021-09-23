@@ -1,6 +1,8 @@
 import tensorflow as tf
 from merlintf.keras.layers.fft import FFT2, FFT2c, IFFT2, IFFT2c
+from merlintf.keras.layers.warp import WarpForward, WarpAdjoint
 import merlintf
+import optotf.keras.warp
 import unittest
 import numpy as np
 
@@ -100,6 +102,36 @@ class MulticoilAdjointOp(tf.keras.layers.Layer):
         else:
             return img
 
+class MulticoilMotionForwardOp(tf.keras.layers.Layer):
+    def __init__(self, center=False, coil_axis=-3, channel_dim_defined=True):
+        super().__init__()
+        self.W = WarpForward()
+        self.A = MulticoilForwardOp(center=center, coil_axis=coil_axis, channel_dim_defined=False)
+        self.channel_dim_defined = channel_dim_defined
+
+    def call(self, x, mask, smaps, u):
+        if self.channel_dim_defined:
+            x = self.W(x[...,0], u)
+        else:
+            x = self.W(x, u)
+        y = self.A(x, mask, smaps)
+        return y
+
+class MulticoilMotionAdjointOp(tf.keras.layers.Layer):
+    def __init__(self, center=False, coil_axis=-3, channel_dim_defined=True):
+        super().__init__()
+        self.AH = MulticoilAdjointOp(center=center, coil_axis=coil_axis, channel_dim_defined=False)
+        self.WH = WarpAdjoint()
+        self.channel_dim_defined = channel_dim_defined
+
+    def call(self, y, mask, smaps, u):
+        x = self.AH(y, mask, smaps)
+        x = self.WH(x, u)
+        if self.channel_dim_defined:
+            return tf.expand_dims(x, -1)
+        else:
+            return x
+
 class TestMulticoilOps(unittest.TestCase):        
     def _get_data(self, shape, channel_dim_defined):
         batch, frames, ncoils, M, N = shape
@@ -144,6 +176,71 @@ class TestMulticoilOps(unittest.TestCase):
         AH = MulticoilAdjointOp(center=True, coil_axis=1, channel_dim_defined=channel_dim_defined)
         Ax = A(img, mask, smaps,)
         AHy = AH(kspace, mask, smaps)
+
+        lhs = np.sum(Ax * np.conj(kspace))
+        rhs = np.sum(img * np.conj(AHy))
+        self.assertAlmostEqual(lhs, rhs)
+
+    def test_adjointness(self):
+        self._test_adjointness(False)
+
+    def test_adjointness_channel_dim(self):
+        self._test_adjointness(True)
+
+
+class TestMulticoilMotionOps(unittest.TestCase):
+    #TODO test warping if features are present
+    def _get_data(self, shape):
+        tf.keras.backend.set_floatx('float64')
+        batch, frames, frames_all, M, N, ncoils = shape
+        img = np.random.randn(*(batch, frames, M, N)) + 1j * np.random.randn(*(batch, frames, M, N))
+        uv = np.random.randn(*(batch, frames, frames_all, M, N, 2))
+        mask = np.ones((batch, 1, 1, frames_all, 1, N))
+        smaps = np.random.randn(*(batch, ncoils, 1, 1, M, N)) + 1j * np.random.randn(*(batch, ncoils, 1, 1, M, N))
+        kspace = np.random.randn(*(batch, ncoils, frames, frames_all, M, N)) + 1j * np.random.randn(*(batch, ncoils, frames, frames_all, M, N))
+        return img, uv, mask, smaps, kspace
+
+    def _test_forward(self, channel_dim_defined):
+        shape = (2, 4, 25, 176, 132, 15)
+        img, uv, mask, smaps, kspace = self._get_data(shape)
+        if channel_dim_defined:
+            img = img[...,None]
+
+        A = MulticoilMotionForwardOp(center=True, coil_axis=1, channel_dim_defined=channel_dim_defined)
+        Ax = A(img, mask, smaps, uv)
+        self.assertTrue(Ax.shape == kspace.shape)
+
+    def test_forward(self):
+        self._test_forward(False)
+
+    def test_forward_channel_dim(self):
+        self._test_forward(True)
+    
+    def _test_backward(self, channel_dim_defined):
+        shape = (2, 4, 25, 176, 132, 15)
+        img, uv, mask, smaps, kspace = self._get_data(shape)
+        if channel_dim_defined:
+            img = img[...,None]
+        AH = MulticoilMotionAdjointOp(center=True, coil_axis=1, channel_dim_defined=channel_dim_defined)
+        AHy = AH(kspace, mask, smaps, uv)
+        self.assertTrue(AHy.shape == img.shape)
+
+    def test_backward(self):
+        self._test_backward(False)
+
+    def test_backward_channel_dim(self):
+        self._test_backward(True)
+
+    def _test_adjointness(self, channel_dim_defined):
+        shape = (2, 4, 25, 176, 132, 15)
+        img, uv, mask, smaps, kspace = self._get_data(shape)
+        if channel_dim_defined:
+            img = img[...,None]
+
+        A = MulticoilMotionForwardOp(center=True, coil_axis=1, channel_dim_defined=channel_dim_defined)
+        AH = MulticoilMotionAdjointOp(center=True, coil_axis=1, channel_dim_defined=channel_dim_defined)
+        Ax = A(img, mask, smaps, uv)
+        AHy = AH(kspace, mask, smaps, uv)
 
         lhs = np.sum(Ax * np.conj(kspace))
         rhs = np.sum(img * np.conj(AHy))
