@@ -17,6 +17,9 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import nn
 from tensorflow.python.ops import nn_ops
 
+import merlintf
+
+'''
 def get_ndim(dim):
     if dim == '2D':
         n_dim = 2
@@ -29,8 +32,9 @@ def get_ndim(dim):
     else: n_dim=0
     return n_dim
 
+
 def validate_input_dimension(dim, param):
-    n_dim = get_ndim(dim)
+    n_dim = merlintf.keras.utils.get_ndim(dim)
     if isinstance(param, tuple) or isinstance(param, list):
         if not len(param) == n_dim:
             raise RuntimeError("Parameter dimensions {} do not match requested dimensions {}!".format(len(param), n_dim))
@@ -38,7 +42,9 @@ def validate_input_dimension(dim, param):
             return param
     else:
         return tuple([param for _ in range(n_dim)])
+'''
 
+# TODO: can be inherited from complex_convolutional.py
 class ComplexConv(Layer):
 
   def __init__(self,
@@ -332,8 +338,6 @@ class ComplexConv(Layer):
 
 
 class ComplexConv3D(ComplexConv):
-
-
   def __init__(self,
                filters,
                kernel_size,
@@ -376,8 +380,8 @@ class ComplexConv3D(ComplexConv):
 
 class Conv3Dt(tf.keras.layers.Layer):
     def __init__(self,
-                 filters, #out
-                 intermediate_filters,
+                 filters, # out
+                 intermediate_filters, # TODO: not needed!
                  kernel_size,
                  strides=(1, 1, 1, 1),
                  padding='same',
@@ -405,11 +409,10 @@ class Conv3Dt(tf.keras.layers.Layer):
         self.shape=shapes
         self.axis_conv_t=axis_conv_t
 
-
-
-        kernel_size = validate_input_dimension('3Dt', kernel_size)
-        strides = validate_input_dimension('3Dt', strides)
-        dilation_rate = validate_input_dimension('3Dt', dilation_rate)
+        # TODO: should be handled outside and assumed to be correct here!
+        kernel_size = merlintf.keras.utils.validate_input_dimension('3Dt', kernel_size)
+        strides = merlintf.keras.utils.validate_input_dimension('3Dt', strides)
+        dilation_rate = merlintf.keras.utils.validate_input_dimension('3Dt', dilation_rate)
 
         self.conv_xyz = ComplexConv3D(
             filters=intermediate_filters,
@@ -427,7 +430,6 @@ class Conv3Dt(tf.keras.layers.Layer):
             activity_regularizer=regularizers.get(activity_regularizer),
             kernel_constraint=constraints.get(kernel_constraint),
             bias_constraint=constraints.get(bias_constraint),
-
             **kwargs)
 
         if data_format=='channels_first':
@@ -515,59 +517,59 @@ class Conv3Dt(tf.keras.layers.Layer):
         return x_t
 
 
+if __name__ == "__main__":
+    # channel last
+    nBatch = 2
+    M = 48
+    N = 32
+    D = 12
+    T = 8
+    nf_in = 2
+    nf_out = 16
+    shape = [nBatch, T, M, N, D, nf_in]
 
-# channel last
-nBatch = 2
-M = 32
-N = 32
-D = 12
-T = 8
-nf_in = 2
-nf_out = 16
-shape = [nBatch, T, M, N, D, nf_in]
+    ksz = (3, 5, 5, 5)
+    ksz = merlintf.keras.utils.validate_input_dimension('3Dt', ksz)
 
-ksz = (3, 5, 5, 5)
-ksz = validate_input_dimension('3Dt', ksz)
-
-nf_inter = np.ceil(
-    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] * ksz[3] + nf_out * ksz[0])).astype(np.int32)
-
-
-
-model = Conv3Dt(nf_out, nf_inter, kernel_size=ksz,shapes=shape,axis_conv_t=4)
-
-x_real =tf.cast(tf.random.normal(shape),dtype=tf.float32)
-x_imag =tf.cast(tf.random.normal(shape),dtype=tf.float32)
-x=tf.complex(x_real,x_imag)
-Kx = model(x).numpy()
-print(Kx.shape)
+    nf_inter = np.ceil(
+        (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] * ksz[3] + nf_out * ksz[0])).astype(np.int32)
 
 
-print('------------')
-model2 = Conv3Dt(nf_out, nf_inter, kernel_size=ksz,shapes=shape,axis_conv_t=3,strides=(2,2,2,2)) # strides =2
-x_real =tf.cast(tf.random.normal(shape),dtype=tf.float32)
-x_imag =tf.cast(tf.random.normal(shape),dtype=tf.float32)
-x=tf.complex(x_real,x_imag)
-Kx = model(x).numpy()
-print(Kx.shape)
 
-print('================')
-# channel first
-shape = [nBatch,nf_in, T, M, N, D]
+    model = Conv3Dt(nf_out, nf_inter, kernel_size=ksz,shapes=shape,axis_conv_t=4)
+
+    x_real =tf.cast(tf.random.normal(shape),dtype=tf.float32)
+    x_imag =tf.cast(tf.random.normal(shape),dtype=tf.float32)
+    x=tf.complex(x_real,x_imag)
+    Kx = model(x).numpy()
+    print(Kx.shape)
 
 
-ksz = (3, 5, 5, 5)
-ksz = validate_input_dimension('3Dt', ksz)
+    print('------------')
+    model2 = Conv3Dt(nf_out, nf_inter, kernel_size=ksz,shapes=shape,axis_conv_t=3,strides=(2,2,2,2)) # strides =2
+    x_real =tf.cast(tf.random.normal(shape),dtype=tf.float32)
+    x_imag =tf.cast(tf.random.normal(shape),dtype=tf.float32)
+    x=tf.complex(x_real,x_imag)
+    Kx = model(x).numpy()
+    print(Kx.shape)
 
-nf_inter = np.ceil(
-    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] * ksz[3] + nf_out * ksz[0])).astype(np.int32)
+    print('================')
+    # channel first
+    shape = [nBatch,nf_in, T, M, N, D]
 
 
-model = Conv3Dt(nf_out, nf_inter, kernel_size=ksz,shapes=shape,data_format='channels_first',axis_conv_t=4)
+    ksz = (3, 5, 5, 5)
+    ksz = validate_input_dimension('3Dt', ksz)
 
-x =tf.random.normal(shape)
-Kx = model(x).numpy()
-print(Kx.shape)
+    nf_inter = np.ceil(
+        (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] * ksz[3] + nf_out * ksz[0])).astype(np.int32)
+
+
+    model = Conv3Dt(nf_out, nf_inter, kernel_size=ksz,shapes=shape,data_format='channels_first',axis_conv_t=4)
+
+    x =tf.random.normal(shape)
+    Kx = model(x).numpy()
+    print(Kx.shape)
 
 
 
