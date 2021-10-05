@@ -180,7 +180,7 @@ class Conv3Dt(tf.keras.layers.Layer):
 
             # TODO: check if faster option?
             shape_in = x.shape
-            x_sp = tf.stack([x[:, i, :, :, :, :] for i in range(0, self.shape[2])], axis=0)
+            x_sp = tf.stack([x[:, i, :, :, :, :] for i in range(0, self.shape[1])], axis=0)
             x_sp = self.conv_xyz(x_sp)
             shape_sp = x_sp.shape
             x_sp_list = tf.split(x_sp, [shape_in[0]] + shape_sp[1:])  # should give a list of len = nTime and each element: [batch, x, y, z, chs]
@@ -347,6 +347,7 @@ class Conv3DtTranspose(tf.keras.layers.Layer):
 
 
 if __name__ == "__main__":
+    import merlintf
     # channel last
     nBatch = 2
     M = 48
@@ -366,7 +367,7 @@ if __name__ == "__main__":
 
 
 
-    model = Conv3Dt(nf_out, nf_inter, kernel_size=ksz,shapes=shape,axis_conv_t=4)
+    model = Conv3Dt(nf_out, kernel_size=ksz,shapes=shape,axis_conv_t=4,intermediate_filters=nf_inter)
 
     x_real =tf.cast(tf.random.normal(shape),dtype=tf.float32)
     x_imag =tf.cast(tf.random.normal(shape),dtype=tf.float32)
@@ -376,7 +377,7 @@ if __name__ == "__main__":
 
 
     print('------------')
-    model2 = Conv3Dt(nf_out, nf_inter, kernel_size=ksz,shapes=shape,axis_conv_t=3,strides=(2,2,2,2)) # strides =2
+    model2 = Conv3Dt(nf_out, kernel_size=ksz,shapes=shape,axis_conv_t=3,strides=(2,2,2,2),intermediate_filters=nf_inter) # strides =2
     x_real =tf.cast(tf.random.normal(shape),dtype=tf.float32)
     x_imag =tf.cast(tf.random.normal(shape),dtype=tf.float32)
     x=tf.complex(x_real,x_imag)
