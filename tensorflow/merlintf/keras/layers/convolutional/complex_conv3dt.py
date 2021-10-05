@@ -153,7 +153,7 @@ class Conv3Dt(tf.keras.layers.Layer):
 
             # TODO: check if faster option?
             shape_in = x.shape
-            x_sp = tf.stack([x[:, :, i, :, :, :] for i in range(0, self.shape[2])], axis=0)
+            x_sp = tf.concat([x[:, :, i, :, :, :] for i in range(0, self.shape[2])], axis=0)
             x_sp = self.conv_xyz(x_sp)
             shape_sp = x_sp.shape
             x_sp_list = tf.split(x_sp, [shape_in[0]] + shape_sp[1:])  # should give a list of len = nTime and each element: [batch, chs, x, y, z]
@@ -180,7 +180,7 @@ class Conv3Dt(tf.keras.layers.Layer):
 
             # TODO: check if faster option?
             shape_in = x.shape
-            x_sp = tf.stack([x[:, i, :, :, :, :] for i in range(0, self.shape[1])], axis=0)
+            x_sp = tf.concat([x[:, i, :, :, :, :] for i in range(0, self.shape[1])], axis=0)
             x_sp = self.conv_xyz(x_sp)
             shape_sp = x_sp.shape
             x_sp_list = tf.split(x_sp, [shape_in[0]] + shape_sp[1:])  # should give a list of len = nTime and each element: [batch, x, y, z, chs]
