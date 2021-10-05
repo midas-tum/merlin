@@ -156,8 +156,8 @@ class Conv3Dt(tf.keras.layers.Layer):
             x_sp = tf.concat([x[:, :, i, :, :, :] for i in range(0, self.shape[2])], axis=0)
             x_sp = self.conv_xyz(x_sp)
             shape_sp = x_sp.shape
-            x_sp_list = tf.split(x_sp, [shape_in[0]] + shape_sp[1:])  # should give a list of len = nTime and each element: [batch, chs, x, y, z]
-            x_sp = tf.stack(x_sp_list, axis=2)
+            x_sp_list = tf.split(x_sp, shape_in[0], axis=0)  # should give a list of len = nBatch and each element: [time, x, y, z, chs]
+            x_sp = tf.stack(x_sp_list, axis=0)
 
             #x_sp = tf.stack([self.conv_xyz(x[:, :, i, :, :, :]) for i in range(0, self.shape[2])], axis=2)  # split 'time' dimension, and 3D conv (depthwise) for each
             #x_sp = tf.stack(x_sp_list, axis=2)
@@ -183,8 +183,9 @@ class Conv3Dt(tf.keras.layers.Layer):
             x_sp = tf.concat([x[:, i, :, :, :, :] for i in range(0, self.shape[1])], axis=0)
             x_sp = self.conv_xyz(x_sp)
             shape_sp = x_sp.shape
-            x_sp_list = tf.split(x_sp, [shape_in[0]] + shape_sp[1:])  # should give a list of len = nTime and each element: [batch, x, y, z, chs]
-            x_sp = tf.stack(x_sp_list, axis=1)
+            #x_sp_list = tf.split(x_sp, [shape_in[0]] + shape_sp[1:], axis=0)  # should give a list of len = nTime and each element: [batch, x, y, z, chs]
+            x_sp_list = tf.split(x_sp, shape_in[0], axis=0)  # should give a list of len = nBatch and each element: [time, x, y, z, chs]
+            x_sp = tf.stack(x_sp_list, axis=0)
 
             #x_sp_list = [self.conv_xyz(x[:, i, :, :, :, :]) for i in range(0, self.shape[1])]  # split 'time' dimension, and 3D conv (depthwise) for each
             #x_sp = tf.stack(x_sp_list, axis=1)
