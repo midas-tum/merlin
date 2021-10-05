@@ -180,13 +180,21 @@ class Conv3Dt(tf.keras.layers.Layer):
     def call(self, x):
         if self.data_format == 'channels_first':  # [batch, chs, time, x,y,z]
 
-            x_sp_list = [self.conv_xyz(x[:, :, i, :, :, :]) for i in
-                         range(0, self.shape[2])]  # split 'time' dimension, and 3D conv (depthwise) for each
+            shape_in = x.shape
+            x_sp = tf.stack([x[:, :, i, :, :, :] for i in range(0, self.shape[2])], axis=0)
+            x_sp = self.conv_xyz(x_sp)
+            shape_sp = x_sp.shape
+            x_sp_list = tf.split(x_sp, [shape_in[0]] + shape_sp[1:])  # should give a list of len = nTime and each element: [batch, chs, x, y, z]
             x_sp = tf.stack(x_sp_list, axis=2)
+
+            #x_sp_list = [self.conv_xyz(x[:, :, i, :, :, :]) for i in
+            #             range(0, self.shape[2])]  # split 'time' dimension, and 3D conv (depthwise) for each
+            #x_sp = tf.stack(x_sp_list, axis=2)
             shape_sp = x_sp.shape
 
-
-            if self.axis_conv_t == 1:
+            if self.axis_conv_t == 0:
+                x_t
+            elif self.axis_conv_t == 1:
                 x_t_list = [self.conv_t(x_sp[:, i, :, :, :, :]) for i in range(0, shape_sp[self.axis_conv_t])]
             elif self.axis_conv_t == 3:
                 x_t_list = [self.conv_t(x_sp[:, :, :, i, :, :]) for i in range(0, shape_sp[self.axis_conv_t])]
