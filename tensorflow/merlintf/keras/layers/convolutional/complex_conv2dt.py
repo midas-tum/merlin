@@ -50,18 +50,18 @@ class Conv2Dt(tf.keras.layers.Layer):
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.shape = shapes
         self.axis_conv_t = axis_conv_t
-        self.padding=padding
-        self.kernel_size = validate_input_dimension('2Dt', kernel_size)
-        self.strides = validate_input_dimension('2Dt', strides)
-        self.dilation_rate = validate_input_dimension('2Dt', dilation_rate)
+        self.padding = padding
+        self.kernel_size = merlintf.keras.utils.validate_input_dimension('2Dt', kernel_size)
+        self.strides = merlintf.keras.utils.validate_input_dimension('2Dt', strides)
+        self.dilation_rate = merlintf.keras.utils.validate_input_dimension('2Dt', dilation_rate)
 
         self.conv_xy = ComplexConv2D(
             filters=intermediate_filters,
-            kernel_size=(kernel_size[1], kernel_size[2]),
-            strides=(int(strides[1]), int(strides[2])),
+            kernel_size=( self.kernel_size[1],  self.kernel_size[2]),
+            strides=( self.strides[1],  self.strides[2]),
             padding=padding,
             data_format=data_format,
-            dilation_rate=(int(dilation_rate[1]), int(dilation_rate[2])),
+            dilation_rate=( self.dilation_rate[1],  self.dilation_rate[2]),
             groups=groups,
             use_bias=use_bias,
             kernel_initializer=initializers.get(kernel_initializer),
@@ -82,7 +82,7 @@ class Conv2Dt(tf.keras.layers.Layer):
             strides=(1, 1),
             padding=padding,
             data_format=data_format,
-            dilation_rate=(dilation_rate[0], 1),
+            dilation_rate=(self.dilation_rate[0], 1),
             groups=groups,
             use_bias=use_bias,
             kernel_initializer=initializers.get(kernel_initializer),
@@ -94,51 +94,60 @@ class Conv2Dt(tf.keras.layers.Layer):
             bias_constraint=constraints.get(bias_constraint),
 
             **kwargs)
-    def calculate_output_shape(self,input_spatial_shape):
+
+    def calculate_output_shape(self, input_spatial_shape):
         # calculate output shape x,y, but not channels
-        output_spatial_shape=input_spatial_shape.copy()
-        if self.padding.upper()=="SAME":
+        output_spatial_shape = input_spatial_shape.copy()
+        if self.padding.upper() == "SAME":
             if self.data_format == 'channels_first':
                 # input_spatial_shape=[batch, channels, x,y]
-                for i in range (2): # calculate x,y
-                        output_spatial_shape[i+2] = int(np.ceil(input_spatial_shape[i+2] / self.strides[i+1]))
-            else: # channel last
-                for i in range(2): # calculate x,y
-                    output_spatial_shape[i+1] = int(np.ceil(input_spatial_shape[i+1] / self.strides[i + 1]))
+                for i in range(2):  # calculate x,y
+                    output_spatial_shape[i + 2] = int(np.ceil(input_spatial_shape[i + 2] / self.strides[i + 1]))
+            else:  # channel last
+                for i in range(2):  # calculate x,y
+                    output_spatial_shape[i + 1] = int(np.ceil(input_spatial_shape[i + 1] / self.strides[i + 1]))
 
-        elif self.padding.upper()=="VALID":
+        elif self.padding.upper() == "VALID":
 
             if self.data_format == 'channels_first':
-                 for i in range (2):  # calculate x,y
-                        output_spatial_shape[i+2] = int(np.ceil((input_spatial_shape[i+2]
-                                                                 - (self.kernel_size[i+1]-1)
-                                                                 * self.dilation_rate[i+1]) / self.strides[i+1]))
-            else: # channel last
-                for i in range(2): # calculate x,y
-                    output_spatial_shape[i+1] = int(np.ceil((input_spatial_shape[i+1]
-                                                             - (self.kernel_size[i+1]-1)
-                                                             * self.dilation_rate[i+1]) / self.strides[i+1]))
-
+                for i in range(2):  # calculate x,y
+                    output_spatial_shape[i + 2] = int(np.ceil((input_spatial_shape[i + 2]
+                                                               - (self.kernel_size[i + 1] - 1)
+                                                               * self.dilation_rate[i + 1]) / self.strides[i + 1]))
+            else:  # channel last
+                for i in range(2):  # calculate x,y
+                    output_spatial_shape[i + 1] = int(np.ceil((input_spatial_shape[i + 1]
+                                                               - (self.kernel_size[i + 1] - 1)
+                                                               * self.dilation_rate[i + 1]) / self.strides[i + 1]))
 
         return output_spatial_shape  # 4 dimensional shape
+
+    def batch_concat_conv(self, inputs,func, axis=0):
+        shape_in = inputs.shape
+        x_list = tf.split(inputs, shape_in[axis], axis=axis)
+        x = tf.concat(x_list, axis=0)
+        x = tf.squeeze(x, axis=axis)
+        x = func(x)
+        x_list = tf.split(x, shape_in[0], axis=0)
+        return tf.stack(x_list, axis=axis)
+
     def build(self, input_shape):
         self.shape = input_shape
         input_shape = list(input_shape)
         shape_xy = input_shape.copy()
 
-
         if self.data_format == 'channels_first':
             # [batch, channel,time, x,y]
-            shape_xy.pop(2) # xy pop time dimension
-            shape_t=self.calculate_output_shape(shape_xy)
-            shape_t[1] = self.intermediate_filters # channels of input of conv_t = channels of output of shape_xy
+            shape_xy.pop(2)  # xy pop time dimension
+            shape_t = self.calculate_output_shape(shape_xy)
+            shape_t[1] = self.intermediate_filters  # channels of input of conv_t = channels of output of shape_xy
 
 
         else:  # channels last
             # [batch, time, x,y, channel]
-            shape_xy.pop(1) # xy pop time dimension
+            shape_xy.pop(1)  # xy pop time dimension
             shape_t = self.calculate_output_shape(shape_xy)
-            shape_t[-1] = self.intermediate_filters   # channels of input of conv_t = channels of output of shape_xy
+            shape_t[-1] = self.intermediate_filters  # channels of input of conv_t = channels of output of shape_xy
 
         self.conv_xy.build(shape_xy)
         self.conv_t.build(shape_t)
@@ -146,42 +155,14 @@ class Conv2Dt(tf.keras.layers.Layer):
     def call(self, x):
         if self.data_format == 'channels_first':  # [batch, chs, time, x,y]
 
-            x_sp_list = [self.conv_xy(x[:, :, i, :, :]) for i in
-                         range(0, self.shape[2])]  # split 'time' dimension, and 3D conv (depthwise) for each
-            x_sp = tf.stack(x_sp_list, axis=2)
-            shape_sp = x_sp.shape
+            x_sp=self.batch_concat_conv(x,self.conv_xy,axis=2)
+            x_t= self.batch_concat_conv(x_sp,self.conv_t,axis=self.axis_conv_t)
 
 
-
-            if self.axis_conv_t == 1:
-                x_t_list = [self.conv_t(x_sp[:, i, :, :, :]) for i in range(0, shape_sp[self.axis_conv_t])]
-            elif self.axis_conv_t == 3:
-                x_t_list = [self.conv_t(x_sp[:, :, :, i, :]) for i in range(0, shape_sp[self.axis_conv_t])]
-            elif self.axis_conv_t == 4:
-                x_t_list = [self.conv_t(x_sp[:, :, :, :, i]) for i in range(0, shape_sp[self.axis_conv_t])]
-
-            else:
-                x_t_list = [self.conv_t(x_sp[:, :, i, :, :]) for i in range(0, shape_sp[self.axis_conv_t])]
-
-            x_t = tf.stack(x_t_list, axis=self.axis_conv_t)  # stack time
         else:  # channels last [batch, time, x,y, chs]
 
-            x_sp_list = [self.conv_xy(x[:, i, :, :, :]) for i in
-                         range(0, self.shape[1])]  # split 'time' dimension, and 3D conv (depthwise) for each
-            x_sp = tf.stack(x_sp_list, axis=1)
-            shape_sp = x_sp.shape
-
-            if self.axis_conv_t == 2:
-                x_t_list = [self.conv_t(x_sp[:, :, i, :, :]) for i in range(0, shape_sp[self.axis_conv_t])]
-            elif self.axis_conv_t == 3:
-                x_t_list = [self.conv_t(x_sp[:, :, :, i, :]) for i in range(0, shape_sp[self.axis_conv_t])]
-            elif self.axis_conv_t == 4:
-                x_t_list = [self.conv_t(x_sp[:, :, :, :, i]) for i in range(0, shape_sp[self.axis_conv_t])]
-
-            else:
-                x_t_list = [self.conv_t(x_sp[:, i, :, :, :]) for i in range(0, shape_sp[self.axis_conv_t])]
-
-            x_t = tf.stack(x_t_list, axis=self.axis_conv_t)  # stack time
+            x_sp=self.batch_concat_conv(x,self.conv_xy,axis=1)
+            x_t= self.batch_concat_conv(x_sp,self.conv_t,axis=self.axis_conv_t)
         return x_t
 
 
@@ -216,17 +197,17 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
         self.shape = shapes
         self.axis_conv_t = axis_conv_t
 
-        kernel_size = validate_input_dimension('2Dt', kernel_size)
-        strides = validate_input_dimension('2Dt', strides)
-        dilation_rate = validate_input_dimension('2Dt', dilation_rate)
+        self.kernel_size = validate_input_dimension('2Dt', kernel_size)
+        self.strides = validate_input_dimension('2Dt', strides)
+        self.dilation_rate = validate_input_dimension('2Dt', dilation_rate)
         self.conv_xy_filters = filters
         self.conv_xy = ComplexConv2DTranspose(
             filters=self.conv_xy_filters,
-            kernel_size=(kernel_size[1], kernel_size[2]),
-            strides=(int(strides[1]), int(strides[2])),
+            kernel_size=(self.kernel_size[1], self.kernel_size[2]),
+            strides=(self.strides[1], self.strides[2]),
             padding=padding,
             data_format=data_format,
-            dilation_rate=(int(dilation_rate[1]), int(dilation_rate[2])),
+            dilation_rate=(self.dilation_rate[1], self.dilation_rate[2]),
             groups=groups,
             use_bias=use_bias,
             kernel_initializer=initializers.get(kernel_initializer),
@@ -238,8 +219,6 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
             bias_constraint=constraints.get(bias_constraint),
 
             **kwargs)
-
-
 
         self.conv_t = ComplexConv2DTranspose(
             filters=self.intermediate_filters,
@@ -247,7 +226,7 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
             strides=(1, 1),
             padding=padding,
             data_format=data_format,
-            dilation_rate=(dilation_rate[0], 1),
+            dilation_rate=(self.dilation_rate[0], 1),
             groups=groups,
             use_bias=use_bias,
             kernel_initializer=initializers.get(kernel_initializer),
@@ -259,6 +238,15 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
             bias_constraint=constraints.get(bias_constraint),
 
             **kwargs)
+    def batch_concat_conv(self, inputs,func, axis=0):
+        shape_in = inputs.shape
+        x_list = tf.split(inputs, shape_in[axis], axis=axis)
+        x = tf.concat(x_list, axis=0)
+        x = tf.squeeze(x, axis=axis)
+        x = func(x)
+        x_list = tf.split(x, shape_in[0], axis=0)
+        return tf.stack(x_list, axis=axis)
+
 
     def build(self, input_shape):
         self.shape = input_shape
@@ -266,159 +254,129 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
         shape_xy = input_shape.copy()
         shape_t = input_shape.copy()
 
-
-        if self.data_format == 'channels_first': # [batch,  channels, time, x,y]
-            shape_t.pop(self.axis_conv_t) # pop selected axis
-            shape_xy.pop(2) # [batch, channels, x,y]
-            shape_xy[1] = self.intermediate_filters # second channel num= intermediate_filters from conv_t output
+        if self.data_format == 'channels_first':  # [batch,  channels, time, x,y]
+            shape_t.pop(self.axis_conv_t)  # pop selected axis
+            shape_xy.pop(2)  # [batch, channels, x,y]
+            shape_xy[1] = self.intermediate_filters  # second channel num= intermediate_filters from conv_t output
 
 
         else:
             # channels last  [batch, time,  x,y,channels]
             shape_t.pop(self.axis_conv_t)
             shape_xy.pop(1)  # [batch, x,y, channels]
-            shape_xy[-1] = self.intermediate_filters     # last channel num = intermediate_filters from conv_t output
-
+            shape_xy[-1] = self.intermediate_filters  # last channel num = intermediate_filters from conv_t output
 
         self.conv_xy.build(shape_xy)
         self.conv_t.build(shape_t)
 
     def call(self, x):
+
         if self.data_format == 'channels_first':  # [batch, chs, time, x,y]
+            x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
+            x_sp=self.batch_concat_conv(x_t,self.conv_xy,axis=2)
 
-            if self.axis_conv_t == 1:
-                x_t_list = [self.conv_t(x[:, i, :, :, :]) for i in range(0, self.shape[self.axis_conv_t])]
-            elif self.axis_conv_t == 3:
-                x_t_list = [self.conv_t(x[:, :, :, i, :]) for i in range(0, self.shape[self.axis_conv_t])]
-            elif self.axis_conv_t == 4:
-                x_t_list = [self.conv_t(x[:, :, :, :, i]) for i in range(0, self.shape[self.axis_conv_t])]
 
-            else:
-                x_t_list = [self.conv_t(x[:, :, i, :, :]) for i in range(0, self.shape[self.axis_conv_t])]
-
-            x_t = tf.stack(x_t_list, axis=self.axis_conv_t)  # stack time
-
-            x_sp_list = [self.conv_xy(x_t[:, :, i, :, :]) for i in
-                         range(0, self.shape[2])]  # split 'time' dimension, and 3D conv (depthwise) for each
-            x_sp = tf.stack(x_sp_list, axis=2)
 
 
         else:  # channels last #[batch,  time, x,y,z,chs]
 
-            if self.axis_conv_t == 2:
-                x_t_list = [self.conv_t(x[:, :, i, :, :]) for i in range(0, self.shape[self.axis_conv_t])]
-            elif self.axis_conv_t == 3:
-                x_t_list = [self.conv_t(x[:, :, :, i, :]) for i in range(0, self.shape[self.axis_conv_t])]
-            elif self.axis_conv_t == 4:
-                x_t_list = [self.conv_t(x[:, :, :, :, i]) for i in range(0, self.shape[self.axis_conv_t])]
-
-            else:
-                x_t_list = [self.conv_t(x[:, i, :, :, :]) for i in range(0, self.shape[self.axis_conv_t])]
-
-            x_t = tf.stack(x_t_list, axis=self.axis_conv_t)  # stack time
-
-            x_sp_list = [self.conv_xy(x_t[:, i, :, :, :]) for i in
-                         range(0, self.shape[1])]  # split 'time' dimension, and 3D conv (depthwise) for each
-            x_sp = tf.stack(x_sp_list, axis=1)
+            x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
+            x_sp=self.batch_concat_conv(x_t,self.conv_xy,axis=1)
         return x_sp
 
 
-if __name__ == "__main__":
-    """conv 2Dt """
-    nBatch = 2
-    M = 32
-    N = 32
-    T = 8
-    nf_in = 3
-    nf_out = 20
-    shape = [nBatch, T, M, N, nf_in]
-
-    ksz = (3, 5, 5)
-    ksz = validate_input_dimension('2Dt', ksz)
-
-    nf_inter = np.ceil(
-        (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2]  + nf_out * ksz[0])).astype(np.int32)
-
-    model = Conv2Dt(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3)
-
-    x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-    x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-    x = tf.complex(x_real, x_imag)
-    Kx = model(x).numpy()
-    print('Conv2Dt input_shape:',shape,'output_shape,channels_last, strides=1:',Kx.shape)
-
-    model2 = Conv2Dt(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3, strides=( 2, 2, 2))  # strides =2
-    x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-    x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-    x = tf.complex(x_real, x_imag)
-    Kx = model2(x).numpy()
-    print('Conv2Dt input_shape:',shape,'output_shape,channels_last, strides=2:',Kx.shape)
 
 
-    # channel first
-    shape = [nBatch, nf_in, T, M, N]
+"""conv 2Dt """
+nBatch = 2
+M = 32
+N = 32
+T = 8
+nf_in = 3
+nf_out = 20
+shape = [nBatch, T, M, N, nf_in]
 
-    ksz = (3, 5, 5)
-    ksz = validate_input_dimension('2Dt', ksz)
+ksz = (3, 5, 5)
+ksz = validate_input_dimension('2Dt', ksz)
 
-    nf_inter = np.ceil(
-        (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2]  + nf_out * ksz[0])).astype(np.int32)
+nf_inter = np.ceil(
+    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
 
-    model = Conv2Dt(nf_out, nf_inter, kernel_size=ksz, shapes=shape, data_format='channels_first', axis_conv_t=2)
+model = Conv2Dt(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3)
 
-    x = tf.random.normal(shape)
-    Kx = model(x).numpy()
-    print('Conv2Dt input_shape:',shape,'output_shape,channels_first, strides=1:',Kx.shape)
+x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+x = tf.complex(x_real, x_imag)
+Kx = model(x).numpy()
+print('Conv2Dt input_shape:', shape, 'output_shape,channels_last, strides=1:', Kx.shape)
 
+model2 = Conv2Dt(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3, strides=(2, 2, 2))  # strides =2
+x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+x = tf.complex(x_real, x_imag)
+Kx = model2(x).numpy()
+print('Conv2Dt input_shape:', shape, 'output_shape,channels_last, strides=2:', Kx.shape)
 
-    print('finish conv 2Dt\n')
+## channel first
+shape = [nBatch, nf_in, T, M, N]
 
+ksz = (3, 5, 5)
+ksz = validate_input_dimension('2Dt', ksz)
 
-    """conv 2Dt Transpose"""
+nf_inter = np.ceil(
+    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
 
-    nf_in = 18
-    nf_out = 3
-    shape = [nBatch, T, M, N, nf_in]
-    ksz = (3, 5, 5)
-    ksz = validate_input_dimension('2Dt', ksz)
+model = Conv2Dt(nf_out, nf_inter, kernel_size=ksz, shapes=shape, data_format='channels_first', axis_conv_t=2)
 
-    nf_inter = np.ceil(
-        (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
+x = tf.random.normal(shape)
+Kx = model(x).numpy()
+print('Conv2Dt input_shape:', shape, 'output_shape,channels_first, strides=1:', Kx.shape)
 
-    model = Conv2DtTranspose(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3)
+print('finish conv 2Dt\n')
 
+"""conv 2Dt Transpose"""
 
-    x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-    x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-    x = tf.complex(x_real, x_imag)
-    Kx = model(x).numpy()
-    print('Conv2DtTranspose input_shape:',shape,'output_shape, channels_last,strides=1:',Kx.shape)
+nf_in = 18
+nf_out = 3
+shape = [nBatch, T, M, N, nf_in]
+ksz = (3, 5, 5)
+ksz = validate_input_dimension('2Dt', ksz)
 
-    model2 = Conv2DtTranspose(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3, strides=(2, 2, 2))  # strides =2
-    x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-    x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-    x = tf.complex(x_real, x_imag)
-    Kx = model2(x).numpy()
-    print('Conv2DtTranspose input_shape:',shape,'output_shape, channels_last,strides=2:',Kx.shape)
+nf_inter = np.ceil(
+    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
 
+model = Conv2DtTranspose(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3)
 
-    ## channel first
-    shape = [nBatch, nf_in, T, M, N]
+x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+x = tf.complex(x_real, x_imag)
+Kx = model(x).numpy()
+print('Conv2DtTranspose input_shape:', shape, 'output_shape, channels_last,strides=1:', Kx.shape)
 
-    ksz = (3, 5, 5)
-    ksz = validate_input_dimension('2Dt', ksz)
+model2 = Conv2DtTranspose(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3,
+                          strides=(2, 2, 2))  # strides =2
+x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+x = tf.complex(x_real, x_imag)
+Kx = model2(x).numpy()
+print('Conv2DtTranspose input_shape:', shape, 'output_shape, channels_last,strides=2:', Kx.shape)
 
-    nf_inter = np.ceil(
-        (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2]  + nf_out * ksz[0])).astype(np.int32)
+## channel first
+shape = [nBatch, nf_in, T, M, N]
 
-    model = Conv2DtTranspose(nf_out, nf_inter, kernel_size=ksz, shapes=shape, data_format='channels_first', axis_conv_t=2)
+ksz = (3, 5, 5)
+ksz = validate_input_dimension('2Dt', ksz)
 
-    x = tf.random.normal(shape)
-    Kx = model(x).numpy()
-    print('Conv2DtTranspose input_shape:',shape,'output_shape, channels_first,strides=1:',Kx.shape)
+nf_inter = np.ceil(
+    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
 
-    print('finish conv 2DtTranspose')
+model = Conv2DtTranspose(nf_out, nf_inter, kernel_size=ksz, shapes=shape, data_format='channels_first', axis_conv_t=2)
 
+x = tf.random.normal(shape)
+Kx = model(x).numpy()
+print('Conv2DtTranspose input_shape:', shape, 'output_shape, channels_first,strides=1:', Kx.shape)
+
+print('finish conv 2DtTranspose')
 
 
 
