@@ -263,11 +263,11 @@ class RealUNet(UNet):
         if normalization == 'BN':
             self.norm_layer = tf.keras.layers.BatchNormalization
             self.activation_layer = tf.keras.layers.Activation(activation)
-            self.activation = ''
+            self.activation = None
         elif normalization == 'IN':
             self.norm_layer = tfa.layers.InstanceNormalization
             self.activation_layer = tf.keras.layers.Activation(activation)
-            self.activation = ''
+            self.activation = None
         elif normalization.lower() == 'none':
             self.norm_layer = None
             self.activation_layer = None
@@ -391,11 +391,11 @@ class ComplexUNet(UNet):
         if normalization == 'BN':
             self.norm_layer = merlintf.keras.layers.ComplexBatchNormalization
             self.activation_layer = merlintf.keras.layers.Activation(activation)
-            self.activation = ''
+            self.activation = None
         elif normalization == 'IN':
             self.norm_layer = merlintf.keras.layers.ComplexInstanceNormalization
             self.activation_layer = merlintf.keras.layers.Activation(activation)
-            self.activation = ''
+            self.activation = None
         elif normalization.lower() == 'none':
             self.norm_layer = None
             self.activation_layer = None
