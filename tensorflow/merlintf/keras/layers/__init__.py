@@ -7,25 +7,32 @@ from merlintf.keras.layers.convolutional.complex_convolutional import ComplexCon
 from merlintf.keras.layers.convolutional.complex_convolutional import UpSampling
 from merlintf.keras.layers.convolutional.complex_convolutional import ZeroPadding
 from merlintf.keras.layers.convolutional.complex_convolutional import Cropping
-from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConv2D
-from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConv3D
-from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConvScale2D
-from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConvScale3D
-from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConvScale2DTranspose
-from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConvScale3DTranspose
-from merlintf.keras.layers.convolutional.complex_padconv_2dt import ComplexPadConv2Dt
-from merlintf.keras.layers.convolutional.padconv import PadConv1D
-from merlintf.keras.layers.convolutional.padconv import PadConv2D
-from merlintf.keras.layers.convolutional.padconv import PadConv3D
-from merlintf.keras.layers.convolutional.padconv import PadConvScale2D
-from merlintf.keras.layers.convolutional.padconv import PadConvScale3D
-from merlintf.keras.layers.convolutional.padconv import PadConvScale2DTranspose
-from merlintf.keras.layers.convolutional.padconv import PadConvScale3DTranspose
+try:
+    from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConv2D
+    from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConv3D
+    from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConvScale2D
+    from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConvScale3D
+    from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConvScale2DTranspose
+    from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConvScale3DTranspose
+    from merlintf.keras.layers.convolutional.complex_padconv_2dt import ComplexPadConv2Dt
+    from merlintf.keras.layers.convolutional.padconv import PadConv1D
+    from merlintf.keras.layers.convolutional.padconv import PadConv2D
+    from merlintf.keras.layers.convolutional.padconv import PadConv3D
+    from merlintf.keras.layers.convolutional.padconv import PadConvScale2D
+    from merlintf.keras.layers.convolutional.padconv import PadConvScale3D
+    from merlintf.keras.layers.convolutional.padconv import PadConvScale2DTranspose
+    from merlintf.keras.layers.convolutional.padconv import PadConvScale3DTranspose
+except:
+    print('padconv layers in keras.layers.convolutional could not be loaded. Optox might not be installed.')
+    
 from merlintf.keras.layers.complex_pool import MagnitudeMaxPooling
 from merlintf.keras.layers.complex_act import Activation
 from merlintf.keras.layers.complex_bn import ComplexBatchNormalization
 from merlintf.keras.layers.complex_norm import ComplexInstanceNormalization
-from merlintf.keras.layers.complex_pad import Pad1D, Pad2D, Pad3D, Pad2DTranspose, Pad3DTranspose
+try:
+    from merlintf.keras.layers.complex_pad import Pad1D, Pad2D, Pad3D, Pad2DTranspose, Pad3DTranspose
+except:
+    print('keras.layers.complex_pad could not be loaded. Optox might not be installed.')
 from merlintf.keras.layers.data_consistency import DCGD
 from merlintf.keras.layers.data_consistency import DCPM
 from merlintf.keras.layers.common import Scalar
