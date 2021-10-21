@@ -23,7 +23,6 @@ from merlintf.keras.layers.convolutional.complex_convolutional import ComplexCon
 class Conv2Dt(tf.keras.layers.Layer):
     def __init__(self,
                  filters,  # out
-                 intermediate_filters,
                  kernel_size,
                  strides=(1, 1, 1),
                  padding='same',
@@ -43,10 +42,14 @@ class Conv2Dt(tf.keras.layers.Layer):
                  zero_mean=True,
                  bound_norm=True,
                  pad=True,
+                 intermediate_filters=None,
                  **kwargs):
         super(Conv2Dt, self).__init__()
 
-        self.intermediate_filters = intermediate_filters
+        if intermediate_filters == None:
+            self.intermediate_filters = filters
+        else:
+            self.intermediate_filters = intermediate_filters
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.shape = shapes
         self.axis_conv_t = axis_conv_t
@@ -57,11 +60,11 @@ class Conv2Dt(tf.keras.layers.Layer):
 
         self.conv_xy = ComplexConv2D(
             filters=intermediate_filters,
-            kernel_size=( self.kernel_size[1],  self.kernel_size[2]),
-            strides=( self.strides[1],  self.strides[2]),
+            kernel_size=(self.kernel_size[1], self.kernel_size[2]),
+            strides=(self.strides[1], self.strides[2]),
             padding=padding,
             data_format=data_format,
-            dilation_rate=( self.dilation_rate[1],  self.dilation_rate[2]),
+            dilation_rate=(self.dilation_rate[1], self.dilation_rate[2]),
             groups=groups,
             use_bias=use_bias,
             kernel_initializer=initializers.get(kernel_initializer),
@@ -71,15 +74,14 @@ class Conv2Dt(tf.keras.layers.Layer):
             activity_regularizer=regularizers.get(activity_regularizer),
             kernel_constraint=constraints.get(kernel_constraint),
             bias_constraint=constraints.get(bias_constraint),
-
             **kwargs)
 
         conv_t_filters = filters
 
         self.conv_t = ComplexConv2D(
             filters=conv_t_filters,
-            kernel_size=(1, 1),
-            strides=(1, 1),
+            kernel_size=(self.kernel_size[0], 1),
+            strides=(self.strides[0], 1),
             padding=padding,
             data_format=data_format,
             dilation_rate=(self.dilation_rate[0], 1),
@@ -92,11 +94,10 @@ class Conv2Dt(tf.keras.layers.Layer):
             activity_regularizer=regularizers.get(activity_regularizer),
             kernel_constraint=constraints.get(kernel_constraint),
             bias_constraint=constraints.get(bias_constraint),
-
             **kwargs)
 
     def calculate_output_shape(self, input_spatial_shape):
-        # calculate output shape x,y, but not channels
+        # calculate output shape x, y, but not channels
         output_spatial_shape = input_spatial_shape.copy()
         if self.padding.upper() == "SAME":
             if self.data_format == 'channels_first':
@@ -108,7 +109,6 @@ class Conv2Dt(tf.keras.layers.Layer):
                     output_spatial_shape[i + 1] = int(np.ceil(input_spatial_shape[i + 1] / self.strides[i + 1]))
 
         elif self.padding.upper() == "VALID":
-
             if self.data_format == 'channels_first':
                 for i in range(2):  # calculate x,y
                     output_spatial_shape[i + 2] = int(np.ceil((input_spatial_shape[i + 2]
@@ -128,7 +128,7 @@ class Conv2Dt(tf.keras.layers.Layer):
         x = tf.concat(x_list, axis=0)
         x = tf.squeeze(x, axis=axis)
         x = func(x)
-        x_list = tf.split(x, shape_in[0], axis=0)
+        x_list = tf.split(x, shape_in[axis], axis=0)
         return tf.stack(x_list, axis=axis)
 
     def build(self, input_shape):
@@ -137,14 +137,13 @@ class Conv2Dt(tf.keras.layers.Layer):
         shape_xy = input_shape.copy()
 
         if self.data_format == 'channels_first':
-            # [batch, channel,time, x,y]
+            # [batch, channel, time, x, y]
             shape_xy.pop(2)  # xy pop time dimension
             shape_t = self.calculate_output_shape(shape_xy)
             shape_t[1] = self.intermediate_filters  # channels of input of conv_t = channels of output of shape_xy
 
-
         else:  # channels last
-            # [batch, time, x,y, channel]
+            # [batch, time, x, y, channel]
             shape_xy.pop(1)  # xy pop time dimension
             shape_t = self.calculate_output_shape(shape_xy)
             shape_t[-1] = self.intermediate_filters  # channels of input of conv_t = channels of output of shape_xy
@@ -153,23 +152,19 @@ class Conv2Dt(tf.keras.layers.Layer):
         self.conv_t.build(shape_t)
 
     def call(self, x):
-        if self.data_format == 'channels_first':  # [batch, chs, time, x,y]
+        if self.data_format == 'channels_first':  # [batch, chs, time, x, y]
+            x_sp = self.batch_concat_conv(x, self.conv_xy, axis=2)
+            x_t = self.batch_concat_conv(x_sp, self.conv_t, axis=self.axis_conv_t)
 
-            x_sp=self.batch_concat_conv(x,self.conv_xy,axis=2)
-            x_t= self.batch_concat_conv(x_sp,self.conv_t,axis=self.axis_conv_t)
-
-
-        else:  # channels last [batch, time, x,y, chs]
-
-            x_sp=self.batch_concat_conv(x,self.conv_xy,axis=1)
-            x_t= self.batch_concat_conv(x_sp,self.conv_t,axis=self.axis_conv_t)
+        else:  # channels last [batch, time, x, y, chs]
+            x_sp = self.batch_concat_conv(x, self.conv_xy, axis=1)
+            x_t = self.batch_concat_conv(x_sp, self.conv_t, axis=self.axis_conv_t)
         return x_t
 
 
 class Conv2DtTranspose(tf.keras.layers.Layer):
     def __init__(self,
                  filters,  # out
-                 intermediate_filters,
                  kernel_size,
                  strides=(1, 1, 1),
                  padding='same',
@@ -189,10 +184,14 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
                  zero_mean=True,
                  bound_norm=True,
                  pad=True,
+                 intermediate_filters=None,
                  **kwargs):
         super(Conv2DtTranspose, self).__init__()
 
-        self.intermediate_filters = intermediate_filters
+        if intermediate_filters == None:
+            self.intermediate_filters = filters
+        else:
+            self.intermediate_filters = intermediate_filters
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.shape = shapes
         self.axis_conv_t = axis_conv_t
@@ -217,13 +216,12 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
             activity_regularizer=regularizers.get(activity_regularizer),
             kernel_constraint=constraints.get(kernel_constraint),
             bias_constraint=constraints.get(bias_constraint),
-
             **kwargs)
 
         self.conv_t = ComplexConv2DTranspose(
             filters=self.intermediate_filters,
-            kernel_size=(1, 1),
-            strides=(1, 1),
+            kernel_size=(self.kernel_size[0], 1),
+            strides=(self.strides[0], 1),
             padding=padding,
             data_format=data_format,
             dilation_rate=(self.dilation_rate[0], 1),
@@ -236,17 +234,16 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
             activity_regularizer=regularizers.get(activity_regularizer),
             kernel_constraint=constraints.get(kernel_constraint),
             bias_constraint=constraints.get(bias_constraint),
-
             **kwargs)
+
     def batch_concat_conv(self, inputs,func, axis=0):
         shape_in = inputs.shape
         x_list = tf.split(inputs, shape_in[axis], axis=axis)
         x = tf.concat(x_list, axis=0)
         x = tf.squeeze(x, axis=axis)
         x = func(x)
-        x_list = tf.split(x, shape_in[0], axis=0)
+        x_list = tf.split(x, shape_in[axis], axis=0)
         return tf.stack(x_list, axis=axis)
-
 
     def build(self, input_shape):
         self.shape = input_shape
@@ -254,11 +251,10 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
         shape_xy = input_shape.copy()
         shape_t = input_shape.copy()
 
-        if self.data_format == 'channels_first':  # [batch,  channels, time, x,y]
+        if self.data_format == 'channels_first':  # [batch,  channels, time, x, y]
             shape_t.pop(self.axis_conv_t)  # pop selected axis
             shape_xy.pop(2)  # [batch, channels, x,y]
-            shape_xy[1] = self.intermediate_filters  # second channel num= intermediate_filters from conv_t output
-
+            shape_xy[1] = self.intermediate_filters  # second channel num = intermediate_filters from conv_t output
 
         else:
             # channels last  [batch, time,  x,y,channels]
@@ -270,18 +266,14 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
         self.conv_t.build(shape_t)
 
     def call(self, x):
-
-        if self.data_format == 'channels_first':  # [batch, chs, time, x,y]
+        if self.data_format == 'channels_first':  # [batch, chs, time, x, y]
             x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
-            x_sp=self.batch_concat_conv(x_t,self.conv_xy,axis=2)
-
-
-
+            x_sp = self.batch_concat_conv(x_t, self.conv_xy, axis=2)
 
         else:  # channels last #[batch,  time, x,y,z,chs]
-
             x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
-            x_sp=self.batch_concat_conv(x_t,self.conv_xy,axis=1)
+            x_sp=self.batch_concat_conv(x_t, self.conv_xy, axis=1)
+        
         return x_sp
 
 
