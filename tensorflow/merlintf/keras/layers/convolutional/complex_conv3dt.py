@@ -83,8 +83,8 @@ class Conv3Dt(tf.keras.layers.Layer):
 
         self.conv_t = ComplexConv3D(
             filters=conv_t_filters,
-            kernel_size=(1, 1, 1),
-            strides=(1, 1, 1),
+            kernel_size=(self.kernel_size[0], 1, 1),
+            strides=(self.strides[0], 1, 1),
             padding=self.padding,
             data_format=data_format,
             dilation_rate=(self.dilation_rate[0], 1, 1),
@@ -227,8 +227,8 @@ class Conv3DtTranspose(tf.keras.layers.Layer):
 
         self.conv_t = ComplexConv3DTranspose(
             filters=self.intermediate_filters,
-            kernel_size=(1, 1, 1),
-            strides=(1, 1, 1),
+            kernel_size=(self.kernel_size[0], 1, 1),
+            strides=(self.strides[0], 1, 1),
             padding=padding,
             data_format=data_format,
             dilation_rate=(self.dilation_rate[0], 1, 1),
