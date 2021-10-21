@@ -318,5 +318,14 @@ class ComplexConv3dtTest(unittest.TestCase):
 
         self.assertTrue(Kx.shape == expected_shape)
 
+        # gradient check
+        y = tf.complex(tf.random.normal(Kx.shape), tf.random.normal(Kx.shape))
+        KHy = model.backward(y, x.shape)
+
+        rhs = tf.reduce_sum(Kx * y).numpy()
+        lhs = tf.reduce_sum(x * KHy).numpy()
+
+        self.assertTrue(rhs, lhs)
+
 if __name__ == "__main__":
     unittest.main()
