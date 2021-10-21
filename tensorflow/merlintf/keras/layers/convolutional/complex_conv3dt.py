@@ -17,12 +17,15 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import nn
 from tensorflow.python.ops import nn_ops
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv, ComplexConv2D, ComplexConv3DTranspose, ComplexConv3D
+from merlintf.keras.utils import validate_input_dimension
 
+def calculate_intermediate_filters(filters, kernel_size, channel_in):
+    return np.ceil((filters * channel_in * np.prod(kernel_size)) /
+            (channel_in * kernel_size[1] * kernel_size[2] * kernel_size[3] + filters * kernel_size[0])).astype(np.int32)
 
 class Conv3Dt(tf.keras.layers.Layer):
     def __init__(self,
                  filters,  # out
-
                  kernel_size,
                  strides=(1, 1, 1, 1),
                  padding='same',
@@ -54,9 +57,9 @@ class Conv3Dt(tf.keras.layers.Layer):
         self.shape = shapes
         self.axis_conv_t = axis_conv_t
         self.padding = padding
-        self.kernel_size = merlintf.keras.utils.validate_input_dimension('3Dt', kernel_size)
-        self.strides = merlintf.keras.utils.validate_input_dimension('3Dt', strides)
-        self.dilation_rate = merlintf.keras.utils.validate_input_dimension('3Dt', dilation_rate)
+        self.kernel_size = validate_input_dimension('3Dt', kernel_size)
+        self.strides = validate_input_dimension('3Dt', strides)
+        self.dilation_rate = validate_input_dimension('3Dt', dilation_rate)
 
         self.conv_xyz = ComplexConv3D(
             filters=intermediate_filters,
@@ -124,16 +127,14 @@ class Conv3Dt(tf.keras.layers.Layer):
 
         return output_spatial_shape  # 5 dimensional shape
 
-    def batch_concat_conv(self, inputs,func, axis=0):
+    def batch_concat_conv(self, inputs, func, axis=0):
         shape_in = inputs.shape
         x_list = tf.split(inputs, shape_in[axis], axis=axis)
         x = tf.concat(x_list, axis=0)
         x = tf.squeeze(x, axis=axis)
         x = func(x)
-        x_list = tf.split(x, shape_in[0], axis=0)
+        x_list = tf.split(x, shape_in[axis], axis=0)
         return tf.stack(x_list, axis=axis)
-
-
 
     def build(self, input_shape):
 
@@ -143,14 +144,13 @@ class Conv3Dt(tf.keras.layers.Layer):
         shape_xyz = input_shape.copy()
 
         if self.data_format == 'channels_first':
-            # [batch, channel,time, x,y,z]
+            # [batch, channel, time, x, y, z]
             shape_xyz.pop(2)  # xyz pop time dimension
             shape_t = self.calculate_output_shape(shape_xyz)
             shape_t[1] = self.intermediate_filters  # channels of input of conv_t = channels of output of shape_xyz
 
-
         else:  # channels last
-            # [batch, time, x,y,z, channel]
+            # [batch, time, x, y, z, channel]
             shape_xyz.pop(1)  # xyz pop time dimension
             shape_t = self.calculate_output_shape(shape_xyz)
             shape_t[-1] = self.intermediate_filters  # channels of input of conv_t = channels of output of shape_xyz
@@ -159,15 +159,15 @@ class Conv3Dt(tf.keras.layers.Layer):
         self.conv_t.build(shape_t)
 
     def call(self, x):
-        if self.data_format == 'channels_first':  # [batch, chs, time, x,y,z]
+        if self.data_format == 'channels_first':  # [batch, chs, time, x, y, z]
 
-            x_sp=self.batch_concat_conv(x,self.conv_xyz,axis=2)
-            x_t= self.batch_concat_conv(x_sp,self.conv_t,axis=self.axis_conv_t)
+            x_sp = self.batch_concat_conv(x, self.conv_xyz, axis=2)
+            x_t = self.batch_concat_conv(x_sp, self.conv_t, axis=self.axis_conv_t)
 
-        else:  # channels last #[batch,  time, x,y,z,chs]
+        else:  # channels last #[batch, time, x, y, z, chs]
 
-            x_sp=self.batch_concat_conv(x,self.conv_xyz,axis=1)
-            x_t= self.batch_concat_conv(x_sp,self.conv_t,axis=self.axis_conv_t)
+            x_sp = self.batch_concat_conv(x, self.conv_xyz, axis=1)
+            x_t = self.batch_concat_conv(x_sp, self.conv_t, axis=self.axis_conv_t)
 
         return x_t
 
@@ -203,9 +203,9 @@ class Conv3DtTranspose(tf.keras.layers.Layer):
         self.shape = shapes
         self.axis_conv_t = axis_conv_t
 
-        self.kernel_size = merlintf.keras.utils.validate_input_dimension('3Dt', kernel_size)
-        self.strides = merlintf.keras.utils.validate_input_dimension('3Dt', strides)
-        self.dilation_rate = merlintf.keras.utils.validate_input_dimension('3Dt', dilation_rate)
+        self.kernel_size = validate_input_dimension('3Dt', kernel_size)
+        self.strides = validate_input_dimension('3Dt', strides)
+        self.dilation_rate = validate_input_dimension('3Dt', dilation_rate)
 
         self.conv_xyz_filters = filters
         self.conv_xyz = ComplexConv3DTranspose(
@@ -288,104 +288,107 @@ class Conv3DtTranspose(tf.keras.layers.Layer):
 
 
 #============
+if __name__ == "__main__":
+    """conv 3D"""
+    import time
+    from merlintf.keras.utils import validate_input_dimension
 
-"""conv 3D"""
-import time
+    start_time = time.time()
 
-start_time = time.time()
+    ## channel last
+    nBatch = 2
+    M = 32
+    N = 32
+    D = 12
+    T = 8
+    nf_in = 3
+    nf_out = 18
+    shape = [nBatch, T, M, N, D, nf_in]
 
-## channel last
-nBatch = 2
-M = 32
-N = 32
-D = 12
-T = 8
-nf_in = 3
-nf_out = 18
-shape = [nBatch, T, M, N, D, nf_in]
+    ksz = (3, 5, 5, 5)
+    ksz = validate_input_dimension('3Dt', ksz)
 
-ksz = (3, 5, 5, 5)
-ksz = validate_input_dimension('3Dt', ksz)
+    #nf_inter = np.ceil(
+    #    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] * ksz[3] + nf_out * ksz[0])).astype(np.int32)
+    nf_inter = calculate_intermediate_filters(nf_out, ksz, nf_in)
 
-nf_inter = np.ceil(
-    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] * ksz[3] + nf_out * ksz[0])).astype(np.int32)
+    model = Conv3Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=3, intermediate_filters=nf_inter)
 
-model = Conv3Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=3, intermediate_filters=nf_inter)
+    x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+    x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+    x = tf.complex(x_real, x_imag)
+    Kx = model(x).numpy()
+    print('Conv3Dt input_shape:', shape, 'output_shape,channels_last, strides=1:', Kx.shape)
 
-x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x = tf.complex(x_real, x_imag)
-Kx = model(x).numpy()
-print('Conv3Dt input_shape:', shape, 'output_shape,channels_last, strides=1:', Kx.shape)
+    # stride=2
 
-# stride=2
+    model2 = Conv3Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=3, strides=(2, 2, 2, 2),
+                     intermediate_filters=nf_inter)  # strides =2
+    x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+    x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+    x = tf.complex(x_real, x_imag)
+    Kx = model2(x).numpy()
+    print('Conv3Dt input_shape:', shape, 'output_shape,channels_last, strides=2:', Kx.shape)
 
-model2 = Conv3Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=3, strides=(2, 2, 2, 2),
-                 intermediate_filters=nf_inter)  # strides =2
-x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x = tf.complex(x_real, x_imag)
-Kx = model2(x).numpy()
-print('Conv3Dt input_shape:', shape, 'output_shape,channels_last, strides=2:', Kx.shape)
+    ## channel first
+    shape = [nBatch, nf_in, T, M, N, D]
 
-## channel first
-shape = [nBatch, nf_in, T, M, N, D]
+    ksz = (3, 5, 5, 5)
+    ksz = validate_input_dimension('3Dt', ksz)
 
-ksz = (3, 5, 5, 5)
-ksz = validate_input_dimension('3Dt', ksz)
+    nf_inter = np.ceil(
+        (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] * ksz[3] + nf_out * ksz[0])).astype(np.int32)
 
-nf_inter = np.ceil(
-    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] * ksz[3] + nf_out * ksz[0])).astype(np.int32)
+    model = Conv3Dt(nf_out, kernel_size=ksz, shapes=shape, data_format='channels_first', axis_conv_t=4,
+                    intermediate_filters=nf_inter)
 
-model = Conv3Dt(nf_out, kernel_size=ksz, shapes=shape, data_format='channels_first', axis_conv_t=4,
-                intermediate_filters=nf_inter)
+    x = tf.random.normal(shape)
+    Kx = model(x).numpy()
+    print('Conv3Dt input_shape:', shape, 'output_shape,channels_first, strides=1:', Kx.shape)
 
-x = tf.random.normal(shape)
-Kx = model(x).numpy()
-print('Conv3Dt input_shape:', shape, 'output_shape,channels_first, strides=1:', Kx.shape)
+    print('finish conv 3Dt\n', time.time() - start_time)
 
-print('finish conv 3Dt\n', time.time() - start_time)
+    """conv 3Dt Transpose"""
 
-"""conv 3Dt Transpose"""
+    nf_in = 18
+    nf_out = 3
+    shape = [nBatch, T, M, N, D, nf_in]
+    ksz = (3, 5, 5, 5)
+    ksz = validate_input_dimension('3Dt', ksz)
 
-nf_in = 18
-nf_out = 3
-shape = [nBatch, T, M, N, D, nf_in]
-ksz = (3, 5, 5, 5)
-ksz = validate_input_dimension('3Dt', ksz)
+    #nf_inter = np.ceil(
+    #    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] * ksz[3] + nf_out * ksz[0])).astype(np.int32)
+    nf_inter = calculate_intermediate_filters(nf_out, ksz, nf_in)
 
-nf_inter = np.ceil(
-    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] * ksz[3] + nf_out * ksz[0])).astype(np.int32)
+    model = Conv3DtTranspose(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3)
 
-model = Conv3DtTranspose(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3)
+    x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+    x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+    x = tf.complex(x_real, x_imag)
+    Kx = model(x).numpy()
+    print('Conv3DtTranspose input_shape:', shape, ' output_shape, channels_last,strides=1:', Kx.shape)
 
-x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x = tf.complex(x_real, x_imag)
-Kx = model(x).numpy()
-print('Conv3DtTranspose input_shape:', shape, ' output_shape, channels_last,strides=1:', Kx.shape)
+    model2 = Conv3DtTranspose(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3,
+                              strides=(2, 2, 2, 2))  # strides =2
+    x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+    x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+    x = tf.complex(x_real, x_imag)
+    Kx = model2(x).numpy()
+    print('Conv3DtTranspose input_shape:', shape, 'output_shape, channels_last,strides=2:', Kx.shape)
 
-model2 = Conv3DtTranspose(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3,
-                          strides=(2, 2, 2, 2))  # strides =2
-x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x = tf.complex(x_real, x_imag)
-Kx = model2(x).numpy()
-print('Conv3DtTranspose input_shape:', shape, 'output_shape, channels_last,strides=2:', Kx.shape)
+    ## channel first
+    shape = [nBatch, nf_in, T, M, N, D]
 
-## channel first
-shape = [nBatch, nf_in, T, M, N, D]
+    ksz = (3, 5, 5, 5)
+    ksz = validate_input_dimension('3Dt', ksz)
 
-ksz = (3, 5, 5, 5)
-ksz = validate_input_dimension('3Dt', ksz)
+    nf_inter = np.ceil(
+        (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] * ksz[3] + nf_out * ksz[0])).astype(np.int32)
 
-nf_inter = np.ceil(
-    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] * ksz[3] + nf_out * ksz[0])).astype(np.int32)
+    model = Conv3DtTranspose(nf_out, nf_inter, kernel_size=ksz, shapes=shape, data_format='channels_first', axis_conv_t=4)
 
-model = Conv3DtTranspose(nf_out, nf_inter, kernel_size=ksz, shapes=shape, data_format='channels_first', axis_conv_t=4)
+    x = tf.random.normal(shape)
+    Kx = model(x).numpy()
+    print('Conv3DtTranspose input_shape:', shape, 'output_shape, channels_first,strides=1:', Kx.shape)
 
-x = tf.random.normal(shape)
-Kx = model(x).numpy()
-print('Conv3DtTranspose input_shape:', shape, 'output_shape, channels_first,strides=1:', Kx.shape)
-
-print('finish conv 3DtTranspose\n')
+    print('finish conv 3DtTranspose\n')
