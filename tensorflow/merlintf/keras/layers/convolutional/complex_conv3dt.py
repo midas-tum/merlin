@@ -79,10 +79,8 @@ class Conv3Dt(tf.keras.layers.Layer):
             bias_constraint=constraints.get(bias_constraint),
             **kwargs)
 
-        conv_t_filters = filters
-
         self.conv_t = ComplexConv3D(
-            filters=conv_t_filters,
+            filters=filters,
             kernel_size=(self.kernel_size[0], 1, 1),
             strides=(self.strides[0], 1, 1),
             padding=self.padding,
