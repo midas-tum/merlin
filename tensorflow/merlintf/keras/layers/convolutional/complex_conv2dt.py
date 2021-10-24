@@ -225,6 +225,7 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
                  bound_norm=True,
                  pad=True,
                  intermediate_filters=None,
+                 use_3D_convs=True,  # True: use 3D conv layers, False: use 2D conv layers and stack along batch dim
                  **kwargs):
         super(Conv2DtTranspose, self).__init__()
 
@@ -235,46 +236,84 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.shape = shapes
         self.axis_conv_t = axis_conv_t
+        self.use_3D_convs = use_3D_convs
 
         self.kernel_size = validate_input_dimension('2Dt', kernel_size)
         self.strides = validate_input_dimension('2Dt', strides)
         self.dilation_rate = validate_input_dimension('2Dt', dilation_rate)
         self.conv_xy_filters = filters
-        self.conv_xy = ComplexConv2DTranspose(
-            filters=self.conv_xy_filters,
-            kernel_size=(self.kernel_size[1], self.kernel_size[2]),
-            strides=(self.strides[1], self.strides[2]),
-            padding=padding,
-            data_format=data_format,
-            dilation_rate=(self.dilation_rate[1], self.dilation_rate[2]),
-            groups=groups,
-            use_bias=use_bias,
-            kernel_initializer=initializers.get(kernel_initializer),
-            bias_initializer=initializers.get(bias_initializer),
-            kernel_regularizer=regularizers.get(kernel_regularizer),
-            bias_regularizer=regularizers.get(bias_regularizer),
-            activity_regularizer=regularizers.get(activity_regularizer),
-            kernel_constraint=constraints.get(kernel_constraint),
-            bias_constraint=constraints.get(bias_constraint),
-            **kwargs)
+        if use_3D_convs:
+            self.conv_xy = ComplexConv3DTranspose(
+                filters=intermediate_filters,
+                kernel_size=(1, self.kernel_size[1], self.kernel_size[2]),
+                strides=(1, self.strides[1], self.strides[2]),
+                padding=padding,
+                data_format=data_format,
+                dilation_rate=(1, self.dilation_rate[1], self.dilation_rate[2]),
+                groups=groups,
+                use_bias=use_bias,
+                kernel_initializer=initializers.get(kernel_initializer),
+                bias_initializer=initializers.get(bias_initializer),
+                kernel_regularizer=regularizers.get(kernel_regularizer),
+                bias_regularizer=regularizers.get(bias_regularizer),
+                activity_regularizer=regularizers.get(activity_regularizer),
+                kernel_constraint=constraints.get(kernel_constraint),
+                bias_constraint=constraints.get(bias_constraint),
+                **kwargs)
 
-        self.conv_t = ComplexConv2DTranspose(
-            filters=self.intermediate_filters,
-            kernel_size=(self.kernel_size[0], 1),
-            strides=(self.strides[0], 1),
-            padding=padding,
-            data_format=data_format,
-            dilation_rate=(self.dilation_rate[0], 1),
-            groups=groups,
-            use_bias=use_bias,
-            kernel_initializer=initializers.get(kernel_initializer),
-            bias_initializer=initializers.get(bias_initializer),
-            kernel_regularizer=regularizers.get(kernel_regularizer),
-            bias_regularizer=regularizers.get(bias_regularizer),
-            activity_regularizer=regularizers.get(activity_regularizer),
-            kernel_constraint=constraints.get(kernel_constraint),
-            bias_constraint=constraints.get(bias_constraint),
-            **kwargs)
+            self.conv_t = ComplexConv3DTranspose(
+                filters=filters,
+                kernel_size=(self.kernel_size[0], 1, 1),
+                strides=(self.strides[0], 1, 1),
+                padding=padding,
+                data_format=data_format,
+                dilation_rate=(self.dilation_rate[0], 1, 1),
+                groups=groups,
+                use_bias=use_bias,
+                kernel_initializer=initializers.get(kernel_initializer),
+                bias_initializer=initializers.get(bias_initializer),
+                kernel_regularizer=regularizers.get(kernel_regularizer),
+                bias_regularizer=regularizers.get(bias_regularizer),
+                activity_regularizer=regularizers.get(activity_regularizer),
+                kernel_constraint=constraints.get(kernel_constraint),
+                bias_constraint=constraints.get(bias_constraint),
+                **kwargs)
+        else:
+            self.conv_xy = ComplexConv2DTranspose(
+                filters=self.conv_xy_filters,
+                kernel_size=(self.kernel_size[1], self.kernel_size[2]),
+                strides=(self.strides[1], self.strides[2]),
+                padding=padding,
+                data_format=data_format,
+                dilation_rate=(self.dilation_rate[1], self.dilation_rate[2]),
+                groups=groups,
+                use_bias=use_bias,
+                kernel_initializer=initializers.get(kernel_initializer),
+                bias_initializer=initializers.get(bias_initializer),
+                kernel_regularizer=regularizers.get(kernel_regularizer),
+                bias_regularizer=regularizers.get(bias_regularizer),
+                activity_regularizer=regularizers.get(activity_regularizer),
+                kernel_constraint=constraints.get(kernel_constraint),
+                bias_constraint=constraints.get(bias_constraint),
+                **kwargs)
+
+            self.conv_t = ComplexConv2DTranspose(
+                filters=self.intermediate_filters,
+                kernel_size=(self.kernel_size[0], 1),
+                strides=(self.strides[0], 1),
+                padding=padding,
+                data_format=data_format,
+                dilation_rate=(self.dilation_rate[0], 1),
+                groups=groups,
+                use_bias=use_bias,
+                kernel_initializer=initializers.get(kernel_initializer),
+                bias_initializer=initializers.get(bias_initializer),
+                kernel_regularizer=regularizers.get(kernel_regularizer),
+                bias_regularizer=regularizers.get(bias_regularizer),
+                activity_regularizer=regularizers.get(activity_regularizer),
+                kernel_constraint=constraints.get(kernel_constraint),
+                bias_constraint=constraints.get(bias_constraint),
+                **kwargs)
 
     def batch_concat_conv(self, inputs,func, axis=0):
         shape_in = inputs.shape
@@ -306,15 +345,18 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
         self.conv_t.build(shape_t)
 
     def call(self, x):
-        if self.data_format == 'channels_first':  # [batch, chs, time, x, y]
-            x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
-            x_sp = self.batch_concat_conv(x_t, self.conv_xy, axis=2)
+        if self.use_3D_convs:
+            return self.conv_t(self.conv_xy(x))
+        else:
+            if self.data_format == 'channels_first':  # [batch, chs, time, x, y]
+                x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
+                x_sp = self.batch_concat_conv(x_t, self.conv_xy, axis=2)
 
-        else:  # channels last #[batch,  time, x,y,z,chs]
-            x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
-            x_sp=self.batch_concat_conv(x_t, self.conv_xy, axis=1)
+            else:  # channels last #[batch, time, x, y, z, chs]
+                x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
+                x_sp = self.batch_concat_conv(x_t, self.conv_xy, axis=1)
 
-        return x_sp
+            return x_sp
 
 
 
