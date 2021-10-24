@@ -295,9 +295,9 @@ class ComplexConv3dtTest(unittest.TestCase):
     def _test_Conv3dt(self, dim_in=[8, 32, 32, 12], nBatch=2, nf_in=3, nf_out=18, ksz=(3, 5, 5, 5), stride=(1, 1, 1, 1),
                       channel_last=True, axis_conv_t=2, is_transpose=False):
         if is_transpose:
-            dim_out = list((np.asarray(dim_in)*np.asarray(stride)).astype(int))
+            dim_out = list((np.asarray(dim_in) * np.asarray(stride)).astype(int))
         else:
-            dim_out = list((np.asarray(dim_in)/np.asarray(stride)).astype(int))
+            dim_out = list((np.asarray(dim_in) / np.asarray(stride)).astype(int))
 
         if channel_last:
             shape = [nBatch] + dim_in + [nf_in]
