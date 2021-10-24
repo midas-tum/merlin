@@ -28,7 +28,8 @@ def loadYaml(cfile, experiment):
     """
     # pattern for global vars: look for ${word}
     pattern = re.compile('.*?\${(\w+)}.*?')
-    loader = yaml.SafeLoader
+    # loader = yaml.SafeLoader  # SafeLoader broken in pyyaml > 5.2, see https://github.com/yaml/pyyaml/issues/266
+    loader = yaml.Loader
     tag = "!ENV"
 
     # the tag will be used to mark where to start searching for the pattern

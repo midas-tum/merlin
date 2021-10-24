@@ -1,7 +1,7 @@
 import numpy as np
 import math
 
-from merlinpy.datapipeline.sampling.VISTA.main import vista
+from merlinpy.datapipeline.sampling.VISTA.main import sampling2dt
 import matplotlib.pyplot as plt
 import unittest
 from merlinpy.datapipeline.sampling import VD_CASPR_CINE as VD_CASPR_CINE
@@ -181,10 +181,10 @@ class Gaussian(Sampling):
         self.mask = lMask
         return lMask  # Z x Y x Time
 
-class VISTA(Sampling):
+class Sampling2Dt(Sampling):
     def __init__(self, dim, acc, typ='VISTA', alph=0.28, sd=10, nIter=120, g=None, uni=None,
                  ss=0.25, fl=None, fs=1, s=1.4, tf=0.0, dsp=5):
-        super().__init__(dim=dim, acc=acc, trajectory='VISTA', is_elliptical=False)
+        super().__init__(dim=dim, acc=acc, trajectory='2Dt', is_elliptical=False)
         self.typ = typ  # 'UIS': uniform interleaved sampling, 'VRS': variable density random sampling, 'VISTA': Variable density incoherent spatiotemporal acquisition
         self.alph = alph  # variable-density spreading: 0<alpha<1
         self.sd = sd  # random number generator seed
@@ -209,9 +209,24 @@ class VISTA(Sampling):
         if self.fl == None:
             self.fl = math.floor(self.nIter*5/6)
 
-        self.mask = vista(p, t, R, self.typ, self.alph, self.sd, self.nIter, self.g, self.uni, self.ss, self.fl,
+        self.mask = sampling2dt(p, t, R, self.typ, self.alph, self.sd, self.nIter, self.g, self.uni, self.ss, self.fl,
                            self.fs, self.s, self.tf, self.dsp)
         return self.mask
+
+class VISTA(Sampling2Dt):
+    def __init__(self, dim, acc, alph=0.28, sd=10, nIter=120, g=None, uni=None,
+                 ss=0.25, fl=None, fs=1, s=1.4, tf=0.0, dsp=5):
+        super().__init__(dim, acc, 'VISTA', alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp)
+
+class UIS(Sampling2Dt):
+    def __init__(self, dim, acc, alph=0.28, sd=10, nIter=120, g=None, uni=None,
+                 ss=0.25, fl=None, fs=1, s=1.4, tf=0.0, dsp=5):
+        super().__init__(dim, acc, 'UIS', alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp)
+
+class VRS(Sampling2Dt):
+    def __init__(self, dim, acc, alph=0.28, sd=10, nIter=120, g=None, uni=None,
+                 ss=0.25, fl=None, fs=1, s=1.4, tf=0.0, dsp=5):
+        super().__init__(dim, acc, 'VRS', alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp)
 
 class SamplingTest(unittest.TestCase):
     def test_samplingCASPR2D(self, acc=4):
@@ -243,10 +258,14 @@ class SamplingTest(unittest.TestCase):
     def test_samplingGaussian2Dt(self, acc=4):  # 2D multi-phase Gaussian subsampling
         self._test_sampling(Gaussian([128, 64, 16], acc))  # central ellipse, L2-norm VD distance
 
-    #def test_samplingVISTA(self, acc=4):
-    #    self._test_sampling(VISTA([32, 1, 8], acc))  # VISTA subsampling
-    #    self._test_sampling(VISTA([32, 1, 8], acc, typ='UIS'))  # UIS subsampling
-    #    self._test_sampling(VISTA([32, 1, 8], acc, typ='VRS'))  # VRS subsampling
+    def test_samplingVISTA(self, acc=16):
+        self._test_sampling(VISTA([32, 1, 8], acc))  # VISTA subsampling
+
+    def test_samplingUIS(self, acc=16):
+        self._test_sampling(UIS([32, 1, 8], acc))  # UIS subsampling
+
+    def test_samplingVRS(self, acc=16):
+        self._test_sampling(VRS([32, 1, 8], acc))  # VRS subsampling
 
     def _test_sampling(self, sampler):
         mask = sampler.generate_mask()

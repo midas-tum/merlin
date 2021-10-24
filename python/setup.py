@@ -34,7 +34,9 @@ setup(
         "xmltodict",
         "pyyaml",
         "pandas",
-        "tqdm"
+        "tqdm",
+        "scipy",
+        "matplotlib"
     ],
     distclass=BinaryDistribution,
 )

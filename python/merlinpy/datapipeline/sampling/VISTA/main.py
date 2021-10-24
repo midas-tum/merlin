@@ -8,7 +8,7 @@ from .fillK import fillK
 from .randp import randp
 
 
-def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
+def sampling2dt(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
     """
     :param p: Number of phase encoding steps
     :param t: Number of frames
@@ -26,8 +26,105 @@ def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
     :param tf: Step-size in time direction wrt to phase-encoding direction; use zero for constant temporal resolution. 
                Default value: 0.0
     :param dsp: Display the distribution at every dsp^th iteration
-    :return: Variable Density Incoherent Spatiotemporal Acquisition (VISTA) 2D sampling pattern
+    :return: 2Dt sampling pattern
     """
+
+    if R == 1:
+        return noacc(p, t)
+
+    if typ == 'UIS':
+        print('*** UIS Sampling ***')
+        return samp_UIS(p, t, R)
+
+    elif typ == 'VRS':
+        print('*** VRS Sampling ***')
+        ph, ti, p, t = vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp)
+        ph, ti = dispdup(ph, ti, p, t)
+        samp = np.zeros((p, t))
+        samp = np.reshape(samp, (p * t,), order='F')
+        ind_list = p * (ti + math.floor(t / 2)) + (ph + math.floor(p / 2) + 1)
+        for i in ind_list:
+            samp[round(i)] = 1
+        samp = np.reshape(samp, (p, t), order='F')
+        return samp
+
+    elif typ == 'VISTA':
+        print('*** VISTA Sampling ***')
+        return vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp)
+
+
+# Let's handle the special case of R = 1
+def noacc(p, t):
+    samp = np.ones((p, t))
+    return samp
+
+
+def samp_UIS(p, t, R):
+    '''
+    Uniformed interleaved sampling
+    '''
+
+    # Let's find uniform interleaved sampling (UIS)
+    ptmp = np.zeros((p, 1)).flatten()
+    for i in set(range(0, p, R)):
+        i = round(i)
+        ptmp[i] = 1
+
+    ttmp = np.zeros((t, 1)).flatten()
+    for i in set(range(0, t, R)):
+        i = round(i)
+        ttmp[i] = 1
+
+    Top = toeplitz(ptmp, ttmp)
+    Top_flatten = np.reshape(Top, (p * t,), order='F')
+    ind = []
+    for _ in np.where(Top_flatten == 1)[0]:
+        ind.append(_)
+    ind = np.array(ind)
+
+    ph = []
+    for i in ind:
+        i_ph = i % p - math.floor(p / 2)
+        ph.append(i_ph)
+    ph = np.array(ph)
+
+    ti = []
+    for i in ind:
+        i_ti = math.floor((i / p)) - math.floor(t / 2)
+        ti.append(i_ti)
+    ti = np.array(ti)
+
+    ph, ti = dispdup(ph, ti, p, t)
+
+    samp = np.zeros((p, t))
+    ind2 = []
+    for i in range(len(ind)):
+        ind_ = round(p * (ti[i] + math.floor(t / 2)) + (ph[i] + math.floor(p / 2) + 1))
+        ind2.append(ind_)
+    ind = np.array(ind2).astype('int64')
+
+    samp = np.reshape(samp, (p * t,), order='F')
+    samp[ind] = 1
+    samp = np.reshape(samp, (p, t), order='F')
+
+    return samp
+
+
+def tile(ph, ti, p, t):
+    """
+    Replicate the sampling pattern in each direction. Probablity, this is
+    not an efficient way to impose periodic boundary condition because it
+    makes the problem size grow by 9 fold.
+    """
+    po = np.concatenate((ph, ph - p, ph, ph + p, ph - p, ph + p, ph - p, ph, ph + p))
+    to = np.concatenate((ti, ti - t, ti - t, ti - t, ti, ti, ti + t, ti + t, ti + t))
+    return po, to
+
+
+def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
+    '''
+    VISTA sampling
+    '''
 
     sig = p / 5  # Std of the Gaussian envelope that defines variable density
     tr = round(p / R)  # Number of readout lines per frame (temporal resolution)
@@ -35,67 +132,6 @@ def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
     # Displacement parameters
     W = max(R / 10 + 0.25, 1)  # Scaling of time dimension; frames are "W" units apart
     N = tr * t  # Total number of samples after rounding off
-
-    # Let's handle the special case of R = 1
-    def noacc(p, t):
-        samp = np.ones((p, t))
-        return samp
-
-    # Let's find uniform interleaved sampling (UIS)
-    def samp_UIS(p, t, R):
-        ptmp = np.zeros((p, 1)).flatten()
-        for i in set(range(0, p, R)):
-            i = round(i)
-            ptmp[i] = 1
-
-        ttmp = np.zeros((t, 1)).flatten()
-        for i in set(range(0, t, R)):
-            i = round(i)
-            ttmp[i] = 1
-
-        Top = toeplitz(ptmp, ttmp)
-        Top_flatten = np.reshape(Top, (p * t,), order='F')
-        ind = []
-        for _ in np.where(Top_flatten == 1)[0]:
-            ind.append(_)
-        ind = np.array(ind)
-
-        ph = []
-        for i in ind:
-            i_ph = i % p - math.floor(p / 2)
-            ph.append(i_ph)
-        ph = np.array(ph)
-
-        ti = []
-        for i in ind:
-            i_ti = math.floor((i / p)) - math.floor(t / 2)
-            ti.append(i_ti)
-        ti = np.array(ti)
-
-        ph, ti = dispdup(ph, ti, p, t)
-
-        samp = np.zeros((p, t))
-        ind2 = []
-        for i in range(len(ind)):
-            ind_ = round(p * (ti[i] + math.floor(t / 2)) + (ph[i] + math.floor(p / 2) + 1))
-            ind2.append(ind_)
-        ind = np.array(ind2).astype('int64')
-
-        samp = np.reshape(samp, (p * t,), order='F')
-        samp[ind] = 1
-        samp = np.reshape(samp, (p, t), order='F')
-
-        return samp
-
-    def tile(ph, ti, p, t):
-        """
-        Replicate the sampling pattern in each direction. Probablity, this is
-        not an efficient way to impose periodic boundary condition because it
-        makes the problem size grow by 9 fold.
-        """
-        po = np.concatenate((ph, ph - p, ph, ph + p, ph - p, ph + p, ph - p, ph, ph + p))
-        to = np.concatenate((ti, ti - t, ti - t, ti - t, ti, ti, ti + t, ti + t, ti + t))
-        return po, to
 
     # Use VRS as initialization for VISTA(variable density random sampling)
     p1 = []
@@ -126,7 +162,10 @@ def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
         ph[ind: ind + n_tmp] = p_tmp
         ind = ind + n_tmp
 
-    print('Computing VISTA, plese wait as it may take a while ...', datetime.datetime.now())
+    if typ == 'VRS':
+        return ph, ti, p, t
+
+    print('Computing VISTA, please wait as it may take a while ...', datetime.datetime.now())
     stp = np.ones((1, nIter)).flatten()  # Gradient descent displacement, shape(120,)
     a = W * np.ones((1, nIter)).flatten()  # Temporal axis scaling
 
@@ -258,21 +297,5 @@ def vista(p, t, R, typ, alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp):
     samp[ind] = 1
     samp = np.reshape(samp, (p, t), order='F')
     print('VISTA computed at', datetime.datetime.now())
-
-    if R == 1:
-        samp = noacc(p, t)
-
-    else:
-        if typ == 'UIS':
-            samp = samp_UIS(p, t, R)
-
-        elif typ == 'VRS':
-            ph, ti = dispdup(ph, ti, p, t)
-            samp = np.zeros((p, t))
-            samp = np.reshape(samp, (p * t,), order='F')
-            ind_list = p * (ti + math.floor(t / 2)) + (ph + math.floor(p / 2) + 1)
-            for i in ind_list:
-                samp[round(i)] = 1
-            samp = np.reshape(samp, (p, t), order='F')
 
     return samp
