@@ -251,7 +251,7 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
         self.conv_xy_filters = filters
         if use_3D_convs:
             self.conv_xy = ComplexConv3DTranspose(
-                filters=intermediate_filters,
+                filters=filters,
                 kernel_size=(1, self.kernel_size[1], self.kernel_size[2]),
                 strides=(1, self.strides[1], self.strides[2]),
                 padding=padding,
@@ -269,7 +269,7 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
                 **kwargs)
 
             self.conv_t = ComplexConv3DTranspose(
-                filters=filters,
+                filters=intermediate_filters,
                 kernel_size=(self.kernel_size[0], 1, 1),
                 strides=(self.strides[0], 1, 1),
                 padding=padding,
@@ -358,12 +358,12 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
             return self.conv_xy(self.conv_t(x))
         else:
             if self.data_format == 'channels_first':  # [batch, chs, time, x, y]
-                x_t = self.batch_concat_conv(x, self.conv_xy, axis=2)
-                x_sp = self.batch_concat_conv(x_t, self.conv_t, axis=self.axis_conv_t)
+                x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
+                x_sp = self.batch_concat_conv(x_t, self.conv_xy, axis=2)
 
             else:  # channels last #[batch, time, x, y, z, chs]
-                x_t = self.batch_concat_conv(x, self.conv_xy, axis=1)
-                x_sp = self.batch_concat_conv(x_t, self.conv_t, axis=self.axis_conv_t)
+                x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
+                x_sp = self.batch_concat_conv(x_t, self.conv_xy, axis=1)
 
             return x_sp
 
