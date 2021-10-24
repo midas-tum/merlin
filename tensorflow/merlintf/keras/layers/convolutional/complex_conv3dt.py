@@ -19,7 +19,7 @@ from tensorflow.python.ops import nn_ops
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv, ComplexConv2D, ComplexConv3DTranspose, ComplexConv3D
 from merlintf.keras.utils import validate_input_dimension
 
-def calculate_intermediate_filters(filters, kernel_size, channel_in):
+def calculate_intermediate_filters_3D(filters, kernel_size, channel_in):
     return np.ceil((filters * channel_in * np.prod(kernel_size)) /
             (channel_in * kernel_size[1] * kernel_size[2] * kernel_size[3] + filters * kernel_size[0])).astype(np.int32)
 
@@ -41,7 +41,7 @@ class Conv3Dt(tf.keras.layers.Layer):
                  kernel_constraint=None,
                  bias_constraint=None,
                  shapes=None,
-                 axis_conv_t=2,
+                 axis_conv_t=2,  # axis to "loop over" for the temporal convolution, best fully sampled direction x or slice
                  zero_mean=True,
                  bound_norm=True,
                  pad=True,
@@ -184,7 +184,7 @@ class Conv3DtTranspose(tf.keras.layers.Layer):
                  kernel_constraint=None,
                  bias_constraint=None,
                  shapes=None,
-                 axis_conv_t=2,
+                 axis_conv_t=2,  # axis to "loop over" for the temporal convolution, best fully sampled direction x or slice
                  zero_mean=True,
                  bound_norm=True,
                  pad=True,
@@ -302,7 +302,7 @@ class ComplexConv3dtTest(unittest.TestCase):
             expected_shape = [nBatch] + [nf_out] + list(np.asarry(dim_in)/np.asarray(stride))
 
         ksz = validate_input_dimension('3Dt', ksz)
-        nf_inter = calculate_intermediate_filters(nf_out, ksz, nf_in)
+        nf_inter = calculate_intermediate_filters_3D(nf_out, ksz, nf_in)
 
         if is_transpose:
             model = Conv3DtTranspose(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter)

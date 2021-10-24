@@ -19,6 +19,10 @@ from tensorflow.python.ops import nn_ops
 
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv, ComplexConv2D, ComplexConv3DTranspose, ComplexConv3D
 
+def calculate_intermediate_filters_2D(filters, kernel_size, channel_in):
+    return np.ceil((filters * channel_in * np.prod(kernel_size)) / (nf_in * kernel_size[1] * kernel_size[2]
+                                                                    + filters * kernel_size[0])).astype(np.int32)
+
 
 class Conv2Dt(tf.keras.layers.Layer):
     def __init__(self,
@@ -38,7 +42,7 @@ class Conv2Dt(tf.keras.layers.Layer):
                  kernel_constraint=None,
                  bias_constraint=None,
                  shapes=None,
-                 axis_conv_t=2,
+                 axis_conv_t=2,  # axis to "loop over" for the temporal convolution, best fully sampled direction x or slice
                  zero_mean=True,
                  bound_norm=True,
                  pad=True,
@@ -220,7 +224,7 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
                  kernel_constraint=None,
                  bias_constraint=None,
                  shapes=None,
-                 axis_conv_t=2,
+                 axis_conv_t=2,  # axis to "loop over" for the temporal convolution, best fully sampled direction x or slice
                  zero_mean=True,
                  bound_norm=True,
                  pad=True,
@@ -358,101 +362,57 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
 
             return x_sp
 
+class ComplexConv2dtTest(unittest.TestCase):
+    def test_Conv2dt(self):
+        self._test_Conv2dt()
+        self._test_Conv2dt(stride=(2, 2, 2))
+        self._test_Conv2dt(channel_last=False)
+        self._test_Conv2dt(use_3D_convs=False)
+        self._test_Conv2dt(stride=(2, 2, 2), use_3D_convs=False)
+        self._test_Conv2dt(channel_last=False, use_3D_convs=False)
 
+    def test_Conv2dtTranspose(self):
+        self._test_Conv2dt(is_transpose=True)
+        self._test_Conv2dt(is_transpose=True, stride=(2, 2, 2))
+        self._test_Conv2dt(is_transpose=True, channel_last=False)
+        self._test_Conv2dt(is_transpose=True, use_3D_convs=False)
+        self._test_Conv2dt(is_transpose=True, stride=(2, 2, 2), use_3D_convs=False)
+        self._test_Conv2dt(is_transpose=True, channel_last=False, use_3D_convs=False)
 
+    def _test_Conv2dt(self, dim_in=[8, 32, 28], nBatch=2, nf_in=3, nf_out=18, ksz=(3, 5, 5), stride=(1, 1, 1),
+                      channel_last=True, axis_conv_t=2, is_transpose=False):
+        if channel_last:
+            shape = [nBatch] + dim_in + [nf_in]
+            expected_shape = [nBatch] + list(np.asarry(dim_in)/np.asarray(stride)) + [nf_out]
+        else:
+            shape = [nBatch] + [nf_in] + dim_in
+            expected_shape = [nBatch] + [nf_out] + list(np.asarry(dim_in)/np.asarray(stride))
 
-"""conv 2Dt """
-nBatch = 2
-M = 32
-N = 32
-T = 8
-nf_in = 3
-nf_out = 20
-shape = [nBatch, T, M, N, nf_in]
+        ksz = validate_input_dimension('2Dt', ksz)
+        nf_inter = calculate_intermediate_filters_2D(nf_out, ksz, nf_in)
 
-ksz = (3, 5, 5)
-ksz = validate_input_dimension('2Dt', ksz)
+        if is_transpose:
+            model = Conv2DtTranspose(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter)
+        else:
+            model = Conv2Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter)
 
-nf_inter = np.ceil(
-    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
+        x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+        x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+        x = tf.complex(x_real, x_imag)
+        Kx = model(x)
 
-model = Conv2Dt(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3)
+        self.assertTrue(Kx.shape == expected_shape)
 
-x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x = tf.complex(x_real, x_imag)
-Kx = model(x).numpy()
-print('Conv2Dt input_shape:', shape, 'output_shape,channels_last, strides=1:', Kx.shape)
+        # gradient check
+        y = tf.complex(tf.random.normal(Kx.shape), tf.random.normal(Kx.shape))
+        KHy = model.backward(y, x.shape)
 
-model2 = Conv2Dt(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3, strides=(2, 2, 2))  # strides =2
-x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x = tf.complex(x_real, x_imag)
-Kx = model2(x).numpy()
-print('Conv2Dt input_shape:', shape, 'output_shape,channels_last, strides=2:', Kx.shape)
+        rhs = tf.reduce_sum(Kx * y).numpy()
+        lhs = tf.reduce_sum(x * KHy).numpy()
 
-## channel first
-shape = [nBatch, nf_in, T, M, N]
+        self.assertTrue(rhs, lhs)
 
-ksz = (3, 5, 5)
-ksz = validate_input_dimension('2Dt', ksz)
-
-nf_inter = np.ceil(
-    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
-
-model = Conv2Dt(nf_out, nf_inter, kernel_size=ksz, shapes=shape, data_format='channels_first', axis_conv_t=2)
-
-x = tf.random.normal(shape)
-Kx = model(x).numpy()
-print('Conv2Dt input_shape:', shape, 'output_shape,channels_first, strides=1:', Kx.shape)
-
-print('finish conv 2Dt\n')
-
-"""conv 2Dt Transpose"""
-
-nf_in = 18
-nf_out = 3
-shape = [nBatch, T, M, N, nf_in]
-ksz = (3, 5, 5)
-ksz = validate_input_dimension('2Dt', ksz)
-
-nf_inter = np.ceil(
-    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
-
-model = Conv2DtTranspose(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3)
-
-x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x = tf.complex(x_real, x_imag)
-Kx = model(x).numpy()
-print('Conv2DtTranspose input_shape:', shape, 'output_shape, channels_last,strides=1:', Kx.shape)
-
-model2 = Conv2DtTranspose(nf_out, nf_inter, kernel_size=ksz, shapes=shape, axis_conv_t=3,
-                          strides=(2, 2, 2))  # strides =2
-x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-x = tf.complex(x_real, x_imag)
-Kx = model2(x).numpy()
-print('Conv2DtTranspose input_shape:', shape, 'output_shape, channels_last,strides=2:', Kx.shape)
-
-## channel first
-shape = [nBatch, nf_in, T, M, N]
-
-ksz = (3, 5, 5)
-ksz = validate_input_dimension('2Dt', ksz)
-
-nf_inter = np.ceil(
-    (nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
-
-model = Conv2DtTranspose(nf_out, nf_inter, kernel_size=ksz, shapes=shape, data_format='channels_first', axis_conv_t=2)
-
-x = tf.random.normal(shape)
-Kx = model(x).numpy()
-print('Conv2DtTranspose input_shape:', shape, 'output_shape, channels_first,strides=1:', Kx.shape)
-
-print('finish conv 2DtTranspose')
-
-
-
+if __name__ == "__main__":
+    unittest.main()
 
 
