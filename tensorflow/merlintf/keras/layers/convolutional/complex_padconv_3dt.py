@@ -132,7 +132,6 @@ class ComplexPadConv3Dt(tf.keras.layers.Layer):
                 shape_xyz.pop(1)
                 shape_t.pop(4)
                 shape_xyz[-1] = self.intermediate_filters
-                
 
         if self.data_format == 'channels_first':
             xT_t = tf.stack([self.conv_t.backward(x[:, :, :, :, :, i], shape_t) for i in range(0, self.shape[5])], axis=5)

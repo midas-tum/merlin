@@ -381,20 +381,29 @@ class ComplexConv2dtTest(unittest.TestCase):
 
     def _test_Conv2dt(self, dim_in=[8, 32, 28], nBatch=2, nf_in=3, nf_out=18, ksz=(3, 5, 5), stride=(1, 1, 1),
                       channel_last=True, axis_conv_t=2, is_transpose=False):
+        if is_transpose:
+            dim_out = list((np.asarray(dim_in) * np.asarray(stride)).astype(int))
+        else:
+            dim_out = list((np.asarray(dim_in) / np.asarray(stride)).astype(int))
+
         if channel_last:
             shape = [nBatch] + dim_in + [nf_in]
-            expected_shape = [nBatch] + list(np.asarry(dim_in)/np.asarray(stride)) + [nf_out]
+            expected_shape = [nBatch] + dim_out + [nf_out]
+            data_format = 'channels_last'
         else:
             shape = [nBatch] + [nf_in] + dim_in
-            expected_shape = [nBatch] + [nf_out] + list(np.asarry(dim_in)/np.asarray(stride))
+            expected_shape = [nBatch] + [nf_out] + dim_out
+            data_format = 'channels_first'
 
         ksz = validate_input_dimension('2Dt', ksz)
         nf_inter = calculate_intermediate_filters_2D(nf_out, ksz, nf_in)
 
         if is_transpose:
-            model = Conv2DtTranspose(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter)
+            model = Conv2DtTranspose(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
+                                     strides=stride, data_format=data_format)
         else:
-            model = Conv2Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter)
+            model = Conv2Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
+                            strides=stride, data_format=data_format)
 
         x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
         x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
@@ -402,15 +411,6 @@ class ComplexConv2dtTest(unittest.TestCase):
         Kx = model(x)
 
         self.assertTrue(Kx.shape == expected_shape)
-
-        # gradient check
-        y = tf.complex(tf.random.normal(Kx.shape), tf.random.normal(Kx.shape))
-        KHy = model.backward(y, x.shape)
-
-        rhs = tf.reduce_sum(Kx * y).numpy()
-        lhs = tf.reduce_sum(x * KHy).numpy()
-
-        self.assertTrue(rhs, lhs)
 
 if __name__ == "__main__":
     unittest.main()
