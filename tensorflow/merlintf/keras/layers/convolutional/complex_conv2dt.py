@@ -341,31 +341,31 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
             if not self.use_3D_convs:
                 shape_t.pop(self.axis_conv_t)  # pop selected axis
                 shape_xy.pop(2)  # [batch, channels, x,y]
-            shape_t[1] = self.intermediate_filters  # second channel num = intermediate_filters from conv_t output
+            shape_xy[1] = self.intermediate_filters  # second channel num = intermediate_filters from conv_t output
 
         else:
             # channels last  [batch, time, x, y, channels]
             if not self.use_3D_convs:
                 shape_t.pop(self.axis_conv_t)
                 shape_xy.pop(1)  # [batch, x, y, channels]
-            shape_t[-1] = self.intermediate_filters  # last channel num = intermediate_filters from conv_t output
+            shape_xy[-1] = self.intermediate_filters  # last channel num = intermediate_filters from conv_t output
 
         self.conv_xy.build(shape_xy)
         self.conv_t.build(shape_t)
 
     def call(self, x):
         if self.use_3D_convs:
-            return self.conv_t(self.conv_xy(x))
+            return self.conv_xy(self.conv_t(x))
         else:
             if self.data_format == 'channels_first':  # [batch, chs, time, x, y]
-                x_sp = self.batch_concat_conv(x, self.conv_xy, axis=2)
-                x_t = self.batch_concat_conv(x_sp, self.conv_t, axis=self.axis_conv_t)
+                x_t = self.batch_concat_conv(x, self.conv_xy, axis=2)
+                x_sp = self.batch_concat_conv(x_t, self.conv_t, axis=self.axis_conv_t)
 
             else:  # channels last #[batch, time, x, y, z, chs]
-                x_sp = self.batch_concat_conv(x, self.conv_xy, axis=1)
-                x_t = self.batch_concat_conv(x_sp, self.conv_t, axis=self.axis_conv_t)
+                x_t = self.batch_concat_conv(x, self.conv_xy, axis=1)
+                x_sp = self.batch_concat_conv(x_t, self.conv_t, axis=self.axis_conv_t)
 
-            return x_t
+            return x_sp
 
 class ComplexConv2dtTest(unittest.TestCase):
     def test_Conv2dt(self):
