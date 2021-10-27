@@ -41,33 +41,33 @@ def complex_abs(data, dim=-1, keepdim=False, eps=0):
 #     return torch.stack([re, -im], dim = dim)/complex_abs(data, keepdim=True)**2
 
 
-# def complex_mult(data1, data2, dim=-1):
-#     """
-#     Element-wise complex matrix multiplication X^T Y
-#     Params:
-#       data1: tensor
-#       data2: tensor
-#       dim: dimension that represents the complex values
-#     """
-#     assert data1.size(dim) == 2
-#     assert data2.size(dim) == 2
-#     re1, im1 = torch.unbind(data1, dim=dim)
-#     re2, im2 = torch.unbind(data2, dim=dim)
-#     return torch.stack([re1 * re2 - im1 * im2, im1 * re2 + re1 * im2], dim = dim)
+def complex_mult(data1, data2, dim=-1):
+     """
+     Element-wise complex matrix multiplication X^T Y
+     Params:
+       data1: tensor
+       data2: tensor
+       dim: dimension that represents the complex values
+     """
+     assert data1.size(dim) == 2
+     assert data2.size(dim) == 2
+     re1, im1 = torch.unbind(data1, dim=dim)
+     re2, im2 = torch.unbind(data2, dim=dim)
+     return torch.stack([re1 * re2 - im1 * im2, im1 * re2 + re1 * im2], dim = dim)
 
-# def complex_mult_conj(data1, data2, dim=-1):
-#     """
-#     Element-wise complex matrix multiplication with conjugation X^H Y
-#     Params:
-#       data1: tensor
-#       data2: tensor
-#       dim: dimension that represents the complex values
-#     """
-#     assert data1.size(dim) == 2
-#     assert data2.size(dim) == 2
-#     re1, im1 = torch.unbind(data1, dim=dim)
-#     re2, im2 = torch.unbind(data2, dim=dim)
-#     return torch.stack([re1 * re2 + im1 * im2, im1 * re2 - re1 * im2], dim = -1)
+def complex_mult_conj(data1, data2, dim=-1):
+     """
+     Element-wise complex matrix multiplication with conjugation X^H Y
+     Params:
+       data1: tensor
+       data2: tensor
+       dim: dimension that represents the complex values
+     """
+     assert data1.size(dim) == 2
+     assert data2.size(dim) == 2
+     re1, im1 = torch.unbind(data1, dim=dim)
+     re2, im2 = torch.unbind(data2, dim=dim)
+     return torch.stack([re1 * re2 + im1 * im2, im1 * re2 - re1 * im2], dim = -1)
 
 # def complex_conj(data):
 #     assert data.size(-1) == 2
