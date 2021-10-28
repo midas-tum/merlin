@@ -14,6 +14,15 @@ def complex_abs(data, dim=-1, keepdim=False, eps=0):
     assert data.size(dim) == 2
     return (data ** 2 + eps).sum(dim=dim, keepdim=keepdim).sqrt()
 
+def complex2real(z, channel_last=True):
+    stack_dim = -1 if channel_last else 1
+    return torch.concat([torch.real(z), torch.imag(z)], stack_dim)
+
+def real2complex(z, channel_last=True):
+    stack_dim = -1 if channel_last else 1
+    (real, imag) = torch.split(z, 2, axis=stack_dim)
+    return torch.complex(real, imag)
+
 # def complex_normalization(data, dim=-1, eps=1e-12):
 #     assert data.size(dim) == 2
 #     magn = complex_abs(data, eps=eps, keepdim=True)
