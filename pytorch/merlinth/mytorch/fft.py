@@ -13,9 +13,9 @@ def fft2(data):
     # assert data.size(-1) == 2
     # data = torch.fft(data, 2, normalized=True)
     if not data.is_complex():
-        data = real2complex(data, channel_last=False)
+        data = real2complex(data)
     data = torch.fft.fft2(data, dim=(-2, -1), norm='ortho')
-    return complex2real(data, channel_last=False)
+    return complex2real(data)
 
 
 def fft2c(data):
@@ -40,9 +40,9 @@ def ifft2(data):
     #data = torch.ifft(data, 2, normalized=True)
     #return data
     if not data.is_complex():
-        data = real2complex(data, channel_last=False)
+        data = real2complex(data)
     data = torch.fft.ifft2(data, dim=(-2, -1), norm='ortho')
-    return complex2real(data, channel_last=False)
+    return complex2real(data)
 
 
 def ifft2c(data):
