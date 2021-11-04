@@ -38,6 +38,8 @@ from merlintf.keras.layers.data_consistency import DCPM
 from merlintf.keras.layers.common import Scalar
 from merlintf.keras.layers.mri import MulticoilForwardOp
 from merlintf.keras.layers.mri import MulticoilAdjointOp
+from merlintf.keras.layers.mri import ForwardOp
+from merlintf.keras.layers.mri import AdjointOp
 from merlintf.keras.layers.fft import FFT2
 from merlintf.keras.layers.fft import FFT2c
 from merlintf.keras.layers.fft import IFFT2
