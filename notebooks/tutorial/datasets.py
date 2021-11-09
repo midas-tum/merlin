@@ -58,7 +58,7 @@ class DataGeneratorMNIST(tf.keras.utils.Sequence):
     def _prepare_data(self):
         'Data preparation'
         # convert uint8 to float32
-        self.img = self.img.astype(np.float32)
+        self.img = self.img.astype(np.float32) / 255.0
 
     def __len__(self):
         'Denotes the number of batches per epoch'
@@ -91,7 +91,7 @@ class DataGeneratorMNIST(tf.keras.utils.Sequence):
             sample = self.img[ID,]
 
             # normalize to the range [0, 1]
-            sample = self._normalize(sample)
+            #sample = self._normalize(sample, 0, 1)
 
             # Store sample
             target[i, ..., 0] = sample
@@ -100,11 +100,6 @@ class DataGeneratorMNIST(tf.keras.utils.Sequence):
             noisy[i, ..., 0] = self._noisy(sample)
 
         return noisy, target
-
-    def _normalize(self, x, min=0, max=1):
-        'Normalization'
-        # normalize/scale the image
-        return (x - np.min(x)) / (np.max(x) - np.min(x)) * (max - min) + min
 
     def _noisy(self, x):
         'Real-valued noise simulation'
@@ -124,29 +119,27 @@ class ComplexDataGeneratorMNIST(DataGeneratorMNIST):
         super()._prepare_data()
         # simulate some phase information
         # !ATTENTION! Some weird numerical errors occur...
-        # Set values in magn phase around 0 to eps=1e-12
-        eps = 1e-12
-        phase = self._normalize(self.img[::-1], -np.pi, np.pi)
-        phase = np.sign(phase)*np.maximum(phase, eps)
-        # magn = self._normalize(self.img)
-        magn = np.maximum(self.img, eps)
-        self.img = magn * np.exp(1j * phase)
+        self.img = self.img + 1j * self.img[::-1]
+        self.img = self._normalize(self.img)
         self.img = self.img.astype(self.dtype)
         
     def _normalize(self, x, min=0, max=1):
         'Normalization'
         # only scale the magnitude
         if np.iscomplexobj(x):
+            eps=1e-9
             xabs = np.abs(x)
             normed_magn = (xabs - np.min(xabs)) / (np.max(xabs) - np.min(xabs)) * (max - min) + min
-            return normed_magn * np.exp(1j * np.angle(x))
+            normed_magn = np.maximum(eps, normed_magn)
+            phase =  np.angle(x)
+            return normed_magn * np.exp(1j * phase)
         else:
             return (x - np.min(x)) / (np.max(x) - np.min(x)) * (max - min) + min
 
     def _noisy(self, x):
         'Complex-valued noise simulation'
         # add complex Gaussian noise
-        return x + self.noise_level / 2 * ( np.random.randn(*x.shape) + 1j *  np.random.randn(*x.shape))
+        return x + self.noise_level / 2 * ( np.random.randn(*x.shape).astype(np.float32) + 1j *  np.random.randn(*x.shape).astype(np.float32))
     
 class ComplexRawDataGeneratorMNIST(ComplexDataGeneratorMNIST):
     'Generates complex-valued data with raw data (for data consistency) for keras model'
@@ -250,17 +243,24 @@ class TestDataGenerator(unittest.TestCase):
                                             mode='test')
 
         inputs, outputs = test_generator.__getitem__(0)
-        img = outputs[0,...,0]
+        img = inputs[0][0,...,0]
 
         plt.figure()
-        plt.subplot(1,2,1)
+        plt.subplot(2,2,1)
         plt.imshow(np.abs(img))
         plt.title('Magnitude')
-        plt.subplot(1,2,2)
-        plt.imshow(np.angle(img))
+        plt.subplot(2,2,2)
+        plt.imshow(np.angle(img), vmin=-np.pi, vmax=np.pi)
+        plt.title('Phase')
+        img = outputs[0,...,0]
+        plt.subplot(2,2,3)
+        plt.imshow(np.abs(img))
+        plt.title('Magnitude')
+        plt.subplot(2,2,4)
+        plt.imshow(np.angle(img), vmin=-np.pi, vmax=np.pi)
         plt.title('Phase')
         plt.savefig('test_complex_reconstruction.png')
-        self.assertTrue(np.abs(np.max(np.abs(img)) - 1) <= 1e-6)
+        self.assertTrue(np.abs(np.max(np.abs(img)) - 1) <= 1e-2)
 
 class TestDataGeneratorDenoising(unittest.TestCase):
     def testComplex(self):
@@ -274,17 +274,26 @@ class TestDataGeneratorDenoising(unittest.TestCase):
                                                     mode='test')
 
         inputs, outputs = test_generator.__getitem__(0)
-        img = outputs[0,...,0]
+        img = inputs[0,...,0]
 
         plt.figure()
-        plt.subplot(1,2,1)
+        plt.subplot(2,2,1)
         plt.imshow(np.abs(img))
         plt.title('Magnitude')
-        plt.subplot(1,2,2)
-        plt.imshow(np.angle(img))
+        plt.subplot(2,2,2)
+        plt.imshow(np.angle(img), vmin=-np.pi, vmax=np.pi)
         plt.title('Phase')
+
+        img = outputs[0,...,0]
+        plt.subplot(2,2,3)
+        plt.imshow(np.abs(img))
+        plt.title('Magnitude')
+        plt.subplot(2,2,4)
+        plt.imshow(np.angle(img), vmin=-np.pi, vmax=np.pi)
+        plt.title('Phase')
+
         plt.savefig('test_complex_denoising.png')
-        self.assertTrue(np.abs(np.max(np.abs(img)) - 1) <= 1e-6)
+        self.assertTrue(np.abs(np.max(np.abs(img)) - 1) <= 1e-2)
         
                                             
     
