@@ -142,3 +142,7 @@ dmypy.json
 .idea/vcs.xml
 
 .idea/
+
+*.png
+
+samplingPattern.txt

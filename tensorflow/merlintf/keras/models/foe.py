@@ -2,8 +2,9 @@ import tensorflow as tf
 import merlintf
 from merlintf.keras.layers import ComplexPadConv2D, ComplexPadConv3D
 from merlintf.keras.layers import ComplexPadConv2Dt
-from merlintf.keras.layers import PadConv2D, PadConv3D
+from merlintf.keras.layers import PadConv1D, PadConv2D, PadConv3D
 from optotf.activations import TrainableActivationKeras as TrainableActivation
+from tensorflow.python.eager import context
 
 import unittest
 import numpy as np
@@ -47,16 +48,22 @@ class FoEBase(Regularizer):
         return NotImplementedError
 
     def grad(self, x):
+        input_shape = x.shape
         x = self._transformation(x)
         x = self._activation(x)
         x = self._transformation_T(x)
+        if not context.executing_eagerly():
+            # Infer the static output shape:
+            x.set_shape(input_shape)
         return x
 
 class FoE(FoEBase):
     def __init__(self, config=None):
         super().__init__(config=config)
-        if config['dim'] == '2D':
-                self.K1 = PadConv2D(**self.config["K1"])
+        if config['dim'] == '1D':
+            self.K1 = PadConv1D(**self.config["K1"])
+        elif config['dim'] == '2D':
+            self.K1 = PadConv2D(**self.config["K1"])
         elif config['dim'] == '3D':
             self.K1 = PadConv3D(**self.config["K1"])
         else:
@@ -122,10 +129,6 @@ class MagnitudeFoE(FoEBase):
         return merlintf.complex_scale(xn, magn)
 
 class ComplexFoE(FoEBase):
-    """
-    Fields of Experts regularizer used in the publication
-    Effland, A. et al. "An optimal control approach to early stopping variational methods for image restoration". FoE 2019.
-    """
     def __init__(self, config=None):
         super(ComplexFoE, self).__init__(config=config)
 
@@ -150,13 +153,13 @@ class ComplexFoE(FoEBase):
 
 class PolarFoETest(unittest.TestCase):
     def test_FoE_polar_2d(self):
-        self._test_FoE_polar(2, 11)
+        self._test_FoE_polar('2D', 11)
 
     def test_FoE_polar_3d(self):
-        self._test_FoE_polar(3, (3, 5, 5))
+        self._test_FoE_polar('3D', (3, 5, 5))
 
     def test_FoE_polar_2dt(self):
-        self._test_FoE_polar('2dt', (5, 7, 7))
+        self._test_FoE_polar('2Dt', (5, 7, 7))
 
     def _test_FoE_polar(self, dim, kernel_size):
         nBatch = 5
@@ -191,7 +194,7 @@ class PolarFoETest(unittest.TestCase):
                 'init_scale': 1,
             },
         }
-        if dim == '2dt':
+        if dim == '2Dt':
             config['K1'].update({'intermediate_filters' : nf_in})
 
         model = PolarFoE(config)
@@ -208,10 +211,10 @@ class PolarFoETest(unittest.TestCase):
 
 class MagnitudeFoETest(unittest.TestCase):
     def test_FoE_magnitude_2d(self):
-        self._test_FoE_magnitude(2, 11)
+        self._test_FoE_magnitude('2D', 11)
 
     def test_FoE_magnitude_3d(self):
-        self._test_FoE_magnitude(3, (3, 5, 5))
+        self._test_FoE_magnitude('3D', (3, 5, 5))
 
     def test_FoE_magnitude_2dt(self):
         self._test_FoE_magnitude('2Dt', (5, 7, 7))
@@ -258,13 +261,13 @@ class MagnitudeFoETest(unittest.TestCase):
 
 class ComplexFoETest(unittest.TestCase):
     def test_FoE_complex_2d(self):
-        self._test_FoE_complex(2, 11)
+        self._test_FoE_complex('2D', 11)
 
     def test_FoE_complex_3d(self):
-        self._test_FoE_complex(3, (3, 5, 5))
+        self._test_FoE_complex('3D', (3, 5, 5))
 
     def test_FoE_complex_2dt(self):
-        self._test_FoE_complex('2dt', (5, 7, 7))
+        self._test_FoE_complex('2Dt', (5, 7, 7))
 
     def _test_FoE_complex(self, dim, kernel_size):
         nBatch = 5
@@ -308,10 +311,10 @@ class ComplexFoETest(unittest.TestCase):
 
 class Real2chFoETest(unittest.TestCase):
     def test_FoE_real2ch_2d(self):
-        self._test_FoE_real2ch(2, 11)
+        self._test_FoE_real2ch('2D', 11)
 
     def test_FoE_real2ch_3d(self):
-        self._test_FoE_real2ch(3, (3, 5, 5))
+        self._test_FoE_real2ch('3D', (3, 5, 5))
 
     def _test_FoE_real2ch(self, dim, kernel_size):
         nBatch = 5
@@ -354,11 +357,14 @@ class Real2chFoETest(unittest.TestCase):
         self.assertTrue(Kx.shape == x.shape)
 
 class RealFoETest(unittest.TestCase):
+    def test_FoE_real_1d(self):
+        self._test_FoE_real('1D', 11)
+
     def test_FoE_real_2d(self):
-        self._test_FoE_real(2, 11)
+        self._test_FoE_real('2D', 11)
 
     def test_FoE_real_3d(self):
-        self._test_FoE_real(3, (3, 5, 5))
+        self._test_FoE_real('3D', (3, 5, 5))
 
     def _test_FoE_real(self, dim, kernel_size):
         nBatch = 5
@@ -390,7 +396,9 @@ class RealFoETest(unittest.TestCase):
 
         model = FoE(config)
 
-        if dim == '2D':
+        if dim == '1D':
+            x = tf.random.normal((nBatch, N, 1), dtype=tf.float32)
+        elif dim == '2D':
             x = tf.random.normal((nBatch, M, N, 1), dtype=tf.float32)
         elif dim == '3D' or dim == '2Dt':
             x = tf.random.normal((nBatch, D, M, N, 1), dtype=tf.float32)

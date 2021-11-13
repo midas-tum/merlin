@@ -57,16 +57,16 @@ def excludeOuter(tmp, p):
 def fillK(P, T, Pacc, Tacc, p, R, alph, s=1.4, fr=1):
     """
     Ensures time-average of VISTA is fully sampled(except for the outer mostregion)
-
     p: Number of phase encoding steps
     fr: What fraction of the time-averaged should be fully sampled. Default value: 1
     """
 
     # empty locations
     tmp = np.setdiff1d(np.array([x for x in range(-math.floor(fr * p / 2))]), P)
-    tmp2 = np.array(sorted(list(map(abs, tmp))))
+    # tmp2 = np.array(sorted(list(map(abs, tmp))))
+    # tmp2 = np.sort(abs(tmp))
     ords = np.argsort(tmp)
-    tmp2 = np.multiply(tmp2, np.sign(tmp[ords]))  # Sorted (from center-out) empty locations
+    tmp2 = np.multiply(np.sort(abs(tmp)), np.sign(tmp[ords]))  # Sorted (from center-out) empty locations
 
     while len(tmp2) > 0:
         ind = tmp2[1]  # the hole (PE location) to be filled
@@ -115,10 +115,9 @@ def fillK(P, T, Pacc, Tacc, p, R, alph, s=1.4, fr=1):
                 if P[ind_tmp3] == Pcan[slc] and T[ind_tmp3] == Tcan[slc]:
                     P[ind_tmp3] = ind  # Fill the hole with the approprate candidate
 
-            tmp = np.setdiff1d(np.array([x for x in range(-math.floor(fr * p / 2), math.ceil(fr * p / 2))]), P)
-            tmp = excludeOuter(tmp, p)
-            tmp2 = np.array(sorted(list(map(abs, tmp))))
-            ords = np.argsort(tmp)
-            tmp2 = np.multiply(tmp2, np.sign(tmp[ords]))  # Find new holes
+            tmp = excludeOuter(np.setdiff1d(np.array([x for x in range(-math.floor(fr * p / 2), math.ceil(fr * p / 2))]), P), p)
+            # tmp2 = np.array(sorted(list(map(abs, tmp))))
+            tmp2 = np.sort(abs(tmp))
+            tmp2 = np.multiply(tmp2, np.sign(tmp[np.argsort(tmp)]))  # Find new holes
 
     return Pacc, Tacc

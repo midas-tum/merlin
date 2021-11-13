@@ -1,38 +1,76 @@
 import numpy as np
 import math
-import VD_CASPR_CINE as VD_CASPR_CINE
-from VISTA import vista
-import VDPD as VDPD
 
-class Sampling
+from merlinpy.datapipeline.sampling.VISTA.main import sampling2dt
+import matplotlib.pyplot as plt
+import unittest
+from merlinpy.datapipeline.sampling import VD_CASPR_CINE as VD_CASPR_CINE
+from merlinpy.datapipeline.sampling import VDPDGauss as VDPDGauss
+
+class Sampling:  # abstract parent class
     # subsampling of phase-encoding directions (y/z) and along time (t)
-    def __init__(self, dim, acc, trajectory):
+    def __init__(self, dim, acc, trajectory, is_elliptical):
         self.dim = dim  # x - y - z - t - MRcha
         self.acc = acc  # acceleration factor
         self.trajectory = trajectory  # CASPR, Poisson-Disc, Gaussian, GoldenRadial, TinyGoldenRadial,
+        self.is_elliptical = is_elliptical
         self.mask = []
 
-    def plot_mask(self):
-        numLin = self.dim[1]  # ky points
-        numPar = self.dim[2]  # kz points
-        nRep = self.dim[3]  # time points
-        iMaxCol = 2
-        iRows = np.ceil(nRep / iMaxCol)
-        plt.figure()
-        for iRep in range(1, nRep + 1):
-            plt.subplot(iRows, iMaxCol, iRep)
-            plt.imshow(self.mask[:, :, iRep - 1], cmap='gray')
+    def plot_mask(self, asfigure=True):
+        numLin = self.dim[0]  # ky points
+        numPar = self.dim[1]  # kz points
+        nRep = self.dim[2]  # time points
+        if asfigure:
+            iMaxCol = 2
+            iRows = np.ceil(nRep / iMaxCol)
+            plt.figure()
+            for iRep in range(1, nRep + 1):
+                plt.subplot(iRows, iMaxCol, iRep)
+                plt.imshow(self.mask[:, :, iRep - 1], cmap='gray')
 
-            print('#samples repetition %d = %d\n' % (iRep, np.sum(mask_rep[:, :, iRep - 1], axis=(0, 1))))
-        plt.show()
+                print('#samples repetition %d = %d' % (iRep, np.sum(self.mask[:, :, iRep - 1], axis=(0, 1))))
+            plt.show()
+        else:
+            print('Sampling')
+            print('    ', end='')
+            for iPar in range(numPar):
+                print('%03d ' % (iPar), end='')
+            print('')
+
+            for iLin in range(numLin):
+                print('%03d ' % (iLin), end='')
+                for iPar in range(numPar):
+                    nsamples = np.sum(self.mask[iLin,iPar,:])
+                    if nsamples > 0:
+                        print('%03d ' % (nsamples), end='')
+                    else:
+                        print('--- ', end='')
+                print('')
+
+            for iRep in range(1, nRep + 1):
+                print('*** Repetition = %d ***' % (iRep))
+                print('#Samples repetition %d: %d' % (iRep, np.sum(mask_rep[:, :, iRep - 1], axis=(0, 1))))
+
+    def get_accel(self):
+        # determine obtained acceleration factor of subsampling algorithm
+        if self.is_elliptical:
+            samples_elliptical = 0
+            for iLin in range(self.dim[0]):
+                for iPar in range(self.dim[1]):
+                    if (((-1.0 + 2.0 * iPar / (self.dim[1] - 1.0)) * (-1.0 + 2.0 * iPar / (self.dim[1] - 1.0)) + (-1.0 + 2.0 * iLin / (self.dim[0] - 1.0)) * (-1.0 + 2.0 * iLin / (self.dim[0] - 1.0))) <= np.sqrt(1 + (-1.0 + (2.0 * (np.floor(self.dim[0] / 2.0)-3.0)) / (self.dim[0]-1)) * (-1.0 + (2.0 * (np.floor(self.dim[0] / 2.0)-3.0)) / (self.dim[0]-1)))):
+                        samples_elliptical += 1
+            return (samples_elliptical * self.dim[2])/np.count_nonzero(self.mask)
+        else:
+            return np.prod(self.dim)/np.count_nonzero(self.mask)
 
     def subsample(self, kspace):
+        # subsample k-space, i.e. apply subsampling mask
         return np.multiply(kspace, self.mask)
 
 class CASPR(Sampling):
     # variable-density CASPR subsampling (2D / 2D+time)
     def __init__(self, dim, acc, mode='interleaved', nSegments=10, nCenter=15, isVariable=1, isGolden=2, isInOut=1, isCenter=0, isSamePattern=0, iVerbose=0):
-        super().__init__(dim=dim, acc=acc, trajectory='CASPR')
+        super().__init__(dim=dim, acc=acc, trajectory='CASPR', is_elliptical=True)
         self.mode = mode  # 'interleaved' (CINE), 'noninterleaved' (free-running, CMRA, T2Mapping, ...)
         self.nSegments = nSegments  # #segments = #rings in sampling pattern
         self.nCenter = nCenter  # percentage of fully sampled center region
@@ -44,9 +82,9 @@ class CASPR(Sampling):
         self.iVerbose = iVerbose  # 0=silent, 1=normal output, 2=all output
 
     def generate_mask(self):
-        numLin = self.dim[1]  # ky points (store it the other way round, for right dim)
-        numPar = self.dim[2]  # kz points
-        nRep = self.dim[3]  # time points
+        numLin = self.dim[0]  # ky points (store it the other way round, for right dim)
+        numPar = self.dim[1]  # kz points
+        nRep = self.dim[2]  # time points
 
         lMask = np.zeros((numPar, numLin))
         kSpacePolar_LinInd = np.zeros((nRep * numLin * numPar, 1))
@@ -62,10 +100,10 @@ class CASPR(Sampling):
         mask_rep = np.zeros((numPar, numLin, nRep))
         for iRep in range(1, nRep + 1):
             iVec = list()
-            for iInner in range(nSegments):
+            for iInner in range(self.nSegments):
                 iVecTmp = [idx - 1 for idx in
-                           range((iRep - 1) * nSegments + 1 + iInner, nSampled - nSegments + 1 + iInner + 1,
-                                 nSegments * nRep)]
+                           range((iRep - 1) * self.nSegments + 1 + iInner, nSampled - self.nSegments + 1 + iInner + 1,
+                                 self.nSegments * nRep)]
                 iVec.extend(iVecTmp)
             # iVec = np.asarray(iVec)
 
@@ -77,10 +115,10 @@ class CASPR(Sampling):
         self.mask = mask_rep
         return mask_rep  # Z x Y x Time
     
-class VDPD(Sampling):
+class PoissonDisc(Sampling):
     # variable-density Poisson-Disc subsampling (1D / 2D / 2D+time)
     def __init__(self, dim, acc, nCenter=1, vd_type=4, pF_value=1, pF_x=0, smpl_type=1, ellip_mask=0, p=2, n=2, iVerbose=0):
-        super().__init__(dim=dim, acc=acc, trajectory='Poisson-Disc')
+        super().__init__(dim=dim, acc=acc, trajectory='Poisson-Disc', is_elliptical=(ellip_mask>0)&(dim[1]>1))
 
         self.mode = 1  # Poisson-Disc {1}, Gaussian {2}
         self.nCenter = nCenter  # percentage of fully sampled center region
@@ -96,32 +134,23 @@ class VDPD(Sampling):
         self.iVerbose = iVerbose  # verbosity level
 
     def generate_mask(self):
-        numLin = self.dim[1]  # ky points
-        numPar = self.dim[2]  # kz points
-        nRep = self.dim[3]  # time points
+        numLin = self.dim[0]  # ky points
+        numPar = self.dim[1]  # kz points
+        nRep = self.dim[2]  # time points
 
-        kSpacePolar_LinInd = np.zeros((nRep * numLin * numPar, 1))
-        kSpacePolar_ParInd = np.zeros((nRep * numLin * numPar, 1))
-        phaseInd = np.zeros((nRep * numLin * numPar, 1))
         out_parameter = np.zeros((3, 1), dtype='float32')
-        parameter_list = np.asarray([numLin, numPar, self.acc, self.mode, self.nCenter/100, self.pF_value, self.pF_x, nRep, self.vd_type, self.smpl_type, self.ellip_mask, self.p, self.n, self.body_region, self.iso_fac, self.iVerbose], dtype='float32')
+        parameter_list = np.asarray([numLin, numPar, self.acc, self.mode, self.nCenter/100, self.pF_value, self.pF_x, nRep, self.vd_type, self.smpl_type, self.ellip_mask, self.p, self.n, self.body_region, self.iso_fac], dtype='float32')
 
-        res = VDPD.run(parameter_list, kSpacePolar_LinInd, kSpacePolar_ParInd, phaseInd, out_parameter)
-        mask_rep = np.zeros((numPar, numLin, nRep))
-        for iRep in range(1, nRep + 1):
-            iVec = np.where(phaseInd == iRep - 1)
-            # iVec = np.asarray(iVec)
-            for iI in iVec[0]:
-                if (kSpacePolar_LinInd[iI] > 0) and (kSpacePolar_ParInd[iI] > 0):
-                    mask_rep[np.asscalar(kSpacePolar_ParInd[iI].astype(int)), np.asscalar(kSpacePolar_LinInd[iI].astype(int)), iRep - 1] += 1
+        lMask = np.zeros((numPar, numLin, nRep))
+        res = VDPDGauss.run(parameter_list, lMask, out_parameter)
 
-        self.mask = mask_rep
-        return mask_rep  # Z x Y x Time
+        self.mask = lMask
+        return lMask  # Z x Y x Time
 
 class Gaussian(Sampling):
     # variable-density Gaussian subsampling (1D / 2D / 2D+time)
     def __init__(self, dim, acc, nCenter=1, vd_type=4, pF_value=1, pF_x=0, smpl_type=1, ellip_mask=0, p=2, n=2, iVerbose=0):
-        super().__init__(dim=dim, acc=acc, trajectory='Gaussian')
+        super().__init__(dim=dim, acc=acc, trajectory='Gaussian', is_elliptical=(ellip_mask>0)&(dim[1]>1))
 
         self.mode = 2  # Poisson-Disc {1}, Gaussian {2}
         self.nCenter = nCenter  # percentage of fully sampled center region
@@ -137,50 +166,42 @@ class Gaussian(Sampling):
         self.iVerbose = iVerbose  # verbosity level
 
     def generate_mask(self):
-        numLin = self.dim[1]  # ky points
-        numPar = self.dim[2]  # kz points
-        nRep = self.dim[3]  # time points
+        numLin = self.dim[0]  # ky points
+        numPar = self.dim[1]  # kz points
+        nRep = self.dim[2]  # time points
 
-        kSpacePolar_LinInd = np.zeros((nRep * numLin * numPar, 1))
-        kSpacePolar_ParInd = np.zeros((nRep * numLin * numPar, 1))
-        phaseInd = np.zeros((nRep * numLin * numPar, 1))
         out_parameter = np.zeros((3, 1), dtype='float32')
-        parameter_list = np.asarray([numLin, numPar, self.acc, self.mode, self.nCenter/100, self.pF_value, self.pF_x, nRep, self.vd_type, self.smpl_type, self.ellip_mask, self.p, self.n, self.body_region, self.iso_fac, self.iVerbose], dtype='float32')
+        parameter_list = np.asarray(
+            [numLin, numPar, self.acc, self.mode, self.nCenter / 100, self.pF_value, self.pF_x, nRep, self.vd_type,
+             self.smpl_type, self.ellip_mask, self.p, self.n, self.body_region, self.iso_fac], dtype='float32')
 
-        res = VDPD.run(parameter_list, kSpacePolar_LinInd, kSpacePolar_ParInd, phaseInd, out_parameter)
-        mask_rep = np.zeros((numPar, numLin, nRep))
-        for iRep in range(1, nRep + 1):
-            iVec = np.where(phaseInd == iRep - 1)
-            # iVec = np.asarray(iVec)
-            for iI in iVec[0]:
-                if (kSpacePolar_LinInd[iI] > 0) and (kSpacePolar_ParInd[iI] > 0):
-                    mask_rep[np.asscalar(kSpacePolar_ParInd[iI].astype(int)), np.asscalar(kSpacePolar_LinInd[iI].astype(int)), iRep - 1] += 1
+        lMask = np.zeros((numPar, numLin, nRep))
+        res = VDPDGauss.run(parameter_list, lMask, out_parameter)
 
-        self.mask = mask_rep
-        return mask_rep  # Z x Y x Time
-    
-    
-class VISTA(Sampling):
-    def __init__(self, dim, acc, typ, alph=0.28, sd=10, nIter=120, g=None, uni=None,
+        self.mask = lMask
+        return lMask  # Z x Y x Time
+
+class Sampling2Dt(Sampling):
+    def __init__(self, dim, acc, typ='VISTA', alph=0.28, sd=10, nIter=120, g=None, uni=None,
                  ss=0.25, fl=None, fs=1, s=1.4, tf=0.0, dsp=5):
-        self.typ = typ  # 'UIS', 'VRS', 'VISTA'
-        self.alph = alph
-        self.sd = sd
-        self.nIter = nIter
-        self.g = g
-        self.uni = uni
-        self.ss = ss
-        self.fl = fl
-        self.fs = fs
-        self.s = s
-        self.tf = tf
-        self.dsp = dsp
-        super().__init__(dim=dim, acc=acc, trajectory='VISTA')
+        super().__init__(dim=dim, acc=acc, trajectory='2Dt', is_elliptical=False)
+        self.typ = typ  # 'UIS': uniform interleaved sampling, 'VRS': variable density random sampling, 'VISTA': Variable density incoherent spatiotemporal acquisition
+        self.alph = alph  # variable-density spreading: 0<alpha<1
+        self.sd = sd  # random number generator seed
+        self.nIter = nIter  # number of VISTA iterations
+        self.g = g  # resample onto integer Cartesian grid every g iterations Default value: floor(nIter/6)
+        self.uni = uni  # At uni iteration, reset to equivalent uniform sampling. Default value: floor(nIter/2)
+        self.ss = ss  # Step-size for gradient descent. Default value: 0.25
+        self.fl = fl  # Start checking fully sampledness at fl^th iteration. Default value: floor(nIter*5/6)
+        self.fs = fs  # Performed time average has to be fully sampled, 0 for no, 1 for yes. Only works with VISTA. Default value: 1
+        self.s = s  # Exponent of the potential energy term. Default value 1.4
+        self.tf = tf  # Step-size in time direction wrt to phase-encoding direction; use zero for constant temporal resolution. Default value: 0.0
+        self.dsp = dsp  # Display the distribution at every dsp^th iteration
 
     def generate_mask(self):
-        p = self.dim[1]  # Number of phase encoding steps
-        t = self.dim[3]  # Number of frames
-        R = self.acc
+        p = self.dim[0]  # Number of phase encoding steps
+        t = self.dim[2]  # Number of frames
+        R = self.acc  # acceleration
         if self.g == None:
             self.g = math.floor(self.nIter/6)
         if self.uni == None:
@@ -188,7 +209,72 @@ class VISTA(Sampling):
         if self.fl == None:
             self.fl = math.floor(self.nIter*5/6)
 
-        mask_VISTA = vista(p, t, R, self.typ, self.alph, self.sd, self.nIter, self.g, self.uni, self.ss, self.fl,
+        self.mask = sampling2dt(p, t, R, self.typ, self.alph, self.sd, self.nIter, self.g, self.uni, self.ss, self.fl,
                            self.fs, self.s, self.tf, self.dsp)
-        self.mask = mask_VISTA
-        return mask_VISTA
+        return self.mask
+
+class VISTA(Sampling2Dt):
+    def __init__(self, dim, acc, alph=0.28, sd=10, nIter=120, g=None, uni=None,
+                 ss=0.25, fl=None, fs=1, s=1.4, tf=0.0, dsp=5):
+        super().__init__(dim, acc, 'VISTA', alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp)
+
+class UIS(Sampling2Dt):
+    def __init__(self, dim, acc, alph=0.28, sd=10, nIter=120, g=None, uni=None,
+                 ss=0.25, fl=None, fs=1, s=1.4, tf=0.0, dsp=5):
+        super().__init__(dim, acc, 'UIS', alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp)
+
+class VRS(Sampling2Dt):
+    def __init__(self, dim, acc, alph=0.28, sd=10, nIter=120, g=None, uni=None,
+                 ss=0.25, fl=None, fs=1, s=1.4, tf=0.0, dsp=5):
+        super().__init__(dim, acc, 'VRS', alph, sd, nIter, g, uni, ss, fl, fs, s, tf, dsp)
+
+class SamplingTest(unittest.TestCase):
+    def test_samplingCASPR2D(self, acc=4):
+        self._test_sampling(CASPR([128, 64, 1], acc))  # non-interleaved and triggered/gated single-phase Cartesian with spiral ordering sampling
+
+    def test_samplingCASPR2Dt(self, acc=4):
+        self._test_sampling(CASPR([128, 64, 16], acc))  # non-interleaved and triggered/gated multi-phase Cartesian with spiral ordering sampling
+
+    def test_samplingVDPD1D(self, acc=4):
+        self._test_sampling(PoissonDisc([128, 1, 1], acc))  # 1D Poisson-Disc subsampling
+
+    def test_samplingVDPD2D(self, acc=4):  # 2D Poisson-Disc subsampling
+        self._test_sampling(PoissonDisc([128, 64, 1], acc))  # central ellipse, L2-norm VD distance
+        self._test_sampling(PoissonDisc([128, 64, 1], acc, vd_type=1))  # no variable-density, i.e. uniform, L2-norm VD distance
+        self._test_sampling(PoissonDisc([128, 64, 1], acc, vd_type=2))  # central point, L2-norm VD distance
+        self._test_sampling(PoissonDisc([128, 64, 1], acc, vd_type=3))  # central block, L2-norm VD distance
+        self._test_sampling(PoissonDisc([128, 64, 1], acc, vd_type=2, p=1, n=1))  # central point, L1-norm VD distance
+        self._test_sampling(PoissonDisc([128, 64, 1], acc, vd_type=4, pF_value=0.75))  # ESPReSSo sampling 0.75, central ellipse, L2-norm VD distance
+
+    def test_samplingVDPD2Dt(self, acc=4):  # 2D multi-phase Poisson-Disc subsampling
+        self._test_sampling(PoissonDisc([128, 64, 16], acc))
+
+    def test_samplingGaussian1D(self, acc=4):  # 1D Gaussian subsampling
+        self._test_sampling(Gaussian([128, 1, 1], acc))  # central ellipse, L2-norm VD distance
+
+    def test_samplingGaussian2D(self, acc=4):  # 2D Gaussian subsampling
+        self._test_sampling(Gaussian([128, 64, 1], acc))  # central ellipse, L2-norm VD distance
+
+    def test_samplingGaussian2Dt(self, acc=4):  # 2D multi-phase Gaussian subsampling
+        self._test_sampling(Gaussian([128, 64, 16], acc))  # central ellipse, L2-norm VD distance
+
+    def test_samplingVISTA(self, acc=16):
+        self._test_sampling(VISTA([32, 1, 8], acc))  # VISTA subsampling
+
+    def test_samplingUIS(self, acc=16):
+        self._test_sampling(UIS([32, 1, 8], acc))  # UIS subsampling
+
+    def test_samplingVRS(self, acc=16):
+        self._test_sampling(VRS([32, 1, 8], acc))  # VRS subsampling
+
+    def _test_sampling(self, sampler):
+        mask = sampler.generate_mask()
+        #sampler.plot_mask(asfigure=False)
+        nsampled = sampler.get_accel()
+        print('*** %s ***' % sampler.trajectory)
+        print('Requested acceleration: %.2f' % sampler.acc)
+        print('Obtained acceleration: %.2f' % nsampled)
+        self.assertTrue(np.abs(nsampled - sampler.acc) / sampler.acc <= 0.05)  # < 5% deviation
+
+if __name__ == "__main__":
+    unittest.main()
