@@ -46,7 +46,7 @@ class PadConv(torch.nn.Module):
         # add the parameter
         self.weight = torch.nn.Parameter(torch.empty(filters, in_channels, *self.kernel_size))
         # insert them using a normal distribution
-        torch.nn.init.normal_(self.weight.data, 0.0, np.sqrt(1/np.prod(in_channels*np.prod(kernel_size))))
+        torch.nn.init.normal_(self.weight.data, 0.0, np.sqrt(1/(in_channels*np.prod(kernel_size))))
 
         # specify reduction index
         self.weight.L_init = 1e+4
@@ -128,7 +128,7 @@ class PadConv(torch.nn.Module):
         return x
 
     def extra_repr(self):
-        s = "({filters}, {in_channels}, {kernel_size}), invariant={invariant}"
+        s = "({filters}, {in_channels}, {kernel_size})"
         if self.stride != 1:
             s += ", stride={stride}"
         if self.dilation != 1:
@@ -206,7 +206,7 @@ class PadConvScale2d(PadConv2d):
         assert self.stride[0] == self.stride[1]
 
         # create the convolution kernel
-        if any(self.stride) > 1:
+        if self.stride[0] > 1:
             np_k = np.asarray([1, 4, 6, 4, 1], dtype=np.float32)[:, np.newaxis]
             np_k = np_k @ np_k.T
             np_k /= np_k.sum()
@@ -215,9 +215,9 @@ class PadConvScale2d(PadConv2d):
 
     def get_weight(self):
         weight = super().get_weight()
-        if any(self.stride) > 1:
+        if self.stride[0] > 1:
             weight = weight.reshape(-1, 1, *self.kernel_size)
-            for i in range(self.stride//2): 
+            for i in range(self.stride[0]//2):
                 weight = torch.nn.functional.conv2d(weight, self.blur, padding=4)
             weight = weight.reshape(self.filters,
                                     self.in_channels,
