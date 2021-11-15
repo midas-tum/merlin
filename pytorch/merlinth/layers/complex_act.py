@@ -102,7 +102,7 @@ class Cardioid(torch.nn.Module):
         self.bias.requires_grad_(requires_grad)
          
     def forward(self, z):
-        phase = merlinth.complex_angle(z)
+        phase = merlinth.complex_angle(z) + self.bias
         cos = torch.cos(phase)
         return 0.5 * (1 + cos) * z
 
@@ -117,7 +117,7 @@ class Cardioid2(Cardioid):
         self.requires_grad = requires_grad
 
     def forward(self, z):
-        phase = merlinth.complex_angle(z)
+        phase = merlinth.complex_angle(z) + self.bias
         sin = torch.sin(phase)
         mz = merlinth.complex_abs(z)
         cos = torch.cos(phase)
