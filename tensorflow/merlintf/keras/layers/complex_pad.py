@@ -2,6 +2,10 @@ import tensorflow as tf
 import optotf.pad
 import merlintf
 
+"""
+Interface to optox padding layers 
+"""
+
 # main functions
 def Pad2D(x, pad, mode):
     return pad(2, x, pad, mode)
