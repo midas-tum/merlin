@@ -84,8 +84,9 @@ class Experiment(object):
         # global
         self.parser = argparse.ArgumentParser()
         self.parser.add_argument('--config', type=pathlib.Path, default='./config.yml', help='Path to the config file')
-        self.parser.add_argument('--experiment', type=str, required=True, help='Experiment name')
+        self.parser.add_argument('--experiment', type=str, required=True, help='Experiment/model name')
         self.parser.add_argument('-t', '--task', type=int, default=0, help='Task ID to be performed')
+        self.parser.add_argument('-n', '--name', type=str, default='run_00', help='Unique experiment name')
         self.parser.add_argument('--gpu', type=int, default=0, help='To be used GPU')
         action = self.parser.add_mutually_exclusive_group(required=False)
         action.add_argument('--tf', action='store_true', default=True, help='Use Tensorflow backend (default)')
