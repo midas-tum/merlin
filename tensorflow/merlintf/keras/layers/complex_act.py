@@ -36,19 +36,19 @@ def Activation(identifier):
 
 def deserialize(act):
     if act == 'ModReLU' or act == 'modrelu':
-        return ModReLU()
+        return ModReLU
     elif act == 'cPReLU' or act == 'cprelu':
-        return cPReLU()
+        return cPReLU
     elif act == 'cReLU' or act == 'crelu':
-        return cReLU()
+        return cReLU
     elif act == 'ModPReLU' or act == 'modprelu':
-        return ModPReLU()
+        return ModPReLU
     elif act == 'hard_sigmoid':
-        return HardSigmoid()
+        return HardSigmoid
     elif act == 'cardioid':
-        return Cardioid()
+        return Cardioid
     elif act is None or act == 'identity':
-        return Identity()
+        return Identity
     else:
         raise ValueError(f"Selected activation '{act}' not implemented in complex activations")
 
