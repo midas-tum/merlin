@@ -425,6 +425,43 @@ class ComplexPadConvScaleTranspose3d(ComplexPadConvScale3d):
     def backward(self, x):
         return super().forward(x)
 
+class ComplexPadConv2Dt(torch.nn.Module):
+    def __init__(self, in_channels, intermediate_filters, filters, kernel_size=3,
+                 stride=1, bias=False, zero_mean=True, bound_norm=True, pad=True):
+        super(ComplexPadConv2Dt, self).__init__()
+
+        if stride > 2:
+            conv_module = ComplexPadConvScale3d
+        else:
+            conv_module = ComplexPadConv3d
+
+        self.conv_xy = conv_module(in_channels,
+                    intermediate_filters,
+                    kernel_size=kernel_size,
+                    stride=stride,
+                    bias=bias,
+                    zero_mean=zero_mean,
+                    bound_norm=bound_norm,
+                    pad=pad)
+
+        self.conv_t = ComplexPadConv3d(intermediate_filters,
+                 filters,
+                 kernel_size=kernel_size,
+                 bias=bias,
+                 zero_mean=False,
+                 bound_norm=bound_norm,
+                 pad=pad)
+
+    def forward(self, x):
+        x_sp = self.conv_xy(x)
+        x_t = self.conv_t(x_sp)
+        return x_t  
+
+    def backward(self, x, output_shape=None):
+        xT_t = self.conv_t.backward(x, output_shape)
+        xT_sp = self.conv_xy.backward(xT_t, output_shape)
+        return xT_sp
+
 class ComplexPadConv1dTest(unittest.TestCase):
     def test_constraints(self):
         nf_in = 1

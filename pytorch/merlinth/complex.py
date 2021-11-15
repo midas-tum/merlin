@@ -33,7 +33,7 @@ def magpha2complex(z, channel_last=False):
     (mag, pha) = torch.chunk(z, 2, axis=stack_dim)
     return torch.complex(mag * torch.cos(pha), mag * torch.sin(pha))
 
-def random_normal_complex(shape, dtype=torch.float64):
+def random_normal_complex(shape, dtype=torch.float32):
     return torch.complex(torch.randn(shape, dtype=dtype), 
                          torch.randn(shape, dtype=dtype))
 

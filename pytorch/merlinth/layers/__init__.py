@@ -20,6 +20,7 @@ try:
     from merlinth.layers.convolutional.complex_padconv import ComplexPadConvScale3d
     from merlinth.layers.convolutional.complex_padconv import ComplexPadConvScaleTranspose3d
     from merlinth.layers.convolutional.complex_padconv import ComplexPadConvRealWeight3d
+    from merlinth.layers.convolutional.complex_padconv import ComplexPadConv2Dt
 except:
     print('padconv layers could not be loaded. Optox might not be installed.')
 # from merlinth.layers.convolutional.complex_conv3d import ComplexPadConv2Dt
