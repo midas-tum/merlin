@@ -24,8 +24,15 @@ try:
     from merlintf.keras.layers.convolutional.padconv import PadConvScale3DTranspose
 except:
     print('padconv layers in keras.layers.convolutional could not be loaded. Optox might not be installed.')
-    
-from merlintf.keras.layers.complex_pool import MagnitudeMaxPooling
+
+try:
+    from merlintf.keras.layers.complex_maxpool import MagnitudeMaxPooling, MagnitudeMaxPooling1D, \
+        MagnitudeMaxPooling2D, MagnitudeMaxPooling2Dt, MagnitudeMaxPooling3D, MagnitudeMaxPooling3Dt
+    from merlintf.keras.layers.complex_avgpool import MagnitudeAveragePooling, MagnitudeAveragePooling1D, \
+        MagnitudeAveragePooling2D, MagnitudeAveragePooling2Dt, MagnitudeAveragePooling3D, MagnitudeAveragePooling3Dt
+except:
+    print('pooling layers in keras.layers could not be loaded. Optox might not be installed.')
+
 from merlintf.keras.layers.complex_act import Activation
 from merlintf.keras.layers.complex_bn import ComplexBatchNormalization
 from merlintf.keras.layers.complex_norm import ComplexInstanceNormalization
