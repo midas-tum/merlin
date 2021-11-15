@@ -6,8 +6,8 @@ LICENSE file in the root directory of this source tree.
 """
 
 import torch
-from .complex import complex_mult, complex_mult_conj
-from .fft import fft2, ifft2, fft2c, ifft2c
+from merlinth.mytorch.complex import complex_mult, complex_mult_conj
+from merlinth.mytorch.fft import fft2, ifft2, fft2c, ifft2c
 
 DICOM_OFFSET=0
 

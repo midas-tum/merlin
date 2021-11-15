@@ -1,5 +1,9 @@
+from .utils import *
+from .complex import *
 from . import optim
 from . import layers
-from . import models
-from .complex import *
-from .utils import *
+
+try:
+    from . import models
+except:
+    print('models could not be loaded. Optox might not be installed.')
