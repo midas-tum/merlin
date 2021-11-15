@@ -3,17 +3,26 @@ import numpy as np
 import optoth.pad
 import unittest
 import merlinth.utils
+from merlinth.layers.convolutional.complex_conv import complex_conv, complex_conv_transpose
+from merlinth.layers.convolutional.padconv import PadConv
+from merlinth.layers.module import ComplexModule
 
-__all__ = ['PadConv1d',
-           'PadConv2d',
-           'PadConv3d',
-           'PadConvScale2d',
-           'PadConvScale3d',
-           'PadConvScale2dTranspose',
-           'PadConvScale3dTranspose',
+__all__ = ['ComplexPadConv1d',
+           'ComplexPadConv2d',
+           'ComplexPadConv3d',
+           'ComplexPadConvScale2d',
+           'ComplexPadConvScale3d',
+           'ComplexPadConvScale2dTranspose',
+           'ComplexPadConvScale3dTranspose',
            ]
 
-class PadConv(torch.nn.Module):
+def complex_pad(pad_fun, x, padding, mode):
+    #TODO handle in optox
+    xp_re = pad_fun(torch.real(x).contiguous(), padding, mode)
+    xp_im = pad_fun(torch.imag(x).contiguous(), padding, mode)
+    return torch.complex(xp_re, xp_im)
+
+class ComplexPadConv(ComplexModule):
     def __init__(self, 
                  rank,
                  in_channels,
@@ -35,7 +44,7 @@ class PadConv(torch.nn.Module):
         self.stride = merlinth.utils.validate_input_dimension(rank, stride)
         self.dilation = merlinth.utils.validate_input_dimension(rank, dilation)
         self.groups = groups
-        self.bias = torch.nn.Parameter(torch.zeros(filters)) if bias else None
+        self.bias = torch.nn.Parameter(torch.zeros(filters), dtype=merlinth.get_default_cdtype()) if bias else None
         self.zero_mean = zero_mean
         self.bound_norm = bound_norm
         self.padding = 0
@@ -44,8 +53,9 @@ class PadConv(torch.nn.Module):
         self.rank = rank
 
         # add the parameter
-        self.weight = torch.nn.Parameter(torch.empty(filters, in_channels, *self.kernel_size))
+        self.weight = torch.nn.Parameter(torch.empty(filters, in_channels, *self.kernel_size, dtype=merlinth.get_default_cdtype()))
         # insert them using a normal distribution
+        # TODO complex
         torch.nn.init.normal_(self.weight.data, 0.0, np.sqrt(1/np.prod(in_channels*np.prod(kernel_size))))
 
         # specify reduction index
@@ -61,7 +71,7 @@ class PadConv(torch.nn.Module):
                     self.weight.data.sub_(mean)
                 # normalize by the l2-norm
                 if bound_norm:
-                    norm = torch.sum(self.weight.data**2, self.weight.reduction_dim, True).sqrt_()
+                    norm = torch.sum(torch.real(torch.conj(self.weight.data)*self.weight.data), self.weight.reduction_dim, True).sqrt_()
                     if surface:
                         self.weight.data.div_(norm)
                     else:
@@ -104,9 +114,9 @@ class PadConv(torch.nn.Module):
         # then pad
         pad = self._compute_optox_padding()
         if self.pad and any(pad) > 0:
-            x = self._padding_op(x, pad, mode=self.padding_mode)
+            x = complex_pad(self._padding_op, x, pad, mode=self.padding_mode)
         # compute the convolution
-        x = self._convolution_op(x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
+        x = complex_conv(self._convolution_op, x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
         return x
 
     def backward(self, x, output_shape=None):
@@ -120,11 +130,10 @@ class PadConv(torch.nn.Module):
             output_padding = 0
 
         # compute the convolution
-        x = self._convolutionT_op(x, weight, self.bias, self.stride, self.padding, output_padding, self.groups, self.dilation)
-
+        x = complex_conv_transpose(self._convolutionT_op, x, weight, self.bias, self.stride, self.padding, output_padding, self.groups, self.dilation)
         pad = self._compute_optox_padding()
         if self.pad and any(pad) > 0:
-            x = self._paddingT_op(x, pad, mode=self.padding_mode)
+            x = complex_pad(self._paddingT_op, x, pad, mode=self.padding_mode)
         return x
 
     def extra_repr(self):
@@ -143,8 +152,33 @@ class PadConv(torch.nn.Module):
             s += ", bound_norm={bound_norm}"
         return s.format(**self.__dict__)
 
+class ComplexPadConvRealWeight(PadConv):
+    def __init__(self, 
+                 rank,
+                 in_channels,
+                 filters,
+                 kernel_size,
+                 stride=1,
+                 padding='symmetric',
+                 dilation=1,
+                 groups=1,
+                 bias=False, 
+                 zero_mean=False,
+                 bound_norm=False,
+                 pad=True):
+        super().__init__(rank, in_channels, filters, kernel_size, stride=stride, padding=padding,
+                        dilation=dilation, groups=groups, bias=bias, zero_mean=zero_mean, bound_norm=bound_norm, pad=pad)
+    def forward(self, x):
+        Kx_re = super().forward(torch.real(x).contiguous())
+        Kx_im = super().forward(torch.imag(x).contiguous())
+        return torch.complex(Kx_re, Kx_im)
+    
+    def backward(self, x, output_shape=None):
+        KTx_re = super().backward(torch.real(x).contiguous(), output_shape)
+        KTx_im = super().backward(torch.imag(x).contiguous(), output_shape)
+        return torch.complex(KTx_re, KTx_im)
 
-class PadConv1d(PadConv):
+class ComplexPadConv1d(ComplexPadConv):
     def __init__(self, 
                  in_channels,
                  filters,
@@ -170,7 +204,33 @@ class PadConv1d(PadConv):
                         bound_norm=bound_norm,
                         pad=pad)
 
-class PadConv2d(PadConv):
+class ComplexPadConvRealWeight1d(ComplexPadConvRealWeight):
+    def __init__(self, 
+                 in_channels,
+                 filters,
+                 kernel_size,
+                 stride=1,
+                 padding='symmetric',
+                 dilation=1,
+                 groups=1,
+                 bias=False, 
+                 zero_mean=False,
+                 bound_norm=False,
+                 pad=True):
+        super().__init__(1,
+                        in_channels=in_channels,
+                        filters=filters,
+                        kernel_size=kernel_size,
+                        stride=stride,
+                        padding=padding,
+                        dilation=dilation,
+                        groups=groups,
+                        bias=bias, 
+                        zero_mean=zero_mean,
+                        bound_norm=bound_norm,
+                        pad=pad)
+
+class ComplexPadConv2d(ComplexPadConv):
     def __init__(self, 
                  in_channels,
                  filters,
@@ -196,9 +256,36 @@ class PadConv2d(PadConv):
                         bound_norm=bound_norm,
                         pad=pad)
 
-class PadConvScale2d(PadConv2d):
+class ComplexPadConvRealWeight2d(ComplexPadConvRealWeight):
+    def __init__(self, 
+                 in_channels,
+                 filters,
+                 kernel_size,
+                 stride=1,
+                 padding='symmetric',
+                 dilation=1,
+                 groups=1,
+                 bias=False, 
+                 zero_mean=False,
+                 bound_norm=False,
+                 pad=True):
+        super().__init__(2,
+                        in_channels=in_channels,
+                        filters=filters,
+                        kernel_size=kernel_size,
+                        stride=stride,
+                        padding=padding,
+                        dilation=dilation,
+                        groups=groups,
+                        bias=bias, 
+                        zero_mean=zero_mean,
+                        bound_norm=bound_norm,
+                        pad=pad)
+
+class ComplexPadConvScale2d(ComplexPadConv):
     def __init__(self, in_channels, filters, kernel_size=3, groups=1, stride=2, bias=False, padding='symmetric', zero_mean=False, bound_norm=False):
-        super(PadConvScale2d, self).__init__(
+        super(ComplexPadConvScale2d, self).__init__(
+            2, 
             in_channels=in_channels, filters=filters, kernel_size=kernel_size, padding=padding, 
             stride=stride, dilation=1, groups=groups, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
@@ -218,17 +305,19 @@ class PadConvScale2d(PadConv2d):
         if any(self.stride) > 1:
             weight = weight.reshape(-1, 1, *self.kernel_size)
             for i in range(self.stride//2): 
-                weight = torch.nn.functional.conv2d(weight, self.blur, padding=4)
+                weight_re = torch.nn.functional.conv2d(torch.real(weight), self.blur, padding=4)
+                weight_im = torch.nn.functional.conv2d(torch.imag(weight), self.blur, padding=4)
+                weight = torch.complex(weight_re, weight_im)
             weight = weight.reshape(self.filters,
                                     self.in_channels,
                                     self.kernel_size[0]+2*self.stride[0],
                                     self.kernel_size[1]+2*self.stride[1])
         return weight
 
-class PadConvScaleTranspose2d(PadConvScale2d):
+class ComplexPadConvScaleTranspose2d(ComplexPadConvScale2d):
     def __init__(self, in_channels, filters, kernel_size=3, padding='symmetric',
                  groups=1, stride=2, bias=False, zero_mean=False, bound_norm=False):
-        super(PadConvScaleTranspose2d, self).__init__(
+        super(ComplexPadConvScaleTranspose2d, self).__init__(
             in_channels=in_channels, filters=filters, kernel_size=kernel_size, 
             padding=padding, groups=groups, stride=stride, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
@@ -239,7 +328,7 @@ class PadConvScaleTranspose2d(PadConvScale2d):
     def backward(self, x):
         return super().forward(x)
 
-class PadConv3d(PadConv):
+class ComplexPadConv3d(ComplexPadConv):
     def __init__(self, 
                  in_channels,
                  filters,
@@ -265,10 +354,36 @@ class PadConv3d(PadConv):
                         bound_norm=bound_norm,
                         pad=pad)
 
-class PadConvScale3d(PadConv3d):
+class ComplexPadConvRealWeight3d(ComplexPadConvRealWeight):
+    def __init__(self, 
+                 in_channels,
+                 filters,
+                 kernel_size,
+                 stride=1,
+                 padding='symmetric',
+                 dilation=1,
+                 groups=1,
+                 bias=False, 
+                 zero_mean=False,
+                 bound_norm=False,
+                 pad=True):
+        super().__init__(3,
+                        in_channels=in_channels,
+                        filters=filters,
+                        kernel_size=kernel_size,
+                        stride=stride,
+                        padding=padding,
+                        dilation=dilation,
+                        groups=groups,
+                        bias=bias, 
+                        zero_mean=zero_mean,
+                        bound_norm=bound_norm,
+                        pad=pad)
+
+class ComplexPadConvScale3d(ComplexPadConv3d):
     def __init__(self, in_channels, filters, kernel_size=3, padding='symmetric',
                  groups=1, stride=(1,2,2), bias=False, zero_mean=False, bound_norm=False):
-        super(PadConvScale3d, self).__init__(
+        super(ComplexPadConvScale3d, self).__init__(
             in_channels=in_channels, filters=filters, kernel_size=kernel_size, padding=padding,
             stride=stride, dilation=1, groups=groups, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
@@ -290,13 +405,16 @@ class PadConvScale3d(PadConv3d):
         if self.stride[1] > 1:
             weight = weight.reshape(-1, 1, self.kernel_size[1], self.kernel_size[2])
             for i in range(self.stride[1]//2): 
-                weight = torch.nn.functional.conv2d(weight, self.blur, padding=4)
+                weight_re = torch.nn.functional.conv2d(torch.real(weight), self.blur, padding=4)
+                weight_im = torch.nn.functional.conv2d(torch.imag(weight), self.blur, padding=4)
+                weight = torch.complex(weight_re, weight_im)
+
             weight = weight.reshape(self.filters, self.in_channels, self.kernel_size[0], self.kernel_size[1]+2*self.stride[1], self.kernel_size[1]+2*self.stride[1])
         return weight
 
-class PadConvScaleTranspose3d(PadConvScale3d):
+class ComplexPadConvScaleTranspose3d(ComplexPadConvScale3d):
     def __init__(self, in_channels, filters, kernel_size=3, groups=1, stride=(1,2,2), bias=False, zero_mean=False, bound_norm=False):
-        super(PadConvScaleTranspose3d, self).__init__(
+        super(ComplexPadConvScaleTranspose3d, self).__init__(
             in_channels=in_channels, filters=filters, kernel_size=kernel_size, 
             groups=groups, stride=stride, bias=bias, 
             zero_mean=zero_mean, bound_norm=bound_norm)
@@ -307,12 +425,12 @@ class PadConvScaleTranspose3d(PadConvScale3d):
     def backward(self, x):
         return super().forward(x)
 
-class PadConv1dTest(unittest.TestCase):
+class ComplexPadConv1dTest(unittest.TestCase):
     def test_constraints(self):
         nf_in = 1
         nf_out = 32
         
-        model = PadConv1d(nf_in, nf_out, kernel_size=3, zero_mean=True, bound_norm=True).cuda()
+        model = ComplexPadConv1d(nf_in, nf_out, kernel_size=3, zero_mean=True, bound_norm=True).cuda()
         np_weight = model.weight.detach().cpu().numpy()
         reduction_dim = model.weight.reduction_dim
 
@@ -323,36 +441,40 @@ class PadConv1dTest(unittest.TestCase):
         self.assertTrue(np.max(np.abs(weight_norm-1)) < 1e-6)
 
     def _test_grad(self, conv_fun, kernel_size, strides, dilation_rate, padding):
-        nBatch = 5
-        N = 256
-        nf_in = 10
-        nf_out = 32
+        nBatch = 2
+        N = 12
+        nf_in = 1
+        nf_out = 1
         shape = [nBatch, nf_in, N]
 
         model = conv_fun(nf_in, nf_out, kernel_size=kernel_size, stride=strides, padding=padding, zero_mean=False, bound_norm=False)
         model.cuda()
-        x = torch.randn(shape).cuda()
+        x = merlinth.random_normal_complex(shape, dtype=torch.get_default_dtype()).cuda()
         x.requires_grad_(True)
 
         Kx = model(x)
-        loss = 0.5 * torch.sum(Kx ** 2)
+        loss = 0.5 * torch.sum(torch.conj(Kx) * Kx)
         loss.backward()
         grad_x = x.grad
         x_autograd = grad_x.cpu().numpy()
 
         KHKx = model.backward(Kx, x.shape)
         x_bwd = KHKx.detach().cpu().numpy()
+
         self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
 
     def test1(self):
-        self._test_grad(PadConv1d, 5, 1, 1, 'symmetric')
+        self._test_grad(ComplexPadConv1d, 5, 1, 1, 'symmetric')
 
-class PadConv2dTest(unittest.TestCase):
+    def test2(self):
+        self._test_grad(ComplexPadConvRealWeight1d, 5, 1, 1, 'symmetric')
+
+class ComplexPadConv2dTest(unittest.TestCase):
     def test_constraints(self):
         nf_in = 1
         nf_out = 32
         
-        model = PadConv2d(nf_in, nf_out, kernel_size=3, zero_mean=True, bound_norm=True)
+        model = ComplexPadConv2d(nf_in, nf_out, kernel_size=3, zero_mean=True, bound_norm=True)
         np_weight = model.weight.detach().numpy()
         reduction_dim = model.weight.reduction_dim
 
@@ -372,10 +494,10 @@ class PadConv2dTest(unittest.TestCase):
 
         model = conv_fun(nf_in, nf_out, kernel_size=kernel_size, stride=strides, padding=padding, zero_mean=False, bound_norm=False)
         model.cuda()
-        x = torch.randn(shape).cuda()
+        x = merlinth.random_normal_complex(shape, dtype=torch.get_default_dtype()).cuda()
         x.requires_grad_(True)
         Kx = model(x)
-        loss = 0.5 * torch.sum(Kx ** 2)
+        loss = 0.5 * torch.sum(torch.conj(Kx) * Kx)
         loss.backward()
         grad_x = x.grad
         x_autograd = grad_x.detach().cpu().numpy()
@@ -385,15 +507,18 @@ class PadConv2dTest(unittest.TestCase):
         self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
 
     def test1(self):
-        self._test_grad(PadConv2d, 5, 1, 1, 'symmetric')
+        self._test_grad(ComplexPadConv2d, 5, 1, 1, 'symmetric')
 
     def test2(self):
-        self._test_grad(PadConv2d, [3, 5], 1, 1, 'symmetric')
+        self._test_grad(ComplexPadConv2d, [3, 5], 1, 1, 'symmetric')
 
     def test3(self):
-        self._test_grad(PadConvScale2d, 3, 2, 1, 'symmetric')
-        
-class PadConvScaleTranspose2dTest(unittest.TestCase):
+        self._test_grad(ComplexPadConvScale2d, 3, 2, 1, 'symmetric')
+
+    def test4(self):
+        self._test_grad(ComplexPadConvRealWeight2d, 5, 1, 1, 'symmetric')
+
+class ComplexPadConvScaleTranspose2dTest(unittest.TestCase):
     def test_conv_transpose2d(self):
         nBatch = 5
         M = 320
@@ -401,25 +526,25 @@ class PadConvScaleTranspose2dTest(unittest.TestCase):
         nf_in = 1
         nf_out = 32
         
-        model = PadConvScaleTranspose2d(nf_in, nf_out, kernel_size=3).cuda()
+        model = ComplexPadConvScaleTranspose2d(nf_in, nf_out, kernel_size=3).cuda()
         
-        x = torch.randn(nBatch, nf_in, M, N).cuda()
+        x = merlinth.random_normal_complex((nBatch, nf_in, M, N), dtype=torch.get_default_dtype()).cuda()
         Kx = model.backward(x)
         
-        y = torch.randn(*Kx.shape).cuda()
+        y = merlinth.random_normal_complex(Kx.shape, dtype=torch.get_default_dtype()).cuda()
         KHy = model.forward(y, output_shape=x.shape)
 
-        rhs = torch.sum(Kx * y).detach().cpu().numpy()
-        lhs = torch.sum(x * KHy).detach().cpu().numpy()
+        rhs = torch.sum(torch.conj(Kx)  * y).detach().cpu().numpy()
+        lhs = torch.sum(torch.conj(x) * KHy).detach().cpu().numpy()
 
         self.assertTrue(rhs, lhs)
 
-class PadConv3dTest(unittest.TestCase):
+class ComplexPadConv3dTest(unittest.TestCase):
     def test_constraints(self):
         nf_in = 1
         nf_out = 32
         
-        model = PadConv3d(nf_in, nf_out, kernel_size=3, zero_mean=True, bound_norm=True).cuda()
+        model = ComplexPadConv3d(nf_in, nf_out, kernel_size=3, zero_mean=True, bound_norm=True).cuda()
         np_weight = model.weight.detach().cpu().numpy()
         reduction_dim = model.weight.reduction_dim
 
@@ -441,11 +566,11 @@ class PadConv3dTest(unittest.TestCase):
 
         model = conv_fun(nf_in, nf_out, kernel_size=kernel_size, stride=strides, padding=padding, zero_mean=False, bound_norm=False)
         model.double().cuda()
-        x = torch.randn(shape).double().cuda()
+        x = merlinth.random_normal_complex(shape, dtype=torch.double).cuda()
         x.requires_grad_(True)
 
         Kx = model(x)
-        loss = 0.5 * torch.sum(Kx ** 2)
+        loss = 0.5 * torch.sum(torch.conj(Kx) * Kx)
         loss.backward()
         grad_x = x.grad
         x_autograd = grad_x.detach().cpu().numpy()
@@ -455,15 +580,18 @@ class PadConv3dTest(unittest.TestCase):
         self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
 
     def test1(self):
-        self._test_grad(PadConv3d, 5, 1, 1, 'symmetric')
+        self._test_grad(ComplexPadConv3d, 5, 1, 1, 'symmetric')
 
     def test2(self):
-        self._test_grad(PadConv3d, [3, 5, 5], 1, 1, 'symmetric')
+        self._test_grad(ComplexPadConv3d, [3, 5, 5], 1, 1, 'symmetric')
 
     def test3(self):
-        self._test_grad(PadConvScale3d, 3, (1, 2, 2), 1, 'symmetric')
+        self._test_grad(ComplexPadConvScale3d, 3, (1, 2, 2), 1, 'symmetric')
 
-class PadConvScaleTranspose3dTest(unittest.TestCase):
+    def test4(self):
+        self._test_grad(ComplexPadConvRealWeight3d, 5, 1, 1, 'symmetric')
+
+class ComplexPadConvScaleTranspose3dTest(unittest.TestCase):
     def test_conv_transpose3d(self):
         nBatch = 5
         M = 320
@@ -472,16 +600,16 @@ class PadConvScaleTranspose3dTest(unittest.TestCase):
         nf_in = 1
         nf_out = 32
         
-        model = PadConvScaleTranspose3d(nf_in, nf_out, kernel_size=3).cuda()
+        model = ComplexPadConvScaleTranspose3d(nf_in, nf_out, kernel_size=3).cuda()
         
-        x = torch.randn(nBatch, nf_in, D, M, N).cuda()
+        x = merlinth.random_normal_complex((nBatch, nf_in, D, M, N), dtype=torch.get_default_dtype()).cuda()
         Kx = model.backward(x)
         
-        y = torch.randn(*Kx.shape).cuda()
+        y = merlinth.random_normal_complex(Kx.shape, dtype=torch.get_default_dtype()).cuda()
         KHy = model.forward(y, output_shape=x.shape)
 
-        rhs = torch.sum(Kx * y).detach().cpu().numpy()
-        lhs = torch.sum(x * KHy).detach().cpu().numpy()
+        rhs = torch.sum(torch.conj(Kx) * y).detach().cpu().numpy()
+        lhs = torch.sum(torch.conj(x) * KHy).detach().cpu().numpy()
 
         self.assertTrue(rhs, lhs)
 

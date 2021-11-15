@@ -24,66 +24,33 @@ def validate_input_dimension(dim, param):
     else:
         return tuple([param for _ in range(n_dim)])
 
-def _get_np_float_dtype(complex_dtype):
-    """ Get equivalent float type given current complex dtype """
-    if complex_dtype == np.complex64:
-        return np.float32
-    elif complex_dtype == np.complex128:
-        return np.float64
+def get_default_cdtype():
+    if torch.get_default_dtype() == torch.float32:
+        return torch.complex64
+    elif torch.get_default_dtype() == torch.float64:
+        return torch.complex128
+    elif torch.get_default_dtype() == torch.float16:
+        return torch.complex32
     else:
-        return np.float128
+        raise ValueError(f"No equivalent for dtype='{torch.get_default_dtype()}' ")
 
-def _get_np_complex_dtype(float_dtype):
-    """ Get equivalent complex type given current float dtype """
-    if float_dtype == np.float32:
-        return np.complex64
-    elif float_dtype == np.float64:
-        return np.complex128
-    else:
-        return np.complex256
+# class ToTorchIO():
+#     def __init__(self, input_keys, output_keys):
+#         self.input_keys = input_keys
+#         self.output_keys = output_keys
 
-def torch_to_complex_numpy(data):
-    data = data.numpy()
-    complex_dtype = _get_np_complex_dtype(data.dtype)
-    return np.ascontiguousarray(data).view(complex_dtype).squeeze(-1)
+#     def __call__(self, sample):
+#         inputs = []
+#         outputs = []
+#         for key in self.input_keys:
+#             inputs.append(numpy_to_torch_float(sample[key]))
+#         for key in self.output_keys:
+#             outputs.append(numpy_to_torch_float(sample[key]))
+#         return inputs, outputs
 
-def torch_to_complex_abs_numpy(data):
-    data = data.numpy()
-    return np.abs(data[..., 0] + 1j * data[..., 1])
-
-def torch_to_numpy(data):
-    return data.numpy()
-
-def numpy_to_torch(data):
-    if np.iscomplexobj(data):
-        float_dtype = _get_np_float_dtype(data.dtype)
-        data = np.ascontiguousarray(data[..., np.newaxis]).view(float_dtype)
-    return torch.from_numpy(data)
-
-def numpy_to_torch_float(arr):
-    if np.iscomplexobj(arr):
-        arr = arr.astype(np.complex64)
-    else:
-        arr = arr.astype(np.float32)
-    return numpy_to_torch(arr)
-
-class ToTorchIO():
-    def __init__(self, input_keys, output_keys):
-        self.input_keys = input_keys
-        self.output_keys = output_keys
-
-    def __call__(self, sample):
-        inputs = []
-        outputs = []
-        for key in self.input_keys:
-            inputs.append(numpy_to_torch_float(sample[key]))
-        for key in self.output_keys:
-            outputs.append(numpy_to_torch_float(sample[key]))
-        return inputs, outputs
-
-class ToTorchCuda():
-    def __call__(self, inputs):
-        if isinstance(inputs, list):
-            return [inp.cuda() for inp in inputs]
-        else:
-            return inputs.cuda()
+# class ToTorchCuda():
+#     def __call__(self, inputs):
+#         if isinstance(inputs, list):
+#             return [inp.cuda() for inp in inputs]
+#         else:
+#             return inputs.cuda()

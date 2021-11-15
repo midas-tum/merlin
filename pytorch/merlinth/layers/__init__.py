@@ -1,28 +1,32 @@
-from merlinth.layers.convolutional.conv2d import PadConv2D
-from merlinth.layers.convolutional.conv2d import PadConvScale2D
-from merlinth.layers.convolutional.conv2d import PadConvScaleTranspose2D
-from merlinth.layers.convolutional.complex_conv2d import ComplexConv2D
-from merlinth.layers.convolutional.complex_conv2d import ComplexPadConv2D
-from merlinth.layers.convolutional.complex_conv2d import ComplexPadConvRealWeight2D
-from merlinth.layers.convolutional.complex_conv2d import ComplexPadConvScale2D
-from merlinth.layers.convolutional.complex_conv2d import ComplexPadConvScaleTranspose2D
-from merlinth.layers.convolutional.complex_conv2d import PseudoComplexPadConv2D
-from merlinth.layers.convolutional.conv3d import PadConv3D
-from merlinth.layers.convolutional.conv3d import PadConvScale3D
-from merlinth.layers.convolutional.conv3d import PadConvScaleTranspose3D
-from merlinth.layers.convolutional.complex_conv3d import ComplexPadConv3D
-from merlinth.layers.convolutional.complex_conv3d import ComplexPadConvScale3D
-from merlinth.layers.convolutional.complex_conv3d import ComplexPadConvScale3D
-from merlinth.layers.convolutional.complex_conv3d import ComplexPadConvRealWeight3D
-from merlinth.layers.convolutional.complex_conv3d import ComplexPadConv2Dt
-from merlinth.layers.pad import real_pad2d
-from merlinth.layers.pad import real_pad2d_transpose
-from merlinth.layers.pad import real_pad3d
-from merlinth.layers.pad import real_pad3d_transpose
-from merlinth.layers.pad import complex_pad2d
-from merlinth.layers.pad import complex_pad2d_transpose
-from merlinth.layers.pad import complex_pad3d
-from merlinth.layers.pad import complex_pad3d_transpose
+from merlinth.layers.convolutional.complex_conv import ComplexConv1d
+from merlinth.layers.convolutional.padconv import PadConv1d
+from merlinth.layers.convolutional.complex_padconv import ComplexPadConv1d
+from merlinth.layers.convolutional.complex_padconv import ComplexPadConvRealWeight1d
+from merlinth.layers.convolutional.complex_conv import ComplexConv2d
+from merlinth.layers.convolutional.padconv import PadConv2d
+from merlinth.layers.convolutional.padconv import PadConvScale2d
+from merlinth.layers.convolutional.padconv import PadConvScaleTranspose2d
+from merlinth.layers.convolutional.complex_padconv import ComplexPadConv2d
+from merlinth.layers.convolutional.complex_padconv import ComplexPadConvScale2d
+from merlinth.layers.convolutional.complex_padconv import ComplexPadConvScaleTranspose2d
+from merlinth.layers.convolutional.complex_padconv import ComplexPadConvRealWeight2d
+from merlinth.layers.convolutional.complex_conv import ComplexConv3d
+from merlinth.layers.convolutional.padconv import PadConv3d
+from merlinth.layers.convolutional.padconv import PadConvScale3d
+from merlinth.layers.convolutional.padconv import PadConvScaleTranspose3d
+from merlinth.layers.convolutional.complex_padconv import ComplexPadConv3d
+from merlinth.layers.convolutional.complex_padconv import ComplexPadConvScale3d
+from merlinth.layers.convolutional.complex_padconv import ComplexPadConvScaleTranspose3d
+from merlinth.layers.convolutional.complex_padconv import ComplexPadConvRealWeight3d
+# from merlinth.layers.convolutional.complex_conv3d import ComplexPadConv2Dt
+# from merlinth.layers.pad import real_pad2d
+# from merlinth.layers.pad import real_pad2d_transpose
+# from merlinth.layers.pad import real_pad3d
+# from merlinth.layers.pad import real_pad3d_transpose
+# from merlinth.layers.pad import complex_pad2d
+# from merlinth.layers.pad import complex_pad2d_transpose
+# from merlinth.layers.pad import complex_pad3d
+# from merlinth.layers.pad import complex_pad3d_transpose
 
 
 # from .complex_regularizer import *
