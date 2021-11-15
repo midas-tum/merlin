@@ -280,6 +280,10 @@ class Conv3DtTranspose(tf.keras.layers.Layer):
 
         return x_sp
 
+# aliases
+Convolution3Dt = Conv3Dt
+Convolution3DtTranspose = Conv3DtTranspose
+Deconvolution3Dt = Deconv3Dt = Conv3DtTranspose
 
 class Conv3dtTest(unittest.TestCase):
     def test_Conv3dt(self):

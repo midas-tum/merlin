@@ -367,6 +367,11 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
 
             return x_sp
 
+# aliases
+Convolution2Dt = Conv2Dt
+Convolution2DtTranspose = Conv2DtTranspose
+Deconvolution2Dt = Deconv2Dt = Conv2DtTranspose
+
 class Conv2dtTest(unittest.TestCase):
     def test_Conv2dt(self):
         self._test_Conv2dt()
