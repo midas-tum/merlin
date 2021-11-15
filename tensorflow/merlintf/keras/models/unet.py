@@ -246,6 +246,13 @@ class RealUNet(UNet):
             else:
                 self.pad_layer = merlintf.keras.layers.Pad2D
             self.crop_layer = tf.keras.layers.Cropping2D
+        elif dim == '2Dt':
+            self.conv_layer = merlintf.keras.layers.Conv2Dt
+            if self.padding.lower() == 'zero':
+                self.pad_layer = tf.keras.layers.ZeroPadding3D
+            else:
+                self.pad_layer = merlintf.keras.layers.Pad3D
+            self.crop_layer = tf.keras.layers.Cropping3D
         elif dim == '3D':
             self.conv_layer = tf.keras.layers.Conv3D
             if self.padding.lower() == 'zero':
@@ -253,6 +260,13 @@ class RealUNet(UNet):
             else:
                 self.pad_layer = merlintf.keras.layers.Pad3D
             self.crop_layer = tf.keras.layers.Cropping3D
+        elif dim == '3Dt':
+            self.conv_layer = tf.keras.layers.Conv3Dt
+            if self.padding.lower() == 'zero':
+                self.pad_layer = merlintf.keras.layers.ZeroPadding4D
+            else:
+                self.pad_layer = merlintf.keras.layers.Pad3D
+            self.crop_layer = merlinttf.keras.layers.Cropping4D
         else:
             raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
 
@@ -280,8 +294,12 @@ class RealUNet(UNet):
         if downsampling == 'mp':
             if dim == '2D':
                 self.down_layer = tf.keras.layers.MaxPool2D
+            elif dim == '2Dt':
+                self.down_layer = merlintf.keras.layers.MagnitudeMaxPool2Dt  # internally resorts to 3D pooling
             elif dim == '3D':
                 self.down_layer = tf.keras.layers.MaxPool3D
+            elif dim == '3Dt':
+                self.down_layer = merlintf.keras.layers.MagnitudeMaxPool3Dt
             else:
                 raise RuntimeError(f"MaxPooling for dim={dim} not implemented!")
             self.strides = [1] * num_layer_per_level
@@ -295,15 +313,23 @@ class RealUNet(UNet):
         if upsampling == 'us':
             if dim == '2D':
                 self.up_layer = tf.keras.layers.UpSampling2D
+            elif dim == '2Dt':
+                self.up_layer = tf.keras.layers.UpSampling3D
             elif dim == '3D':
                 self.up_layer = tf.keras.layers.UpSampling3D
+            elif dim == '3Dt':
+                self.up_layer = merlintf.keras.layers.UpSampling4D
             else:
                 raise RuntimeError(f"Upsampling for dim={dim} not implemented!")
         elif upsampling == 'tc':
             if dim == '2D':
                 self.up_layer = tf.keras.layers.Conv2DTranspose
+            elif dim == '2Dt':
+                self.up_layer = merlintf.keras.layers.Conv2DtTranspose
             elif dim == '3D':
                 self.up_layer = tf.keras.layers.Conv3DTranspose
+            elif dim == '3Dt':
+                self.up_layer = merlintf.keras.layers.Conv3DtTranspose
             else:
                 raise RuntimeError(f"Transposed convlutions for dim={dim} not implemented!")
         else:
@@ -376,8 +402,12 @@ class ComplexUNet(UNet):
         else:
             if self.dim == '2D':
                 self.pad_layer = merlintf.keras.layers.Pad2D
+            if self.dim == '2Dt':
+                self.pad_layer = merlintf.keras.layers.Pad2Dt
             elif self.dim == '3D':
                 self.pad_layer = merlintf.keras.layers.Pad3D
+            if self.dim == '3Dt':
+                self.pad_layer = merlintf.keras.layers.Pad3Dt
             else:
                 raise RuntimeError(f"Padding for {dim} and {self.padding} not implemented!")
 
