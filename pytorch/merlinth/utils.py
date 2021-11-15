@@ -2,9 +2,11 @@ import torch
 import numpy as np
 
 def get_ndim(dim):
-    if dim == '2D':
+    if dim == '1D' or dim == 1:
+        n_dim = 1
+    elif dim == '2D' or dim == 2:
         n_dim = 2
-    elif dim == '3D':
+    elif dim == '3D' or dim == 3:
         n_dim = 3
     elif dim == '2Dt':
         n_dim = 3
