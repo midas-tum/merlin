@@ -33,6 +33,10 @@ try:
 except:
     print('pooling layers in keras.layers could not be loaded. Optox might not be installed.')
 
+from merlintf.keras.layers.convolutional.complex_conv2dt import ComplexConv2Dt, ComplexConv2DtTranspose
+from merlintf.keras.layers.convolutional.complex_conv3dt import ComplexConv3Dt, ComplexConv3DtTranspose
+from merlintf.keras.layers.convolutional.conv2dt import Conv2Dt, Conv2DtTranspose
+from merlintf.keras.layers.convolutional.conv3dt import Conv3Dt, Conv3DtTranspose
 from merlintf.keras.layers.complex_act import Activation
 from merlintf.keras.layers.complex_bn import ComplexBatchNormalization
 from merlintf.keras.layers.complex_norm import ComplexInstanceNormalization
