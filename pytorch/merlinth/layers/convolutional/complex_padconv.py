@@ -137,7 +137,7 @@ class ComplexPadConv(ComplexModule):
         return x
 
     def extra_repr(self):
-        s = "({filters}, {in_channels}, {kernel_size}), invariant={invariant}"
+        s = "({filters}, {in_channels}, {kernel_size})"
         if self.stride != 1:
             s += ", stride={stride}"
         if self.dilation != 1:
