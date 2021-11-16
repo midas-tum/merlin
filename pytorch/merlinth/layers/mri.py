@@ -3,6 +3,28 @@ from merlinth.layers.fft import fft2, fft2c, ifft2, ifft2c
 import unittest
 import merlinth
 
+#TODO add SoftSenseOps
+
+# def adjointSoftSenseOpNoShift(th_kspace, th_smaps, th_mask):
+#     th_img = torch.sum(complex_mult_conj(ifft2(th_kspace * th_mask), th_smaps), dim=(-5))
+#     return th_img
+
+# def forwardSoftSenseOpNoShift(th_img, th_smaps, th_mask):
+#     th_img_pad = th_img.unsqueeze(-5)
+#     th_kspace = fft2(complex_mult(th_img_pad.expand_as(th_smaps), th_smaps)) * th_mask
+#     th_kspace = torch.sum(th_kspace, dim=-4, keepdim=True)
+#     return th_kspace
+
+# def adjointSoftSenseOp(th_kspace, th_smaps, th_mask):
+#     th_img = torch.sum(complex_mult_conj(ifft2c(th_kspace * th_mask), th_smaps), dim=(-5))
+#     return th_img
+
+# def forwardSoftSenseOp(th_img, th_smaps, th_mask):
+#     th_img_pad = th_img.unsqueeze(-5)
+#     th_kspace = fft2c(complex_mult(th_img_pad.expand_as(th_smaps), th_smaps)) * th_mask
+#     th_kspace = torch.sum(th_kspace, dim=-4, keepdim=True)
+#     return th_kspace
+
 class MulticoilForwardOp(torch.nn.Module):
     def __init__(self, center=False, coil_axis=-3, channel_dim_defined=True):
         super().__init__()
