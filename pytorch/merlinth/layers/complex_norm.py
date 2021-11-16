@@ -56,22 +56,22 @@ class _ComplexInstanceNormalizationCovariance(torch.nn.Module):
         Therefore `inv \sqrt{M} = [[p, q], [r, s]]`, where
             [[p, q], [r, s]] = \frac1{t s} [[d + s, -b], [-c, a + s]]
         """
-        # assume tensor is B x F x ... x 2
-        # tail shape for broadcasting ? x 1 x F x [*1]
-        axes = tuple(range(2, tensor.dim()-1))
+        # assume tensor is B x F x ... x
+        # tail shape for broadcasting ? x 1 x F
+        axes = tuple(range(2, tensor.dim()))
         print(tensor.shape, axes)
 
-        # 1. compute batch mean [2 x F] and center the batch
+        # 1. compute batch mean [F] and center the batch
         mean = tensor.mean(dim=axes, keepdims=True)
         tensor = tensor - mean
 
         # 2. per feature real-imaginary 2x2 covariance matrix
         # faster than doing mul and then mean. Stabilize by a small ridge.
-        var = tensor.var(dim=axes, unbiased=False, keepdims=True) + nugget
-        cov_uu, cov_vv = var[...,0], var[...,1]
+        var = torch.view_as_real(tensor).var(dim=axes, unbiased=False, keepdims=True) + nugget
+        cov_uu, cov_vv = var.real(), var.imag()
 
         # has to mul-mean here anyway (naïve) : reduction axes shifted left.
-        cov_vu = cov_uv = (tensor[...,0] * tensor[...,1]).mean(dim=axes, keepdims=True)
+        cov_vu = cov_uv = (tensor.real() * tensor.imag()).mean(dim=axes, keepdims=True)
 
         # 3. get R = [[p, q], [r, s]], with E R c c^T R^T = R M R = I
         # (unsure if intentional, but the inv-root in Trabelsi et al. (2018) uses
@@ -86,10 +86,10 @@ class _ComplexInstanceNormalizationCovariance(torch.nn.Module):
 
         # 4. apply Q to x (manually)
         out = torch.stack([
-            tensor[...,0] * p + tensor[...,1] * r,
-            tensor[...,0] * q + tensor[...,1] * s,
+            tensor.real() * p + tensor.imag() * r,
+            tensor.real() * q + tensor.imag() * s,
         ], dim=-1)
-        return out  # , torch.cat([p, q, r, s], dim=0).reshape(2, 2, -1)
+        return torch.view_as_complex(out) # , torch.cat([p, q, r, s], dim=0).reshape(2, 2, -1)
 
     def forward(self, x):
         return self.whiten2x2(x)
@@ -99,7 +99,7 @@ class ComplexInstanceNorm_fun(torch.autograd.Function):
     def forward(ctx, z, eps):
         # assume tensor is B x F x ... x 2
         # tail shape for broadcasting ? x 1 x F x [*1]
-        axes = tuple(range(2, z.dim()-1))
+        axes = tuple(range(2, z.dim()))
 
         # 1. compute batch mean [2 x F] and center the batch
         mean = z.mean(dim=axes, keepdims=True)
@@ -107,8 +107,9 @@ class ComplexInstanceNorm_fun(torch.autograd.Function):
 
         # 2. per feature real-imaginary 2x2 covariance matrix
         # faster than doing mul and then mean. Stabilize by a small ridge.
-        var = torch.mean(mytorch.complex.complex_mult_conj(zhat, zhat), dim=axes, keepdim=True) + eps
-        var = var[...,0].unsqueeze_(-1)
+        #var = torch.mean(mytorch.complex.complex_mult_conj(zhat, zhat), dim=axes, keepdim=True) + eps
+        var = torch.mean(zhat.conj() * zhat, dim=axes, keepdim=True) + eps
+        #var = var[...,0].unsqueeze_(-1)
         std = torch.sqrt(var)
         zhat = zhat / std
 
@@ -121,15 +122,18 @@ class ComplexInstanceNorm_fun(torch.autograd.Function):
     def backward(ctx, grad_in):
         zhat = ctx.saved_tensors[0]
         std = ctx.saved_tensors[1]
-        axes = tuple(range(2, zhat.dim()-1))
+        axes = tuple(range(2, zhat.dim()))
 
         # 1. compute batch mean [2 x F] and center the batch
-        grad_inH = mytorch.complex.complex_conj(grad_in)
-        zhatH = mytorch.complex.complex_conj(zhat)
+        # grad_inH = grad_in.conj()
+        # zhatH = zhat.conj()
 
-        part2a = mytorch.complex.complex_mult(grad_inH, zhat).mean(dim=axes, keepdim=True)#[...,0].unsqueeze_(-1)
-        part2b = mytorch.complex.complex_mult(grad_in, zhatH).mean(dim=axes, keepdim=True)#[...,0].unsqueeze_(-1)
-        part2 = mytorch.complex.complex_mult(part2a + part2b, zhat)
+        # part2a = mytorch.complex.complex_mult(grad_inH, zhat).mean(dim=axes, keepdim=True)#[...,0].unsqueeze_(-1)
+        # part2b = mytorch.complex.complex_mult(grad_in, zhatH).mean(dim=axes, keepdim=True)#[...,0].unsqueeze_(-1)
+        # part2 = mytorch.complex.complex_mult(part2a + part2b, zhat)
+        part2a = torch.mean(grad_in.conj() * zhat, dim=axes, keepdim=True)
+        part2b = torch.mean(grad_in * zhat.conj(), dim=axes, keepdim=True) 
+        part2 = (part2a + part2b) * zhat
 
         part3 = grad_in.mean(dim=axes, keepdim=True)
 
@@ -175,7 +179,7 @@ class ComplexConv2dTest(unittest.TestCase):
         model = ComplexInstanceNormalization2d().cuda()
         
         x = torch.randn(nBatch, nf_in, M, N, 2).cuda()
-        xn = model(x)
+        xn = torch.view_as_real(model(torch.view_as_complex(x)))
         axes=tuple(range(2, x.dim()-1))
         print(xn.mean(axes).min(), xn.mean(axes).max())
         var = x.var(unbiased=False, dim=axes )
@@ -195,12 +199,13 @@ class ComplexConv3dTest(unittest.TestCase):
         model = ComplexInstanceNormalization3d().cuda()
         
         x = torch.randn(nBatch, nf_in, D, M, N, 2).cuda()
-        xn = model(x)
+        xn = model(torch.view_as_complex(x))
 
 class TestComplexInstanceNorm(unittest.TestCase):   
     def _test_gradient(self, shape):
         # setup the hyper parameters for each test
-        dtype = torch.float64
+        #dtype = torch.float64
+        dtype = torch.complex128    # TODO: unknown issues: change to complex64 the test will fail.
 
         # perform a gradient check:
         epsilon = 1e-6
@@ -233,9 +238,9 @@ class TestComplexInstanceNorm(unittest.TestCase):
         self.assertTrue(np.abs(grad_a - grad_a_num) < 1e-4)
 
     def test_gradient1(self):
-        self._test_gradient((2,5,5,5,5,2))
+        self._test_gradient((2,5,5,5,5))
     def test_gradient2(self):
-        self._test_gradient((2,5,10,10,2))
+        self._test_gradient((2,5,10,10))
 
 if __name__ == "__main__":
     unittest.test()
