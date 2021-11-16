@@ -30,7 +30,7 @@ class DCGD(torch.nn.Module):
         return x - stepsize * self.AH(self.A(x, *constants) - y, *constants)
 
     def __repr__(self):
-        return f'DCGD(lambda_init={self.weight_init:.4g}, weight_scale={self.weight_scale})'
+        return f'DCGD(lambda_init={self.weight_init:.4g}, weight_scale={self.weight_scale}, requires_grad={self._weight.requires_grad})'
 
 class DCPM(torch.nn.Module):
     def __init__(self, A, AH, weight_init=1.0, weight_scale=1.0, requires_grad=True, **kwargs):
@@ -59,6 +59,9 @@ class DCPM(torch.nn.Module):
         constants = inputs[2:]
         lambdaa = 1.0 / torch.max(self.weight * scale, torch.ones_like(self.weight)*1e-9)
         return self.prox(lambdaa, x, y, *constants)
+
+    def __repr__(self):
+        return f'DCPD(lambda_init={self.weight_init:.4g}, weight_scale={self.weight_scale}, requires_grad={self._weight.requires_grad})'
 
 class CgTest(unittest.TestCase):
     def testcg(self):
