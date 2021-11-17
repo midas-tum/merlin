@@ -99,5 +99,49 @@ class TestWarping(unittest.TestCase):
     def test_adjointness_complex(self):
         self._test_adjointness(True)
 
+    def _test_forward_grad(self, is_complex):
+        shape = (2, 4, 25, 176, 132)
+        img, imgT, uv = self._get_data(shape, is_complex)
+        W = WarpForward().cuda()
+        img.requires_grad_(True)
+        uv.requires_grad_(True)
+        Wx = W(img, uv)
+        if is_complex:
+            loss = torch.sum(torch.real(torch.conj(Wx) * Wx))
+        else:
+            loss = torch.sum(Wx * Wx)
+        loss.backward()
+
+        self.assertTrue(img.grad != None)
+        self.assertTrue(uv.grad != None)
+
+    def test_forward_grad(self):
+        self._test_forward_grad(False)
+    
+    def test_forward_grad_complex(self):
+        self._test_forward_grad(True)
+
+    def _test_backward_grad(self, is_complex):
+        shape = (2, 4, 25, 176, 132)
+        img, imgT, uv = self._get_data(shape, is_complex)
+        WH = WarpAdjoint().cuda()
+        imgT.requires_grad_(True)
+        uv.requires_grad_(True)
+        WHx = WH(imgT, uv)
+        if is_complex:
+            loss = torch.sum(torch.real(torch.conj(WHx) * WHx))
+        else:
+            loss = torch.sum(WHx * WHx)
+        loss.backward()
+
+        self.assertTrue(imgT.grad != None)
+        self.assertTrue(uv.grad != None)
+
+    def test_backward_grad(self):
+        self._test_backward_grad(False)
+    
+    def test_backward_grad_complex(self):
+        self._test_backward_grad(True)
+
 if __name__ == "__main__":
     unittest.test()
