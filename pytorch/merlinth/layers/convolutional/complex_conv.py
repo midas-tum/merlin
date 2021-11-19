@@ -112,6 +112,7 @@ class _ComplexConvNd(Module):
     padding_mode: str
     weight: Tensor
     bias: Optional[Tensor]
+    weight_std: bool
 
     def __init__(self,
                  in_channels: int,
@@ -125,6 +126,7 @@ class _ComplexConvNd(Module):
                  groups: int,
                  bias: bool,
                  padding_mode: str,
+                 weight_std=False,
                  device=None,
                  dtype=merlinth.get_default_cdtype()) -> None:
         factory_kwargs = {'device': device, 'dtype': merlinth.get_default_cdtype()}
@@ -156,6 +158,7 @@ class _ComplexConvNd(Module):
         self.output_padding = output_padding
         self.groups = groups
         self.padding_mode = padding_mode
+        self.weight_std = weight_std
         # `_reversed_padding_repeated_twice` is the padding to be passed to
         # `F.pad` if needed (e.g., for non-zero padding types that are
         # implemented as two ops: padding + conv). `F.pad` accepts paddings in
@@ -215,6 +218,14 @@ class _ComplexConvNd(Module):
         super(_ComplexConvNd, self).__setstate__(state)
         if not hasattr(self, 'padding_mode'):
             self.padding_mode = 'zeros'
+
+    def weight_standardization(self, weight):
+        #weight = self.weight
+        weight_mean = self.weight.mean(dim=1, keepdim=True).mean(dim=2,
+                                    keepdim=True).mean(dim=3, keepdim=True)
+        weight = self.weight - weight_mean
+        std = self.weight.view(weight.size(0), -1).std(dim=1).view(-1, 1, 1, 1) + 1e-5
+        self.weight = self.weight / std.expand_as(self.weight)
 
 
 class ComplexConv1d(_ComplexConvNd):
@@ -345,6 +356,8 @@ class ComplexConv1d(_ComplexConvNd):
                         self.padding, self.dilation, self.groups)
 
     def forward(self, input: Tensor) -> Tensor:
+        if self.weight_std:
+            self.weight_standardization()
         return self._conv_forward(input, self.weight, self.bias)
 
 
@@ -490,6 +503,8 @@ class ComplexConv2d(_ComplexConvNd):
                         self.padding, self.dilation, self.groups)
 
     def forward(self, input: Tensor) -> Tensor:
+        if self.weight_std:
+            self.weight_standardization()
         return self._conv_forward(input, self.weight, self.bias)
 
 class ComplexConv3d(_ComplexConvNd):
@@ -636,6 +651,8 @@ class ComplexConv3d(_ComplexConvNd):
         )
 
     def forward(self, input: Tensor) -> Tensor:
+        if self.weight_std:
+            self.weight_standardization()
         return self._conv_forward(input, self.weight, self.bias)
 
 
