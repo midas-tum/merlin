@@ -4,7 +4,6 @@ import torch.nn.functional as F
 import numpy as np
 
 import unittest
-from merlinth import mytorch
 from .complex_act import Identity
 
 __all__ = [#'ComplexInstanceNormalization1d',
