@@ -53,7 +53,6 @@ def dispdup(ph, ti, p, t):
     If multiple samples occupy the same location, this routine displaces the
     duplicate samples to the nearest vacant location so that there is no more
     than one smaple per location on the k-t grid.
-
     p: Number of phase encoding steps
     t: Number of frames
     """

@@ -144,3 +144,6 @@ dmypy.json
 .idea/
 
 *.png
+
+samplingPattern.txt
+.vscode/launch.json

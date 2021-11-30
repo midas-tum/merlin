@@ -1,9 +1,11 @@
 from setuptools import setup
+from setuptools.dist import Distribution
 import os
 from distutils.core import setup, Extension
 
-VD_CASPR_module = Extension('VD_CASPR_CINE', sources = ['merlinpy/datapipeline/sampling/CASPR/InterfacePythonCpp.cpp'], extra_compile_args=['-std=c++11'])
-VDPD_module = Extension('VDPD', sources = ['merlinpy/datapipeline/sampling/PoissonDisc/InterfacePythonCpp.cpp'], extra_compile_args=['-std=c++11'])
+class BinaryDistribution(Distribution):
+    def has_ext_modules(self):
+        return True
 
 setup(
     name='merlinpy',
@@ -12,18 +14,29 @@ setup(
     author_email="k.hammernik@imperial.ac.uk and thomas.kuestner@med.uni-tuebingen.de",
     packages=["merlinpy",
               "merlinpy.fastmri",
-              "merlinpy.wandb"
+              "merlinpy.wandb",
+              "merlinpy.datapipeline",
+              "merlinpy.datapipeline.sampling",
+              "merlinpy.datapipeline.sampling.VISTA",
               ],
     package_dir={"merlinpy": os.path.join('.', "merlinpy"),
                  "merlinpy.fastmri": os.path.join('.', "merlinpy/fastmri"),
                  "merlinpy.wandb": os.path.join('.', "merlinpy/wandb"),
+                 "merlinpy.datapipeline": os.path.join('.', "merlinpy/datapipeline"),
+                 "merlinpy.datapipeline.sampling": os.path.join('.', "merlinpy/datapipeline/sampling"),
+                 "merlinpy.datapipeline.sampling.VISTA": os.path.join('.', "merlinpy/datapipeline/sampling/VISTA"),
+    },
+    include_package_data=True,
+    package_data={"merlinpy.datapipeline.sampling": ['*.so'],
     },
     install_requires=[
         "numpy >= 1.15",
         "xmltodict",
         "pyyaml",
         "pandas",
-        "tqdm"
+        "tqdm",
+        "scipy",
+        "matplotlib"
     ],
-    ext_modules=[VD_CASPR_module, VDPD_module],
+    distclass=BinaryDistribution,
 )

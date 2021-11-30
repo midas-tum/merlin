@@ -4,28 +4,30 @@ import merlinth.mytorch as mytorch
 
 class ComplexCG(torch.autograd.Function):
     @staticmethod
-    def complexDot(data1, data2):
-        mult = mytorch.complex.complex_mult_conj(data1, data2)
-        re, im = torch.unbind(mult, dim=-1)
-        return torch.stack([torch.sum(re),
-                            torch.sum(im)], -1)
+    def dotp(data1, data2):
+        if data1.is_complex():
+            mult = torch.conj(data1) * data2
+        else:
+            mult = data1 * data2
+        return torch.sum(mult)
 
     @staticmethod
     def solve(x0, M, tol, max_iter):
         x = torch.zeros_like(x0)
         r = x0.clone()
         p = x0.clone()
-        rTr = r.pow(2).sum()
+
+        rTr = torch.norm(r).pow(2)
 
         it = 0
         while rTr > tol and it < max_iter:
             it += 1
             q = M(p)
-            alpha = rTr / ComplexCG.complexDot(p, q)[...,0]
+            alpha = rTr / ComplexCG.dotp(p, q)
             x += alpha * p
             r -= alpha * q
 
-            rTrNew = r.pow(2).sum()
+            rTrNew = torch.norm(r).pow(2)
 
             beta = rTrNew / rTr
 
@@ -60,8 +62,9 @@ class ComplexCG(torch.autograd.Function):
 
         grad_x = lambdaa * Qe
 
-        grad_lambdaa = mytorch.complex.complex_dotp(Qe, x)[...,0].sum() - \
-                       mytorch.complex.complex_dotp(QQe, rhs)[...,0].sum()
+        grad_lambdaa = ComplexCG.dotp(Qe, x).sum() - \
+                       ComplexCG.dotp(QQe, rhs).sum()
+        grad_lambdaa = torch.real(grad_lambdaa)
 
         return None, None, None, None, grad_lambdaa, grad_x, None, None, None
 
@@ -74,12 +77,11 @@ class CGClass(torch.nn.Module):
         self.tol = tol
 
         self.cg = ComplexCG
-        #ComplexCG.set_ops(self.cg, A, AH)
     
     def forward(self, lambdaa, x, y, *constants):
         out = torch.zeros_like(x)
 
         for n in range(x.shape[0]):
-            cg_out = self.cg.apply(self.A, self.AH, self.max_iter, self.tol, lambdaa, x[n], y[n], *[c[n] for c in constants])
-            out[n] = cg_out
+            cg_out = self.cg.apply(self.A, self.AH, self.max_iter, self.tol, lambdaa, x[n::1], y[n::1], *[c[n::1] for c in constants])
+            out[n] = cg_out[0]
         return out

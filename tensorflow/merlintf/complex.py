@@ -28,7 +28,7 @@ def complex2magpha(z, channel_last=True):
     stack_dim = -1 if channel_last else 1
     return tf.concat([complex_abs(z), complex_angle(z)], stack_dim)
 
-def magpha2complex2(z, channel_last=True):
+def magpha2complex(z, channel_last=True):
     stack_dim = -1 if channel_last else 1
     (mag, pha) = tf.split(z, 2, axis=stack_dim)
     return tf.complex(mag * tf.math.cos(pha), mag * tf.math.sin(pha))

@@ -36,19 +36,19 @@ def Activation(identifier):
 
 def deserialize(act):
     if act == 'ModReLU' or act == 'modrelu':
-        return ModReLU()
+        return ModReLU
     elif act == 'cPReLU' or act == 'cprelu':
-        return cPReLU()
+        return cPReLU
     elif act == 'cReLU' or act == 'crelu':
-        return cReLU()
+        return cReLU
     elif act == 'ModPReLU' or act == 'modprelu':
-        return ModPReLU()
+        return ModPReLU
     elif act == 'hard_sigmoid':
-        return HardSigmoid()
+        return HardSigmoid
     elif act == 'cardioid':
-        return Cardioid()
+        return Cardioid
     elif act is None or act == 'identity':
-        return Identity()
+        return Identity
     else:
         raise ValueError(f"Selected activation '{act}' not implemented in complex activations")
 
@@ -152,6 +152,7 @@ class cPReLU(tf.keras.layers.Layer):
     @property
     def __name__(self):
         return 'cPReLU'
+
 class ModPReLU(tf.keras.layers.Layer):
     def __init__(self, alpha=0.1, bias=0, trainable=False):
         super().__init__()
@@ -198,7 +199,7 @@ class Cardioid(tf.keras.layers.Layer):
                                       trainable=self.trainable,
                                       )
     def call(self, z):
-        phase = merlintf.complex_angle(z)
+        phase = merlintf.complex_angle(z) + self.bias
         cos = tf.cast(tf.math.cos(phase), tf.complex64) 
 
         return 0.5 * (1 + cos) * z
@@ -226,7 +227,7 @@ class Cardioid2(tf.keras.layers.Layer):
                                       trainable=self.trainable,
                                       )
     def call(self, z):
-        phase = merlintf.complex_angle(z)
+        phase = merlintf.complex_angle(z) + self.bias
         sin = tf.cast(tf.math.sin(phase), tf.complex64) 
         mz = tf.cast(merlintf.complex_abs(z), tf.complex64)
         cos = tf.cast(tf.math.cos(phase), tf.complex64) 
