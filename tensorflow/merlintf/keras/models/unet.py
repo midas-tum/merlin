@@ -414,17 +414,17 @@ class ComplexUNet(UNet):
         self.crop_layer = merlintf.keras.layers.Cropping(dim)
 
         # output convolution
-        #self.activation_layer_last = merlintf.keras.layers.Activation(self.activation_last)
+        #self.activation_layer_last = merlintf.keras.layers.Activation(self.activation_last)()
         self.out_cha = 1
 
         # get normalization operator
         if normalization == 'BN':
             self.norm_layer = merlintf.keras.layers.ComplexBatchNormalization
-            self.activation_layer = merlintf.keras.layers.Activation(activation)
+            self.activation_layer = merlintf.keras.layers.Activation(activation)()
             self.activation = None
         elif normalization == 'IN':
             self.norm_layer = merlintf.keras.layers.ComplexInstanceNormalization
-            self.activation_layer = merlintf.keras.layers.Activation(activation)
+            self.activation_layer = merlintf.keras.layers.Activation(activation)()
             self.activation = None
         elif normalization.lower() == 'none':
             self.norm_layer = None
