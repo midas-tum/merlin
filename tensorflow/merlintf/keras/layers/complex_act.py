@@ -3,6 +3,9 @@ import unittest
 import merlintf
 import numpy as np
 import six
+from tensorflow.python.keras.utils import tf_utils
+from tensorflow.python.keras.utils.generic_utils import deserialize_keras_object
+from tensorflow.python.keras.utils.generic_utils import serialize_keras_object
 
 __all__ = ['cReLU',
            'ModReLU',
@@ -34,31 +37,20 @@ def Activation(identifier):
             'Could not interpret activation function identifier: {}'.format(
                 identifier))
 
-def deserialize(act):
-    if act == 'ModReLU' or act == 'modrelu':
-        return ModReLU
-    elif act == 'cPReLU' or act == 'cprelu':
-        return cPReLU
-    elif act == 'cReLU' or act == 'crelu':
-        return cReLU
-    elif act == 'ModPReLU' or act == 'modprelu':
-        return ModPReLU
-    elif act == 'hard_sigmoid':
-        return HardSigmoid
-    elif act == 'cardioid':
-        return Cardioid
-    elif act is None or act == 'identity':
-        return Identity
-    else:
-        raise ValueError(f"Selected activation '{act}' not implemented in complex activations")
+def deserialize(name, custom_objects=None):
+    return deserialize_keras_object(
+      name,
+      module_objects=globals(),
+      custom_objects=custom_objects,
+      printable_module_name='activation function')
 
 def serialize(act):
-    return act.__name__
+    return serialize_keras_object(act)
 
 
 class HardSigmoid(tf.keras.layers.Layer):
-    def __init__(self, bias=0.1, trainable=True):
-        super().__init__()
+    def __init__(self, bias=0.1, trainable=True, **kwargs):
+        super(HardSigmoid, self).__init__(**kwargs)
         self.bias_init = bias
         self.trainable = trainable
 
@@ -76,18 +68,26 @@ class HardSigmoid(tf.keras.layers.Layer):
     def call(self, z):
         return tf.cast(tf.keras.activations.hard_sigmoid(merlintf.complex_abs(z) + self.bias), tf.complex64)
     
+    def get_config(self):
+        config = {'bias': float(self.bias_init), 'trainable' : self.trainable}
+        base_config = super(HardSigmoid, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
 
+    @tf_utils.shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        return input_shape
 
 class cReLU(tf.keras.layers.Layer):
     def call(self, z):
         actre = tf.keras.activations.relu(tf.math.real(z))
         actim = tf.keras.activations.relu(tf.math.imag(z))
         return tf.complex(actre, actim)
+
     @property
     def __name__(self):
         return 'cReLU'
         
-class Identity(tf.keras.layers.Layer):    
+class Identity(tf.keras.layers.Layer):
     @property
     def __name__(self):
         return 'identity'
@@ -96,8 +96,8 @@ class Identity(tf.keras.layers.Layer):
         return z
 
 class ModReLU(tf.keras.layers.Layer):
-    def __init__(self, bias=0.0, trainable=True):
-        super().__init__()
+    def __init__(self, bias=0.0, trainable=True, **kwargs):
+        super(ModReLU, self).__init__(**kwargs)
         self.bias_init = bias
         self.trainable = trainable
     
@@ -106,7 +106,7 @@ class ModReLU(tf.keras.layers.Layer):
         return 'ModReLU'
 
     def build(self, input_shape):
-        super().build(input_shape)
+        super(ModReLU, self).build(input_shape)
         initializer = tf.keras.initializers.Constant(self.bias_init)
         self.bias = self.add_weight('bias',
                                       shape=(input_shape[-1]),
@@ -119,14 +119,23 @@ class ModReLU(tf.keras.layers.Layer):
         s = f"ModReLU: bias_init={self.bias_init}, trainable={self.trainable}"
         return s
 
+    def get_config(self):
+        config = {'bias': float(self.bias_init), 'trainable' : self.trainable}
+        base_config = super(ModReLU, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+    @tf_utils.shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
 class cPReLU(tf.keras.layers.Layer):
-    def __init__(self, alpha=0.1, trainable=False):
-        super().__init__()
+    def __init__(self, alpha=0.1, trainable=False, **kwargs):
+        super(cPReLU, self).__init__(**kwargs)
         self.alpha_init = alpha
         self.trainable = trainable
 
     def build(self, input_shape):
-        super().build(input_shape)
+        super(cPReLU, self).build(input_shape)
         initializer = tf.keras.initializers.Constant(self.alpha_init)
         self.alpha_real = self.add_weight('alpha_real',
                                       shape=(input_shape[-1]),
@@ -153,9 +162,19 @@ class cPReLU(tf.keras.layers.Layer):
     def __name__(self):
         return 'cPReLU'
 
+    def get_config(self):
+        config = {'alpha': float(self.alpha_init), 'trainable' : self.trainable}
+        base_config = super(cPReLU, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+    @tf_utils.shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
 class ModPReLU(tf.keras.layers.Layer):
-    def __init__(self, alpha=0.1, bias=0, trainable=False):
-        super().__init__()
+    def __init__(self, alpha=0.1, bias=0, trainable=False, **kwargs):
+        super(ModPReLU, self).__init__(**kwargs)
         self.alpha_init = alpha
         self.bias_init = bias
         self.trainable = trainable
@@ -165,7 +184,7 @@ class ModPReLU(tf.keras.layers.Layer):
         return 'ModPReLU'
 
     def build(self, input_shape):
-        super().build(input_shape)
+        super(ModPReLU, self).build(input_shape)
         initializer = tf.keras.initializers.Constant(self.bias_init)
         self.bias = self.add_weight('bias',
                                       shape=(input_shape[-1]),
@@ -184,14 +203,24 @@ class ModPReLU(tf.keras.layers.Layer):
         s = f"ModPReLU: alpha_init={self.alpha_init}, bias_init={self.bias_init}, trainable={self.trainable}"
         return s
 
+    def get_config(self):
+        config = {'bias': float(self.bias_init), 'alpha' : float(self.alpha_init), 'trainable' : self.trainable}
+        base_config = super(ModPReLU, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+    @tf_utils.shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
+
 class Cardioid(tf.keras.layers.Layer):
-    def __init__(self, bias=2.0, trainable=True):
-        super().__init__()
+    def __init__(self, bias=2.0, trainable=True, **kwargs):
+        super(Cardioid, self).__init__(**kwargs)
         self.bias_init = bias
         self.trainable = trainable
 
     def build(self, input_shape):
-        super().build(input_shape)
+        super(Cardioid, self).build(input_shape)
         initializer_bias = tf.keras.initializers.Constant(self.bias_init)
         self.bias = self.add_weight('bias',
                                       shape=(input_shape[-1]),
@@ -212,9 +241,18 @@ class Cardioid(tf.keras.layers.Layer):
     def __name__(self):
         return 'cardioid'
 
+    def get_config(self):
+        config = {'bias': float(self.bias_init), 'trainable' : self.trainable}
+        base_config = super(Cardioid, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
+    @tf_utils.shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        return input_shape
+
 class Cardioid2(tf.keras.layers.Layer):
-    def __init__(self, bias=2.0, trainable=True):
-        super().__init__()
+    def __init__(self, bias=2.0, trainable=True, **kwargs):
+        super().__init__(**kwargs)
         self.bias_init = bias
         self.trainable = trainable
 
@@ -244,14 +282,19 @@ class Cardioid2(tf.keras.layers.Layer):
         s = f"Cardioid2: bias_init={self.bias_init}, trainable={self.trainable}"
         return s
 
+    def get_config(self):
+        config = {'bias': float(self.bias_init), 'trainable' : self.trainable}
+        base_config = super(Cardioid2, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
 class cStudentT(tf.keras.layers.Layer):
-    def __init__(self, alpha=2.0, trainable=False):
-        super().__init__()
+    def __init__(self, alpha=2.0, trainable=False, **kwargs):
+        super(cStudentT, self).__init__(**kwargs)
         self.alpha_init = alpha
         self.trainable = trainable
 
     def build(self, input_shape):
-        super().build(input_shape)
+        super(cStudentT, self).build(input_shape)
         initializer_alpha = tf.keras.initializers.Constant(self.alpha_init)
         self.alpha = self.add_weight('alpha',
                                       shape=(input_shape[-1]),
@@ -274,9 +317,14 @@ class cStudentT(tf.keras.layers.Layer):
         s = f"cStudentT: alpha_init={self.alpha_init}, trainable={self.trainable}"
         return s
 
+    def get_config(self):
+        config = {'alpha': float(self.alpha_init), 'trainable' : self.trainable}
+        base_config = super(cStudentT, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
 class cStudentT2(tf.keras.layers.Layer):
-    def __init__(self, alpha=2.0, trainable=False):
-        super().__init__()
+    def __init__(self, alpha=2.0, trainable=False, **kwargs):
+        super().__init__(**kwargs)
         self.alpha_init = alpha
         self.trainable = trainable
 
@@ -311,9 +359,14 @@ class cStudentT2(tf.keras.layers.Layer):
         s = f"cStudentT2: alpha_init={self.alpha_init}, trainable={self.trainable}"
         return s
 
+    def get_config(self):
+        config = {'alpha': float(self.alpha_init), 'trainable' : self.trainable}
+        base_config = super(cStudentT2, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
 class ModStudentT(tf.keras.layers.Layer):
-    def __init__(self, alpha=2.0, beta=0.1, trainable=False):
-        super().__init__()
+    def __init__(self, alpha=2.0, beta=0.1, trainable=False, **kwargs):
+        super().__init__(**kwargs)
         self.alpha_init = alpha
         self.beta_init = beta
         self.trainable = trainable
@@ -344,9 +397,14 @@ class ModStudentT(tf.keras.layers.Layer):
         s = f"ModStudentT: alpha_init={self.alpha_init}, beta_init={self.beta_init}, trainable={self.trainable}"
         return s
 
+    def get_config(self):
+        config = {'alpha': float(self.alpha_init), 'beta': float(self.beta_init), 'trainable' : self.trainable}
+        base_config = super(ModStudentT, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
 class ModStudentT2(tf.keras.layers.Layer):
-    def __init__(self, alpha=2.0, beta=0.1, trainable=False):
-        super().__init__()
+    def __init__(self, alpha=2.0, beta=0.1, trainable=False, **kwargs):
+        super().__init__(**kwargs)
         self.alpha_init = alpha
         self.beta_init = beta
         self.trainable = trainable
@@ -392,12 +450,18 @@ class ModStudentT2(tf.keras.layers.Layer):
         s = f"ModStudentT2: alpha_init={self.alpha_init}, beta_init={self.beta_init}, trainable={self.trainable}"
         return s
 
+    def get_config(self):
+        config = {'alpha': float(self.alpha_init), 'beta': float(self.beta_init), 'trainable' : self.trainable}
+        base_config = super(ModStudentT2, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))
+
 class TestActivation(unittest.TestCase):   
     def _test(self, act, args, shape):
         model = act(**args)
         x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
         Kx = model(x)
         print(model)
+        print(model.get_config())
     
     def test_cReLU(self):
         self._test(cReLU, {}, [5, 32])
