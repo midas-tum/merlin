@@ -33,7 +33,7 @@ class WarpAdjoint(tf.keras.layers.Layer):
         M, N = tf.shape(u)[-3:-1]
         x = tf.reshape(x, (-1, 1, M, N)) # [batch * frames * frames_all, 1, M, N]
         u = tf.reshape(u, (-1, M, N, 2)) # [batch * frames * frames_all, M, N, 2]
-        x_warpT = self.WH(x, u)
+        x_warpT = self.WH(x, u, x)
         x_warpT = tf.reshape(x_warpT, out_shape)
         x_warpT = tf.math.reduce_sum(x_warpT, -3)
         return x_warpT
