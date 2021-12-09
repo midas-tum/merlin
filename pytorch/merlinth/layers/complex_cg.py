@@ -1,6 +1,5 @@
 
 import torch
-import merlinth.mytorch as mytorch
 
 class ComplexCG(torch.autograd.Function):
     @staticmethod
