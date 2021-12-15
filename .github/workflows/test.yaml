@@ -9,32 +9,31 @@ jobs:
         
       - name: Activate environment
         shell: bash -l {0}
-        run: |
-          # activate pre-configured environment with installed optox
-          ~/miniconda3/condabin/conda init
-          source ~/.bashrc
-          ~/miniconda3/condabin/conda activate actions-merlin
+        uses: conda-incubator/setup-miniconda@v2
+        with:
+            auto-activate-base: true
+            activate-environment: "actions-merlin"
+        #run: |
+        #  # activate pre-configured environment with installed optox
+        #  ~/miniconda3/condabin/conda init
+        #  source ~/.bashrc
+        #  ~/miniconda3/condabin/conda activate actions-merlin
       - name: Build merlin 
-        shell: bash -l {0}
         run: |
           cd ~/actions-runner-merlin/_work/merlin/merlin
           ./install.sh
       - name: Check install
-        shell: bash -l {0}
         run: |
           conda info
           conda list
           pip list
       - name: Run python unittests
-        shell: bash -l {0}
         run: |
           python3 -m unittest discover -s merlinpy -p "*.py" >> results_py.txt
       - name: Run pytorch unittests
-        shell: bash -l {0}
         run: |
           python3 -m unittest discover -s merlinth -p "*.py" >> results_th.txt
       - name: Run tensorflow unittests
-        shell: bash -l {0}
         run: |
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/cuda/lib64
           python3 -m unittest discover -s merlintf -p "*.py" >> results_tf.txt
