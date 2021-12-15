@@ -261,7 +261,7 @@ class RealUNet(UNet):
                 self.pad_layer = merlintf.keras.layers.Pad3D
             self.crop_layer = tf.keras.layers.Cropping3D
         elif dim == '3Dt':
-            self.conv_layer = tf.keras.layers.Conv3Dt
+            self.conv_layer = merlintf.keras.layers.Conv3Dt
             if self.padding.lower() == 'zero':
                 self.pad_layer = merlintf.keras.layers.ZeroPadding4D
             else:
@@ -414,17 +414,17 @@ class ComplexUNet(UNet):
         self.crop_layer = merlintf.keras.layers.Cropping(dim)
 
         # output convolution
-        #self.activation_layer_last = merlintf.keras.layers.Activation(self.activation_last)()
+        #self.activation_layer_last = merlintf.keras.layers.Activation(self.activation_last)
         self.out_cha = 1
 
         # get normalization operator
         if normalization == 'BN':
             self.norm_layer = merlintf.keras.layers.ComplexBatchNormalization
-            self.activation_layer = merlintf.keras.layers.Activation(activation)()
+            self.activation_layer = merlintf.keras.layers.Activation(activation)
             self.activation = None
         elif normalization == 'IN':
             self.norm_layer = merlintf.keras.layers.ComplexInstanceNormalization
-            self.activation_layer = merlintf.keras.layers.Activation(activation)()
+            self.activation_layer = merlintf.keras.layers.Activation(activation)
             self.activation = None
         elif normalization.lower() == 'none':
             self.norm_layer = None
@@ -465,6 +465,20 @@ class UNetTest(unittest.TestCase):
         self._test_UNet('2D', 64, (3, 3), (2, 2), network='2chreal', complex_input=False)
         self._test_UNet('2D', 64, (3, 3), (2, 2), network='2chreal', complex_input=True)
 
+        # downsampling
+        self._test_UNet('2D', 64, (3, 3), (2, 2), downsampling='st', network='2chreal', complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), downsampling='st', network='2chreal', complex_input=True)
+
+        # normalization
+        self._test_UNet('2D', 64, (3, 3), (2, 2), normalization='BN', network='2chreal', complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), normalization='IN', network='2chreal', complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), normalization='BN', network='2chreal', complex_input=True)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), normalization='IN', network='2chreal', complex_input=True)
+
+        # upsampling
+        self._test_UNet('2D', 64, (3, 3), (2, 2), upsampling='us', network='2chreal', complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), upsampling='us', network='2chreal', complex_input=True)
+
     def test_UNet_mag_2d(self):
         self._test_UNet('2D', 64, (3, 3), (2, 2), network='mag', complex_input=False)
         self._test_UNet('2D', 64, (3, 3), (2, 2), network='mag', complex_input=True)
@@ -473,16 +487,62 @@ class UNetTest(unittest.TestCase):
         self._test_UNet('2D', 64, (3, 3), (2, 2), network='complex', complex_input=False)
         self._test_UNet('2D', 64, (3, 3), (2, 2), network='complex', complex_input=True)
 
+        # downsampling
+        self._test_UNet('2D', 64, (3, 3), (2, 2), downsampling='st', network='complex', complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), downsampling='st', network='complex', complex_input=True)
+
+        # normalization
+        self._test_UNet('2D', 64, (3, 3), (2, 2), normalization='BN', network='complex', complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), normalization='IN', network='complex', complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), normalization='BN', network='complex', complex_input=True)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), normalization='IN', network='complex', complex_input=True)
+
+        # upsampling
+        self._test_UNet('2D', 64, (3, 3), (2, 2), upsampling='us', network='complex', complex_input=False)
+        self._test_UNet('2D', 64, (3, 3), (2, 2), upsampling='us', network='complex', complex_input=True)
+
     def test_UNet_2chreal_3d(self):
         self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='2chreal', complex_input=False)
         self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='2chreal', complex_input=True)
         self._test_UNet('3D', 32, (1, 3, 3), (1, 2, 2), network='2chreal', complex_input=True)
+
+        # downsampling
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), downsampling='st', network='2chreal', complex_input=False)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), downsampling='st', network='2chreal', complex_input=True)
+
+        # normalization
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), normalization='BN', network='2chreal', complex_input=False)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), normalization='IN', network='2chreal', complex_input=False)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), normalization='BN', network='2chreal', complex_input=True)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), normalization='IN', network='2chreal', complex_input=True)
+
+        # upsampling
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), upsampling='us', network='2chreal', complex_input=False)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), upsampling='us', network='2chreal', complex_input=True)
 
     def test_UNet_mag_3d(self):
         self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='mag', complex_input=False)
         self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='mag', complex_input=True)
         self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='mag', complex_input=True, D=15, num_level=2)
         self._test_UNet('3D', 32, (1, 3, 3), (1, 2, 2), network='mag', complex_input=True)
+
+    def test_UNet_complex_3d(self):
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='complex', complex_input=False)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='complex', complex_input=True)
+
+        # downsampling
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), downsampling='st', network='complex', complex_input=False)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), downsampling='st', network='complex', complex_input=True)
+
+        # normalization
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), normalization='BN', network='complex', complex_input=False)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), normalization='IN', network='complex', complex_input=False)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), normalization='BN', network='complex', complex_input=True)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), normalization='IN', network='complex', complex_input=True)
+
+        # upsampling
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), upsampling='us', network='complex', complex_input=False)
+        self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), upsampling='us', network='complex', complex_input=True)
 
     def test_UNet_mag_3d_padding(self):
         self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='mag', complex_input=True, D=20, M=32, N=32) # padding required
