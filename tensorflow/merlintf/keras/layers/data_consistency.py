@@ -7,7 +7,7 @@ import numpy as np
 
 class DCGD(tf.keras.layers.Layer):
     def __init__(self, A, AH, weight_init=1.0, weight_scale=1.0, trainable=True,
-                    map_fn_batch=False, name='dc-gd', **kwargs):
+                name='dc-gd', **kwargs):
         """Gradient Descent Data Consistency (DCGD) for a given pair of
            forward/adjoint operators A/AH.
 
@@ -19,19 +19,23 @@ class DCGD(tf.keras.layers.Layer):
             weight_scale (float, optional): Scale that is multiplied to weight. 
                 Might be helpful to make training of the weight faster.
                 Defaults to 1.0.
-            map_fn_batch (bool, optional): Run the operators A/AH on each sample
-                of the batch separately. Defaults to False.
             name (str, optional): Name of the layer. Defaults to 'dc-gd'.
+        Kwargs:
+            parallel_iterations: Defines how many instances in a batch are processed
+                in parallel. Defaults to None, i.e., whole batch is processed at once.
         """
         super().__init__()
 
-        if map_fn_batch:
+        parallel_iterations = kwargs.get('parallel_iterations', None)
+        if parallel_iterations != None:
+            print('HERE')
             def A_call(x, *constants):
                 def A_fn(inputs):
                     return A(*inputs)
                 out = tf.map_fn(A_fn, (x, *constants),
                             name='mapForward', 
-                            fn_output_signature=x.dtype)
+                            fn_output_signature=x.dtype,
+                            parallel_iterations=parallel_iterations)
                 return out
 
             def AH_call(x, *constants):
@@ -39,7 +43,8 @@ class DCGD(tf.keras.layers.Layer):
                     return AH(*inputs)
                 out = tf.map_fn(AH_fn, (x, *constants), 
                             name='mapAdjoint',
-                            fn_output_signature=x.dtype)
+                            fn_output_signature=x.dtype,
+                            parallel_iterations=parallel_iterations)
                 return out
 
             self.A = A_call
@@ -85,6 +90,9 @@ class DCPM(tf.keras.layers.Layer):
             Might be helpful to make training of the weight faster.
             Defaults to 1.0.
         name (str, optional): Name of the layer. Defaults to 'dc-pm'.
+    Kwargs:
+        parallel_iterations: Defines how many instances in a batch are processed
+            in parallel. Defaults to None equals Default in eager mode: 1 default in graph mode: 10
     """
     def __init__(self, A, AH, weight_init=1.0, weight_scale=1.0, trainable=True, name='dc-pm', 
                 **kwargs):
@@ -93,7 +101,7 @@ class DCPM(tf.keras.layers.Layer):
         self.AH = AH
         max_iter = kwargs.get('max_iter', 10)
         tol = kwargs.get('tol', 1e-10)
-        parallel_iterations = kwargs.get('parallel_iterations', 1)
+        parallel_iterations = kwargs.get('parallel_iterations', None)
         self.prox = CGClass(A, AH, max_iter=max_iter, tol=tol, parallel_iterations=parallel_iterations)
 
         self.weight_init = weight_init
