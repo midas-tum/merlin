@@ -1,4 +1,4 @@
-name: merlin-build
+name: merlin-test
 on: [push]
 jobs:
   run:
