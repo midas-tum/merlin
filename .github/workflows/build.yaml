@@ -1,0 +1,77 @@
+name: merlin-build
+on: [push]
+jobs:
+  run:
+    runs-on: [self-hosted,Linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        
+      - name: Init environment
+        run: |
+          # Your ML workflow goes here
+          python3 -m venv merlinenv
+          source merlinenv/bin/activate
+          pip install --upgrade pip   # update pip to install TF>2.0
+      - name: Clone gpuNUFFT
+        run: |
+           git clone --branch cuda_streams https://github.com/khammernik/gpuNUFFT.git
+      - name: Build gpuNUFFT
+        env:
+          CUDA_ROOT_DIR: /usr/local/cuda
+          CUDA_SDK_ROOT_DIR: /usr/local/cuda-samples
+          LDFLAGS: -L/usr/local/cuda/lib64
+        run: |
+           cd gpuNUFFT/CUDA
+           mkdir -p build
+           cd build
+           cmake .. -DGEN_MEX_FILES=OFF
+           make
+      - name: Clone optox
+        uses: actions/checkout@v2
+        with:
+          repository: midas-tum/optox
+          token: ${{ secrets.OPTOX_TOKEN }}
+          path: optox
+      - name: Build optox
+        env:
+          CUDA_ROOT_DIR: /usr/local/cuda
+          CUDA_SDK_ROOT_DIR: /usr/local/cuda-samples
+          GPUNUFFT_ROOT_DIR: ~/actions-runner-merlin/_work/merlin/merlin/gpuNUFFT
+          LDFLAGS: -L/usr/local/cuda/lib64
+        run: |
+          # Your ML workflow goes here      
+          cd ~/actions-runner-merlin/_work/merlin/merlin/optox
+          pip install -r requirements.txt
+          mkdir build
+          cd build
+          cmake .. -DWITH_PYTHON=ON -DWITH_PYTORCH=ON -DWITH_TENSORFLOW=ON -DWITH_GPUNUFFT=ON -DCUDA_SDK_ROOT_DIR=/usr/local/cuda-samples -DCUDA_ROOT=/usr/local/cuda/
+          make install
+      - name: Build merlin 
+        run: |
+          cd ~/actions-runner-merlin/_work/merlin/merlin
+          pip install -r requirements.txt
+          ./install.sh
+      - name: Check install
+        run: |
+          pip list
+      - name: Run python unittests
+        run: |
+          python3 -m unittest discover -s merlinpy -p "*.py" >> results_py.txt
+      - name: Run pytorch unittests
+        run: |
+          python3 -m unittest discover -s merlinth -p "*.py" >> results_th.txt
+      - name: Run tensorflow unittests
+        run: |
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/cuda/lib64
+          python3 -m unittest discover -s merlintf -p "*.py" >> results_tf.txt
+      - name: Write CML report
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Post reports as comments in GitHub PRs
+          cat results_py.txt results_tf.txt results_th.txt >> report.md
+          cml-send-comment report.md
+      - name: Cleanup
+        run: |
+          rm -r merlinenv
