@@ -4,7 +4,7 @@ from tensorflow.python.keras import initializers
 from tensorflow.python.keras import regularizers
 from tensorflow.python.keras.utils import conv_utils
 from merlintf.keras.layers import complex_act as activations
-from tensorflow.keras.layers import Conv3D
+from tensorflow.keras.layers import Conv3D, Conv3DTranspose
 from tensorflow.keras.layers import Layer
 import numpy as np
 from tensorflow.python.keras.engine.input_spec import InputSpec
@@ -16,14 +16,14 @@ import functools
 from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import nn
 from tensorflow.python.ops import nn_ops
-from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv, ComplexConv2D, ComplexConv3DTranspose, ComplexConv3D
+#from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv, ComplexConv2D, ComplexConv3DTranspose, ComplexConv3D
 from merlintf.keras.utils import validate_input_dimension
 
 def calculate_intermediate_filters_3D(filters, kernel_size, channel_in):
     return np.ceil((filters * channel_in * np.prod(kernel_size)) /
             (channel_in * kernel_size[1] * kernel_size[2] * kernel_size[3] + filters * kernel_size[0])).astype(np.int32)
 
-class ComplexConv3Dt(tf.keras.layers.Layer):
+class Conv3Dt(tf.keras.layers.Layer):
     def __init__(self,
                  filters,  # out
                  kernel_size,
@@ -47,7 +47,7 @@ class ComplexConv3Dt(tf.keras.layers.Layer):
                  pad=True,
                  intermediate_filters=None,
                  **kwargs):
-        super(ComplexConv3Dt, self).__init__()
+        super(Conv3Dt, self).__init__()
 
         if intermediate_filters == None:
             self.intermediate_filters = filters
@@ -61,8 +61,8 @@ class ComplexConv3Dt(tf.keras.layers.Layer):
         self.strides = validate_input_dimension('3Dt', strides)
         self.dilation_rate = validate_input_dimension('3Dt', dilation_rate)
 
-        self.conv_xyz = ComplexConv3D(
-            filters=self.intermediate_filters,
+        self.conv_xyz = Conv3D(
+            filters=intermediate_filters,
             kernel_size=(self.kernel_size[1], self.kernel_size[2], self.kernel_size[3]),
             strides=(self.strides[1], self.strides[2], self.strides[3]),
             padding=self.padding,
@@ -79,7 +79,7 @@ class ComplexConv3Dt(tf.keras.layers.Layer):
             bias_constraint=constraints.get(bias_constraint),
             **kwargs)
 
-        self.conv_t = ComplexConv3D(
+        self.conv_t = Conv3D(
             filters=filters,
             kernel_size=(self.kernel_size[0], 1, 1),
             strides=(self.strides[0], 1, 1),
@@ -166,7 +166,7 @@ class ComplexConv3Dt(tf.keras.layers.Layer):
         return x_t
 
 
-class ComplexConv3DtTranspose(tf.keras.layers.Layer):
+class Conv3DtTranspose(tf.keras.layers.Layer):
     def __init__(self,
                  filters,  # out
                  kernel_size,
@@ -190,7 +190,7 @@ class ComplexConv3DtTranspose(tf.keras.layers.Layer):
                  pad=True,
                  intermediate_filters=None,
                  **kwargs):
-        super(ComplexConv3DtTranspose, self).__init__()
+        super(Conv3DtTranspose, self).__init__()
 
         if intermediate_filters == None:
             self.intermediate_filters = filters
@@ -205,7 +205,7 @@ class ComplexConv3DtTranspose(tf.keras.layers.Layer):
         self.dilation_rate = validate_input_dimension('3Dt', dilation_rate)
 
         self.conv_xyz_filters = filters
-        self.conv_xyz = ComplexConv3DTranspose(
+        self.conv_xyz = Conv3DTranspose(
             filters=self.conv_xyz_filters,
             kernel_size=(self.kernel_size[1], self.kernel_size[2], self.kernel_size[3]),
             strides=(self.strides[1], self.strides[2], self.strides[3]),
@@ -223,7 +223,7 @@ class ComplexConv3DtTranspose(tf.keras.layers.Layer):
             bias_constraint=constraints.get(bias_constraint),
             **kwargs)
 
-        self.conv_t = ComplexConv3DTranspose(
+        self.conv_t = Conv3DTranspose(
             filters=self.intermediate_filters,
             kernel_size=(self.kernel_size[0], 1, 1),
             strides=(self.strides[0], 1, 1),
@@ -280,14 +280,18 @@ class ComplexConv3DtTranspose(tf.keras.layers.Layer):
 
         return x_sp
 
+# aliases
+Convolution3Dt = Conv3Dt
+Convolution3DtTranspose = Conv3DtTranspose
+Deconvolution3Dt = Deconv3Dt = Conv3DtTranspose
 
-class ComplexConv3dtTest(unittest.TestCase):
-    def test_ComplexConv3dt(self):
+class Conv3dtTest(unittest.TestCase):
+    def test_Conv3dt(self):
         self._test_Conv3dt()
         self._test_Conv3dt(stride=(2, 2, 2, 2))
         self._test_Conv3dt(channel_last=False)
 
-    def test_ComplexConv3dtTranspose(self):
+    def test_Conv3dtTranspose(self):
         self._test_Conv3dt(is_transpose=True)
         self._test_Conv3dt(is_transpose=True, stride=(2, 2, 2, 2))
         self._test_Conv3dt(is_transpose=True, channel_last=False)
@@ -312,57 +316,17 @@ class ComplexConv3dtTest(unittest.TestCase):
         nf_inter = calculate_intermediate_filters_3D(nf_out, ksz, nf_in)
 
         if is_transpose:
-            model = ComplexConv3DtTranspose(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
+            model = Conv3DtTranspose(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
                                      strides=stride, data_format=data_format)
         else:
-            model = ComplexConv3Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
+            model = Conv3Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
                             strides=stride, data_format=data_format)
 
-        x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-        x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-        x = tf.complex(x_real, x_imag)
+        x = tf.cast(tf.random.normal(shape), dtype=tf.float32)
         Kx = model(x)
 
         self.assertTrue(Kx.shape == expected_shape)
 
-    def _testadjoint(self, dim_in=[8, 32, 32, 12], nBatch=2, nf_in=3, nf_out=18, ksz=(3, 5, 5, 5), stride=(1, 1, 1, 1),
-                      channel_last=True, axis_conv_t=2, is_transpose=False):
-        # gradient check not required only for matching FOVs
-        if channel_last:
-            shape = [nBatch] + dim_in + [nf_in]
-            expected_shape = [nBatch] + list((np.asarray(dim_in) / np.asarray(stride)).astype(int)) + [nf_out]
-            data_format = 'channels_last'
-        else:
-            shape = [nBatch] + [nf_in] + dim_in
-            expected_shape = [nBatch] + [nf_out] + list((np.asarray(dim_in) / np.asarray(stride)).astype(int))
-            data_format = 'channels_first'
-
-        ksz = validate_input_dimension('3Dt', ksz)
-        nf_inter = calculate_intermediate_filters_3D(nf_out, ksz, nf_in)
-
-        if is_transpose:
-            model = ComplexConv3DtTranspose(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
-                                     strides=stride, data_format=data_format)
-        else:
-            model = ComplexConv3Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
-                            strides=stride, data_format=data_format)
-
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        Kx = model(x)
-
-        y = tf.complex(tf.random.normal(Kx.shape), tf.random.normal(Kx.shape))
-        with tf.GradientTape() as g:
-            g.watch(y)
-            Ky = model(y)
-            loss = 0.5 * tf.reduce_sum(tf.math.conj(Ky) * Ky)
-        grad_y = g.gradient(loss, y)
-        KHy = grad_y.numpy()
-        #KHy = model.backward(y, x.shape)
-
-        rhs = tf.reduce_sum(Kx * y).numpy()
-        lhs = tf.reduce_sum(x * KHy).numpy()
-
-        self.assertTrue(rhs, lhs)
 
 if __name__ == "__main__":
     unittest.main()

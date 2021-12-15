@@ -4,7 +4,7 @@ from tensorflow.python.keras import initializers
 from tensorflow.python.keras import regularizers
 from tensorflow.python.keras.utils import conv_utils
 from merlintf.keras.layers import complex_act as activations
-from tensorflow.keras.layers import Conv3D
+from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Conv3D, Conv3DTranspose
 from tensorflow.keras.layers import Layer
 import numpy as np
 from tensorflow.python.keras.engine.input_spec import InputSpec
@@ -17,7 +17,7 @@ from tensorflow.python.ops import array_ops
 from tensorflow.python.ops import nn
 from tensorflow.python.ops import nn_ops
 
-from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv, ComplexConv2DTranspose, ComplexConv2D, ComplexConv3DTranspose, ComplexConv3D
+#from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv, ComplexConv2DTranspose, ComplexConv2D, ComplexConv3DTranspose, ComplexConv3D
 from merlintf.keras.utils import validate_input_dimension
 
 def calculate_intermediate_filters_2D(filters, kernel_size, channel_in):
@@ -25,7 +25,7 @@ def calculate_intermediate_filters_2D(filters, kernel_size, channel_in):
                                                                     + filters * kernel_size[0])).astype(np.int32)
 
 
-class ComplexConv2Dt(tf.keras.layers.Layer):
+class Conv2Dt(tf.keras.layers.Layer):
     def __init__(self,
                  filters,  # out
                  kernel_size,
@@ -50,7 +50,7 @@ class ComplexConv2Dt(tf.keras.layers.Layer):
                  intermediate_filters=None,
                  use_3D_convs=True,  # True: use 3D conv layers, False: use 2D conv layers and stack along batch dim
                  **kwargs):
-        super(ComplexConv2Dt, self).__init__()
+        super(Conv2Dt, self).__init__()
 
         if intermediate_filters == None:
             self.intermediate_filters = filters
@@ -66,7 +66,7 @@ class ComplexConv2Dt(tf.keras.layers.Layer):
         self.use_3D_convs = use_3D_convs
 
         if use_3D_convs:
-            self.conv_xy = ComplexConv3D(
+            self.conv_xy = Conv3D(
                 filters=intermediate_filters,
                 kernel_size=(1, self.kernel_size[1], self.kernel_size[2]),
                 strides=(1, self.strides[1], self.strides[2]),
@@ -84,7 +84,7 @@ class ComplexConv2Dt(tf.keras.layers.Layer):
                 bias_constraint=constraints.get(bias_constraint),
                 **kwargs)
 
-            self.conv_t = ComplexConv3D(
+            self.conv_t = Conv3D(
                 filters=filters,
                 kernel_size=(self.kernel_size[0], 1, 1),
                 strides=(self.strides[0], 1, 1),
@@ -102,7 +102,7 @@ class ComplexConv2Dt(tf.keras.layers.Layer):
                 bias_constraint=constraints.get(bias_constraint),
                 **kwargs)
         else:
-            self.conv_xy = ComplexConv2D(
+            self.conv_xy = Conv2D(
                 filters=intermediate_filters,
                 kernel_size=(self.kernel_size[1], self.kernel_size[2]),
                 strides=(self.strides[1], self.strides[2]),
@@ -120,7 +120,7 @@ class ComplexConv2Dt(tf.keras.layers.Layer):
                 bias_constraint=constraints.get(bias_constraint),
                 **kwargs)
 
-            self.conv_t = ComplexConv2D(
+            self.conv_t = Conv2D(
                 filters=filters,
                 kernel_size=(self.kernel_size[0], 1),
                 strides=(self.strides[0], 1),
@@ -209,7 +209,7 @@ class ComplexConv2Dt(tf.keras.layers.Layer):
             return x_t
 
 
-class ComplexConv2DtTranspose(tf.keras.layers.Layer):
+class Conv2DtTranspose(tf.keras.layers.Layer):
     def __init__(self,
                  filters,  # out
                  kernel_size,
@@ -234,7 +234,7 @@ class ComplexConv2DtTranspose(tf.keras.layers.Layer):
                  intermediate_filters=None,
                  use_3D_convs=True,  # True: use 3D conv layers, False: use 2D conv layers and stack along batch dim
                  **kwargs):
-        super(ComplexConv2DtTranspose, self).__init__()
+        super(Conv2DtTranspose, self).__init__()
 
         if intermediate_filters == None:
             self.intermediate_filters = filters
@@ -250,7 +250,7 @@ class ComplexConv2DtTranspose(tf.keras.layers.Layer):
         self.dilation_rate = validate_input_dimension('2Dt', dilation_rate)
         self.conv_xy_filters = filters
         if use_3D_convs:
-            self.conv_xy = ComplexConv3DTranspose(
+            self.conv_xy = Conv3DTranspose(
                 filters=filters,
                 kernel_size=(1, self.kernel_size[1], self.kernel_size[2]),
                 strides=(1, self.strides[1], self.strides[2]),
@@ -268,7 +268,7 @@ class ComplexConv2DtTranspose(tf.keras.layers.Layer):
                 bias_constraint=constraints.get(bias_constraint),
                 **kwargs)
 
-            self.conv_t = ComplexConv3DTranspose(
+            self.conv_t = Conv3DTranspose(
                 filters=intermediate_filters,
                 kernel_size=(self.kernel_size[0], 1, 1),
                 strides=(self.strides[0], 1, 1),
@@ -286,7 +286,7 @@ class ComplexConv2DtTranspose(tf.keras.layers.Layer):
                 bias_constraint=constraints.get(bias_constraint),
                 **kwargs)
         else:
-            self.conv_xy = ComplexConv2DTranspose(
+            self.conv_xy = Conv2DTranspose(
                 filters=self.conv_xy_filters,
                 kernel_size=(self.kernel_size[1], self.kernel_size[2]),
                 strides=(self.strides[1], self.strides[2]),
@@ -304,7 +304,7 @@ class ComplexConv2DtTranspose(tf.keras.layers.Layer):
                 bias_constraint=constraints.get(bias_constraint),
                 **kwargs)
 
-            self.conv_t = ComplexConv2DTranspose(
+            self.conv_t = Conv2DTranspose(
                 filters=self.intermediate_filters,
                 kernel_size=(self.kernel_size[0], 1),
                 strides=(self.strides[0], 1),
@@ -367,8 +367,13 @@ class ComplexConv2DtTranspose(tf.keras.layers.Layer):
 
             return x_sp
 
-class ComplexConv2dtTest(unittest.TestCase):
-    def test_ComplexConv2dt(self):
+# aliases
+Convolution2Dt = Conv2Dt
+Convolution2DtTranspose = Conv2DtTranspose
+Deconvolution2Dt = Deconv2Dt = Conv2DtTranspose
+
+class Conv2dtTest(unittest.TestCase):
+    def test_Conv2dt(self):
         self._test_Conv2dt()
         self._test_Conv2dt(stride=(2, 2, 2))
         self._test_Conv2dt(channel_last=False)
@@ -376,7 +381,7 @@ class ComplexConv2dtTest(unittest.TestCase):
         self._test_Conv2dt(stride=(2, 2, 2), use_3D_convs=False)
         self._test_Conv2dt(channel_last=False, use_3D_convs=False)
 
-    def test_ComplexConv2dtTranspose(self):
+    def test_Conv2dtTranspose(self):
         self._test_Conv2dt(is_transpose=True)
         self._test_Conv2dt(is_transpose=True, stride=(2, 2, 2))
         self._test_Conv2dt(is_transpose=True, channel_last=False)
@@ -404,15 +409,13 @@ class ComplexConv2dtTest(unittest.TestCase):
         nf_inter = calculate_intermediate_filters_2D(nf_out, ksz, nf_in)
 
         if is_transpose:
-            model = ComplexConv2DtTranspose(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
+            model = Conv2DtTranspose(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
                                      strides=stride, data_format=data_format, use_3D_convs=use_3D_convs)
         else:
-            model = ComplexConv2Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
+            model = Conv2Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
                             strides=stride, data_format=data_format, use_3D_convs=use_3D_convs)
 
-        x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-        x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-        x = tf.complex(x_real, x_imag)
+        x = tf.cast(tf.random.normal(shape), dtype=tf.float32)
         Kx = model(x)
 
         self.assertTrue(Kx.shape == expected_shape)
