@@ -11,6 +11,7 @@ jobs:
         run: |
           # activate pre-configured environment with installed optox
           ~/miniconda3/condabin/conda init
+          source ~/.bashrc
           ~/miniconda3/condabin/conda activate actions-merlin
       - name: Build merlin 
         run: |
