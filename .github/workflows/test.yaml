@@ -10,7 +10,6 @@ jobs:
       - name: Activate environment
         uses: conda-incubator/setup-miniconda@v2
         with:
-          auto-activate-base: true
           activate-environment: "actions-merlin"
         #run: |
         #  # activate pre-configured environment with installed optox
