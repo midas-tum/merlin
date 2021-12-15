@@ -126,25 +126,25 @@ def deserialize(op):
         return UpSampling1D
     elif op == 'UpSampling2D':
         return UpSampling2D
-    elif op == 'UpSampling3D':
+    elif op == 'UpSampling3D' or op == 'UpSampling2Dt':
         return UpSampling3D
-    elif op == 'UpSampling4D':
+    elif op == 'UpSampling4D' or op == 'UpSampling3Dt':
         return UpSampling4D
     elif op == 'ZeroPadding1D':
         return ZeroPadding1D
     elif op == 'ZeroPadding2D':
         return ZeroPadding2D
-    elif op == 'ZeroPadding3D':
+    elif op == 'ZeroPadding3D' or op == 'ZeroPadding2Dt':
         return ZeroPadding3D
-    elif op == 'ZeroPadding4D':
+    elif op == 'ZeroPadding4D' or op == 'ZeroPadding3Dt':
         return ZeroPadding4D
     elif op == 'Cropping1D':
         return Cropping1D
     elif op == 'Cropping2D':
         return Cropping2D
-    elif op == 'Cropping3D':
+    elif op == 'Cropping3D' or op == 'Cropping2Dt':
         return Cropping3D
-    elif op == 'Cropping4D':
+    elif op == 'Cropping4D' or op == 'Cropping3Dt':
         return Cropping4D
     else:
         raise ValueError(f"Selected operation '{op}' not implemented in complex convolutional")
