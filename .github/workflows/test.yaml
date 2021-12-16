@@ -1,0 +1,50 @@
+name: merlin-test
+on: [push]
+jobs:
+  run:
+    runs-on: [self-hosted,Linux]
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        
+      - name: Activate environment
+        #uses: conda-incubator/setup-miniconda@v2
+        #with:
+        #  activate-environment: "actions-merlin"
+        run: |
+          # activate pre-configured environment with installed optox
+          source ~/actions-runner-merlin/envs/merlintest/bin/activate
+        #  ~/miniconda3/condabin/conda init
+        #  source ~/.bashrc
+        #  ~/miniconda3/condabin/conda activate actions-merlin
+      - name: Build merlin 
+        run: |
+          source ~/actions-runner-merlin/envs/merlintest/bin/activate
+          cd ~/actions-runner-merlin/_work/merlin/merlin
+          ./install.sh
+      - name: Check install
+        run: |
+          # conda info
+          # conda list
+          source ~/actions-runner-merlin/envs/merlintest/bin/activate
+          pip list
+      - name: Run python unittests
+        run: |
+          source ~/actions-runner-merlin/envs/merlintest/bin/activate
+          python3 -m unittest discover -s merlinpy -p "*.py" >> results_py.txt
+      - name: Run pytorch unittests
+        run: |
+          source ~/actions-runner-merlin/envs/merlintest/bin/activate
+          python3 -m unittest discover -s merlinth -p "*.py" >> results_th.txt
+      - name: Run tensorflow unittests
+        run: |
+          source ~/actions-runner-merlin/envs/merlintest/bin/activate
+          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/cuda/lib64
+          python3 -m unittest discover -s merlintf -p "*.py" >> results_tf.txt
+      - name: Write CML report
+        env:
+          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          # Post reports as comments in GitHub PRs
+          cat results_py.txt results_tf.txt results_th.txt >> report.md
+          cml-send-comment report.md

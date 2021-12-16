@@ -36,7 +36,8 @@ setup(
         "pandas",
         "tqdm",
         "scipy",
-        "matplotlib"
+        "matplotlib",
+        "joblib"
     ],
     distclass=BinaryDistribution,
 )

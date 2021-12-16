@@ -50,6 +50,8 @@ from tensorflow.python.util.tf_export import keras_export
 # pylint: disable=g-classes-have-attributes
 import unittest
 
+from merlintf.keras.layers.complex_conv2dt import ComplexConv2D, ComplexConv2DTranspose
+from merlintf.keras.layers.complex_conv3dt import ComplexConv3D, ComplexConv3DTranspose
 from merlintf.keras.layers.convolutional import complex_conv as complex_nn_ops
 from merlintf.keras.layers import complex_act as activations
 import merlintf
@@ -104,32 +106,46 @@ def deserialize(op):
         return ComplexConv1D
     elif op == 'ComplexConv2D' or op == 'ComplexConvolution2D':
         return ComplexConv2D
+    elif op == 'ComplexConv2Dt' or op == 'ComplexConvolution2Dt':
+        return ComplexConv2Dt
     elif op == 'ComplexConv3D' or op == 'ComplexConvolution3D':
         return ComplexConv3D
+    elif op == 'ComplexConv3Dt' or op == 'ComplexConvolution3Dt':
+        return ComplexConv3Dt
     elif op == 'ComplexConv1DTranspose' or op == 'ComplexConvolution1DTranspose':
         return ComplexConv1DTranspose
     elif op == 'ComplexConv2DTranspose' or op == 'ComplexConvolution2DTranspose':
         return ComplexConv2DTranspose
+    elif op == 'ComplexConv2DtTranspose' or op == 'ComplexConvolution2DtTranspose':
+        return ComplexConv2DtTranspose
     elif op == 'ComplexConv3DTranspose' or op == 'ComplexConvolution3DTranspose':
         return ComplexConv3DTranspose
+    elif op == 'ComplexConv3DtTranspose' or op == 'ComplexConvolution3DtTranspose':
+        return ComplexConv3DtTranspose
     elif op == 'UpSampling1D':
         return UpSampling1D
     elif op == 'UpSampling2D':
         return UpSampling2D
-    elif op == 'UpSampling3D':
+    elif op == 'UpSampling3D' or op == 'UpSampling2Dt':
         return UpSampling3D
+    elif op == 'UpSampling4D' or op == 'UpSampling3Dt':
+        return UpSampling4D
     elif op == 'ZeroPadding1D':
         return ZeroPadding1D
     elif op == 'ZeroPadding2D':
         return ZeroPadding2D
-    elif op == 'ZeroPadding3D':
+    elif op == 'ZeroPadding3D' or op == 'ZeroPadding2Dt':
         return ZeroPadding3D
+    elif op == 'ZeroPadding4D' or op == 'ZeroPadding3Dt':
+        return ZeroPadding4D
     elif op == 'Cropping1D':
         return Cropping1D
     elif op == 'Cropping2D':
         return Cropping2D
-    elif op == 'Cropping3D':
+    elif op == 'Cropping3D' or op == 'Cropping2Dt':
         return Cropping3D
+    elif op == 'Cropping4D' or op == 'Cropping3Dt':
+        return Cropping4D
     else:
         raise ValueError(f"Selected operation '{op}' not implemented in complex convolutional")
 
@@ -1964,6 +1980,99 @@ class UpSampling3D(Layer):
     base_config = super(UpSampling3D, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
 
+class UpSampling4D(Layer):
+  """Upsampling layer for 4D inputs.
+  Repeats the 1st, 2nd, 3rd and 4th dimensions
+  of the data by `size[0]`, `size[1]`, `size[2]` and `size[3]` respectively.
+  Examples:
+  >>> input_shape = (2, 1, 2, 1, 1, 3)
+  >>> x = tf.constant(1, shape=input_shape)
+  >>> y = tf.keras.layers.UpSampling4D(size=2)(x)
+  >>> print(y.shape)
+  (2, 2, 4, 2, 2, 3)
+  Arguments:
+    size: Int, or tuple of 3 integers.
+      The upsampling factors for dim1, dim2, dim3 and dim4.
+    data_format: A string,
+      one of `channels_last` (default) or `channels_first`.
+      The ordering of the dimensions in the inputs.
+      `channels_last` corresponds to inputs with shape
+      `(batch_size, spatial_dim1, spatial_dim2, spatial_dim3, spatial_dim4, channels)`
+      while `channels_first` corresponds to inputs with shape
+      `(batch_size, channels, spatial_dim1, spatial_dim2, spatial_dim3, spatial_dim4)`.
+      It defaults to the `image_data_format` value found in your
+      Keras config file at `~/.keras/keras.json`.
+      If you never set it, then it will be "channels_last".
+  Input shape:
+    6D tensor with shape:
+    - If `data_format` is `"channels_last"`:
+        `(batch_size, dim1, dim2, dim3, dim4, channels)`
+    - If `data_format` is `"channels_first"`:
+        `(batch_size, channels, dim1, dim2, dim3, dim4)`
+  Output shape:
+    6D tensor with shape:
+    - If `data_format` is `"channels_last"`:
+        `(batch_size, upsampled_dim1, upsampled_dim2, upsampled_dim3, upsampled_dim4, channels)`
+    - If `data_format` is `"channels_first"`:
+        `(batch_size, channels, upsampled_dim1, upsampled_dim2, upsampled_dim3, upsampled_dim4)`
+  """
+
+  def __init__(self, size=(2, 2, 2, 2), data_format=None, **kwargs):
+    self.data_format = conv_utils.normalize_data_format(data_format)
+    self.size = conv_utils.normalize_tuple(size, 4, 'size')
+    self.input_spec = InputSpec(ndim=6)
+    super(UpSampling4D, self).__init__(**kwargs)
+
+  def compute_output_shape(self, input_shape):
+    input_shape = tensor_shape.TensorShape(input_shape).as_list()
+    if self.data_format == 'channels_first':
+      dim1 = self.size[0] * input_shape[
+          2] if input_shape[2] is not None else None
+      dim2 = self.size[1] * input_shape[
+          3] if input_shape[3] is not None else None
+      dim3 = self.size[2] * input_shape[
+          4] if input_shape[4] is not None else None
+      dim4 = self.size[3] * input_shape[
+          5] if input_shape[5] is not None else None
+      return tensor_shape.TensorShape(
+          [input_shape[0], input_shape[1], dim1, dim2, dim3, dim4])
+    else:
+      dim1 = self.size[0] * input_shape[
+          1] if input_shape[1] is not None else None
+      dim2 = self.size[1] * input_shape[
+          2] if input_shape[2] is not None else None
+      dim3 = self.size[2] * input_shape[
+          3] if input_shape[3] is not None else None
+      dim4 = self.size[3] * input_shape[
+          4] if input_shape[4] is not None else None
+      return tensor_shape.TensorShape(
+          [input_shape[0], dim1, dim2, dim3, dim4, input_shape[5]])
+
+  def batch_concat_conv(self, inputs, sizes, axis=0):
+        shape_in = inputs.shape
+        x_list = tf.split(inputs, shape_in[axis], axis=axis)
+        x = tf.concat(x_list, axis=0)
+        x = tf.squeeze(x, axis=axis)
+        x = backend.resize_volumes(
+            x, sizes[0], sizes[1], sizes[2], self.data_format)
+        x_list = tf.split(x, shape_in[axis], axis=0)
+        return tf.stack(x_list, axis=axis)
+
+  def call(self, inputs):
+      if self.data_format == 'channels_first':
+          axis = 2
+      elif self.data_format == 'channels_last':
+          axis = 1
+      # xyz upsampling
+      x = self.batch_concat_conv(inputs, self.size[:3], axis=axis)
+      axis += 1
+      # t upsampling
+      return self.batch_concat_conv(x, self.size[1:], axis=axis)
+
+  def get_config(self):
+    config = {'size': self.size, 'data_format': self.data_format}
+    base_config = super(UpSampling4D, self).get_config()
+    return dict(list(base_config.items()) + list(config.items()))
 
 #@keras_export('keras.layers.ZeroPadding1D')
 class ZeroPadding1D(Layer):
@@ -2263,6 +2372,158 @@ class ZeroPadding3D(Layer):
   def get_config(self):
     config = {'padding': self.padding, 'data_format': self.data_format}
     base_config = super(ZeroPadding3D, self).get_config()
+    return dict(list(base_config.items()) + list(config.items()))
+
+class ZeroPadding4D(Layer):
+  """Zero-padding layer for 4D data (spatial or spatio-temporal).
+  Examples:
+  >>> input_shape = (1, 1, 2, 2, 2, 3)
+  >>> x = np.arange(np.prod(input_shape)).reshape(input_shape)
+  >>> y = tf.keras.layers.ZeroPadding4D(padding=2)(x)
+  >>> print(y.shape)
+  (1, 5, 6, 6, 6, 3)
+  Arguments:
+    padding: Int, or tuple of 4 ints, or tuple of 4 tuples of 2 ints.
+      - If int: the same symmetric padding
+        is applied to height and width.
+      - If tuple of 4 ints:
+        interpreted as two different
+        symmetric padding values for height and width:
+        `(symmetric_dim1_pad, symmetric_dim2_pad, symmetric_dim3_pad, symmetric_dim4_pad)`.
+      - If tuple of 4 tuples of 2 ints:
+        interpreted as
+        `((left_dim1_pad, right_dim1_pad), (left_dim2_pad,
+          right_dim2_pad), (left_dim3_pad, right_dim3_pad),
+          (left_dim4_pad, right_dim4_pad))`
+    data_format: A string,
+      one of `channels_last` (default) or `channels_first`.
+      The ordering of the dimensions in the inputs.
+      `channels_last` corresponds to inputs with shape
+      `(batch_size, spatial_dim1, spatial_dim2, spatial_dim3, spatial_dim4, channels)`
+      while `channels_first` corresponds to inputs with shape
+      `(batch_size, channels, spatial_dim1, spatial_dim2, spatial_dim3, spatial_dim4)`.
+      It defaults to the `image_data_format` value found in your
+      Keras config file at `~/.keras/keras.json`.
+      If you never set it, then it will be "channels_last".
+  Input shape:
+    6D tensor with shape:
+    - If `data_format` is `"channels_last"`:
+        `(batch_size, first_axis_to_pad, second_axis_to_pad, third_axis_to_pad, fourth_axis_to_pad
+          depth)`
+    - If `data_format` is `"channels_first"`:
+        `(batch_size, depth, first_axis_to_pad, second_axis_to_pad,
+          third_axis_to_pad, fourth_axis_to_pad)`
+  Output shape:
+    6D tensor with shape:
+    - If `data_format` is `"channels_last"`:
+        `(batch_size, first_padded_axis, second_padded_axis, third_axis_to_pad, fourth_axis_to_pad
+          depth)`
+    - If `data_format` is `"channels_first"`:
+        `(batch_size, depth, first_padded_axis, second_padded_axis,
+          third_axis_to_pad, fourth_axis_to_pad)`
+  """
+
+  def __init__(self, padding=(1, 1, 1, 1), data_format=None, **kwargs):
+    super(ZeroPadding4D, self).__init__(**kwargs)
+    self.data_format = conv_utils.normalize_data_format(data_format)
+    if isinstance(padding, int):
+      self.padding = ((padding, padding), (padding, padding),
+                      (padding, padding), (padding, padding))
+    elif hasattr(padding, '__len__'):
+      if len(padding) != 4:
+        raise ValueError('`padding` should have 4 elements. '
+                         'Found: ' + str(padding))
+      dim1_padding = conv_utils.normalize_tuple(padding[0], 2,
+                                                '1st entry of padding')
+      dim2_padding = conv_utils.normalize_tuple(padding[1], 2,
+                                                '2nd entry of padding')
+      dim3_padding = conv_utils.normalize_tuple(padding[2], 2,
+                                                '3rd entry of padding')
+      dim4_padding = conv_utils.normalize_tuple(padding[3], 2,
+                                                '4th entry of padding')
+      self.padding = (dim1_padding, dim2_padding, dim3_padding, dim4_padding)
+    else:
+      raise ValueError(
+          '`padding` should be either an int, '
+          'a tuple of 4 ints '
+          '(symmetric_dim1_pad, symmetric_dim2_pad, symmetric_dim3_pad, symmetric_dim4_pad), '
+          'or a tuple of 4 tuples of 2 ints '
+          '((left_dim1_pad, right_dim1_pad),'
+          ' (left_dim2_pad, right_dim2_pad),'
+          ' (left_dim3_pad, right_dim3_pad),'
+          ' (left_dim4_pad, right_dim4_pad)). '
+          'Found: ' + str(padding))
+    self.input_spec = InputSpec(ndim=6)
+
+  def compute_output_shape(self, input_shape):
+    input_shape = tensor_shape.TensorShape(input_shape).as_list()
+    if self.data_format == 'channels_first':
+      if input_shape[2] is not None:
+        dim1 = input_shape[2] + self.padding[0][0] + self.padding[0][1]
+      else:
+        dim1 = None
+      if input_shape[3] is not None:
+        dim2 = input_shape[3] + self.padding[1][0] + self.padding[1][1]
+      else:
+        dim2 = None
+      if input_shape[4] is not None:
+        dim3 = input_shape[4] + self.padding[2][0] + self.padding[2][1]
+      else:
+        dim3 = None
+      if input_shape[5] is not None:
+        dim4 = input_shape[5] + self.padding[3][0] + self.padding[3][1]
+      else:
+        dim4 = None
+      return tensor_shape.TensorShape(
+          [input_shape[0], input_shape[1], dim1, dim2, dim3, dim4])
+    elif self.data_format == 'channels_last':
+      if input_shape[1] is not None:
+        dim1 = input_shape[1] + self.padding[0][0] + self.padding[0][1]
+      else:
+        dim1 = None
+      if input_shape[2] is not None:
+        dim2 = input_shape[2] + self.padding[1][0] + self.padding[1][1]
+      else:
+        dim2 = None
+      if input_shape[3] is not None:
+        dim3 = input_shape[3] + self.padding[2][0] + self.padding[2][1]
+      else:
+        dim3 = None
+      if input_shape[4] is not None:
+        dim4 = input_shape[4] + self.padding[3][0] + self.padding[3][1]
+      else:
+        dim4 = None
+      return tensor_shape.TensorShape(
+          [input_shape[0], dim1, dim2, dim3, dim4, input_shape[5]])
+
+  def call(self, inputs):
+      if self.data_format == 'channels_first':
+          axis = 2
+      elif self.data_format == 'channels_last':
+          axis = 1
+      # xyz padding
+      shape_in = inputs.shape
+      x_list = tf.split(inputs, shape_in[axis], axis=axis)
+      x = tf.concat(x_list, axis=0)
+      x = tf.squeeze(x, axis=axis)
+      x = backend.spatial_3d_padding(
+        x, padding=self.padding[:3], data_format=self.data_format)
+      x_list = tf.split(x, shape_in[axis], axis=0)
+      x = tf.stack(x_list, axis=axis)
+      # t padding
+      axis += 1
+      shape_in = x.shape
+      x_list = tf.split(x, shape_in[axis], axis=axis)
+      x = tf.concat(x_list, axis=0)
+      x = tf.squeeze(x, axis=axis)
+      x = backend.spatial_3d_padding(
+          x, padding=self.padding[1:], data_format=self.data_format)
+      x_list = tf.split(x, shape_in[axis], axis=0)
+      return tf.stack(x_list, axis=axis)
+
+  def get_config(self):
+    config = {'padding': self.padding, 'data_format': self.data_format}
+    base_config = super(ZeroPadding4D, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
 
 
@@ -2619,16 +2880,260 @@ class Cropping3D(Layer):
     return dict(list(base_config.items()) + list(config.items()))
 
 
-# Aliases
+class Cropping4D(Layer):
+  """Cropping layer for 4D data (e.g. spatial or spatio-temporal).
+    Examples:
+  >>> input_shape = (2, 28, 28, 10, 10, 3)
+  >>> x = np.arange(np.prod(input_shape)).reshape(input_shape)
+  >>> y = tf.keras.layers.Cropping4D(cropping=(2, 4, 2, 2))(x)
+  >>> print(y.shape)
+  (2, 24, 20, 6, 3)
+  Arguments:
+    cropping: Int, or tuple of 4 ints, or tuple of 4 tuples of 2 ints.
+      - If int: the same symmetric cropping
+        is applied to depth, height, and width.
+      - If tuple of 4 ints: interpreted as two different
+        symmetric cropping values for depth, height, and width:
+        `(symmetric_dim1_crop, symmetric_dim2_crop, symmetric_dim3_crop, symmetric_dim4_crop)`.
+      - If tuple of 4 tuples of 2 ints: interpreted as
+        `((left_dim1_crop, right_dim1_crop), (left_dim2_crop,
+          right_dim2_crop), (left_dim3_crop, right_dim3_crop), )`
+          (left_dim4_crop, right_dim4_crop)
+    data_format: A string,
+      one of `channels_last` (default) or `channels_first`.
+      The ordering of the dimensions in the inputs.
+      `channels_last` corresponds to inputs with shape
+      `(batch_size, spatial_dim1, spatial_dim2, spatial_dim3, channels)`
+      while `channels_first` corresponds to inputs with shape
+      `(batch_size, channels, spatial_dim1, spatial_dim2, spatial_dim3)`.
+      It defaults to the `image_data_format` value found in your
+      Keras config file at `~/.keras/keras.json`.
+      If you never set it, then it will be "channels_last".
+  Input shape:
+    6D tensor with shape:
+    - If `data_format` is `"channels_last"`:
+      `(batch_size, first_axis_to_crop, second_axis_to_crop, third_axis_to_crop, fourth_axis_to_crop,
+        depth)`
+    - If `data_format` is `"channels_first"`:
+      `(batch_size, depth, first_axis_to_crop, second_axis_to_crop,
+        third_axis_to_crop, fourth_axis_to_crop)`
+  Output shape:
+    6D tensor with shape:
+    - If `data_format` is `"channels_last"`:
+      `(batch_size, first_cropped_axis, second_cropped_axis, third_cropped_axis, fourth_cropped_axis,
+        depth)`
+    - If `data_format` is `"channels_first"`:
+      `(batch_size, depth, first_cropped_axis, second_cropped_axis,
+        third_cropped_axis, fourth_cropped_axis)`
+  """
 
+  def __init__(self,
+               cropping=((1, 1), (1, 1), (1, 1), (1, 1)),
+               data_format=None,
+               **kwargs):
+    super(Cropping4D, self).__init__(**kwargs)
+    self.data_format = conv_utils.normalize_data_format(data_format)
+    if isinstance(cropping, int):
+      self.cropping = ((cropping, cropping), (cropping, cropping),
+                       (cropping, cropping), (cropping, cropping))
+    elif hasattr(cropping, '__len__'):
+      if len(cropping) != 4:
+        raise ValueError('`cropping` should have 4 elements. '
+                         'Found: ' + str(cropping))
+      dim1_cropping = conv_utils.normalize_tuple(cropping[0], 2,
+                                                 '1st entry of cropping')
+      dim2_cropping = conv_utils.normalize_tuple(cropping[1], 2,
+                                                 '2nd entry of cropping')
+      dim3_cropping = conv_utils.normalize_tuple(cropping[2], 2,
+                                                 '3rd entry of cropping')
+      dim4_cropping = conv_utils.normalize_tuple(cropping[3], 2,
+                                                 '4th entry of cropping')
+      self.cropping = (dim1_cropping, dim2_cropping, dim3_cropping, dim4_cropping)
+    else:
+      raise ValueError(
+          '`cropping` should be either an int, '
+          'a tuple of 4 ints '
+          '(symmetric_dim1_crop, symmetric_dim2_crop, symmetric_dim3_crop, symmetric_dim4_crop), '
+          'or a tuple of 4 tuples of 2 ints '
+          '((left_dim1_crop, right_dim1_crop),'
+          ' (left_dim2_crop, right_dim2_crop),'
+          ' (left_dim3_crop, right_dim3_crop),'
+          ' (left_dim4_crop, right_dim4_crop)). '
+          'Found: ' + str(cropping))
+    self.input_spec = InputSpec(ndim=6)
+
+  def compute_output_shape(self, input_shape):
+    input_shape = tensor_shape.TensorShape(input_shape).as_list()
+    # pylint: disable=invalid-unary-operand-type
+    if self.data_format == 'channels_first':
+      if input_shape[2] is not None:
+        dim1 = input_shape[2] - self.cropping[0][0] - self.cropping[0][1]
+      else:
+        dim1 = None
+      if input_shape[3] is not None:
+        dim2 = input_shape[3] - self.cropping[1][0] - self.cropping[1][1]
+      else:
+        dim2 = None
+      if input_shape[4] is not None:
+        dim3 = input_shape[4] - self.cropping[2][0] - self.cropping[2][1]
+      else:
+        dim3 = None
+      if input_shape[5] is not None:
+        dim4 = input_shape[5] - self.cropping[3][0] - self.cropping[3][1]
+      else:
+        dim4 = None
+      return tensor_shape.TensorShape(
+          [input_shape[0], input_shape[1], dim1, dim2, dim3, dim4])
+    elif self.data_format == 'channels_last':
+      if input_shape[1] is not None:
+        dim1 = input_shape[1] - self.cropping[0][0] - self.cropping[0][1]
+      else:
+        dim1 = None
+      if input_shape[2] is not None:
+        dim2 = input_shape[2] - self.cropping[1][0] - self.cropping[1][1]
+      else:
+        dim2 = None
+      if input_shape[3] is not None:
+        dim3 = input_shape[3] - self.cropping[2][0] - self.cropping[2][1]
+      else:
+        dim3 = None
+      if input_shape[4] is not None:
+        dim4 = input_shape[4] - self.cropping[3][0] - self.cropping[3][1]
+      else:
+        dim4 = None
+      return tensor_shape.TensorShape(
+          [input_shape[0], dim1, dim2, dim3, dim4, input_shape[5]])
+    # pylint: enable=invalid-unary-operand-type
+
+  def call(self, inputs):
+    # pylint: disable=invalid-unary-operand-type
+    if self.data_format == 'channels_first':
+      if self.cropping[3][1] == 0:
+          if self.cropping[0][1] == self.cropping[1][1] == self.cropping[2][1] == 0:
+            return inputs[:, :, self.cropping[0][0]:, self.cropping[1][0]:,
+                          self.cropping[2][0]:, self.cropping[3][0]:]
+          elif self.cropping[0][1] == self.cropping[1][1] == 0:
+            return inputs[:, :, self.cropping[0][0]:, self.cropping[1][0]:,
+                          self.cropping[2][0]:-self.cropping[2][1], self.cropping[3][0]:]
+          elif self.cropping[1][1] == self.cropping[2][1] == 0:
+            return inputs[:, :, self.cropping[0][0]:-self.cropping[0][1],
+                          self.cropping[1][0]:, self.cropping[2][0]:, self.cropping[3][0]:]
+          elif self.cropping[0][1] == self.cropping[2][1] == 0:
+            return inputs[:, :, self.cropping[0][0]:, self.cropping[1][0]:
+                          -self.cropping[1][1], self.cropping[2][0]:, self.cropping[3][0]:]
+          elif self.cropping[0][1] == 0:
+            return inputs[:, :, self.cropping[0][0]:, self.cropping[1][
+                0]:-self.cropping[1][1], self.cropping[2][0]:-self.cropping[2][1], self.cropping[3][0]:]
+          elif self.cropping[1][1] == 0:
+            return inputs[:, :, self.cropping[0][0]:-self.cropping[0][1], self.
+                          cropping[1][0]:, self.cropping[2][0]:-self.cropping[2][1], self.cropping[3][0]:]
+          elif self.cropping[2][1] == 0:
+            return inputs[:, :, self.cropping[0][0]:-self.cropping[0][1], self.
+                          cropping[1][0]:-self.cropping[1][1], self.cropping[2][0]:, self.cropping[3][0]:]
+      else:
+          if self.cropping[0][1] == self.cropping[1][1] == self.cropping[2][1] == 0:
+            return inputs[:, :, self.cropping[0][0]:, self.cropping[1][0]:,
+                          self.cropping[2][0]:, self.cropping[3][0]:-self.cropping[3][1]]
+          elif self.cropping[0][1] == self.cropping[1][1] == 0:
+            return inputs[:, :, self.cropping[0][0]:, self.cropping[1][0]:,
+                          self.cropping[2][0]:-self.cropping[2][1], self.cropping[3][0]:-self.cropping[3][1]]
+          elif self.cropping[1][1] == self.cropping[2][1] == 0:
+            return inputs[:, :, self.cropping[0][0]:-self.cropping[0][1],
+                          self.cropping[1][0]:, self.cropping[2][0]:, self.cropping[3][0]:-self.cropping[3][1]]
+          elif self.cropping[0][1] == self.cropping[2][1] == 0:
+            return inputs[:, :, self.cropping[0][0]:, self.cropping[1][0]:
+                          -self.cropping[1][1], self.cropping[2][0]:, self.cropping[3][0]:-self.cropping[3][1]]
+          elif self.cropping[0][1] == 0:
+            return inputs[:, :, self.cropping[0][0]:, self.cropping[1][
+                0]:-self.cropping[1][1], self.cropping[2][0]:-self.cropping[2][1], self.cropping[3][0]:-self.cropping[3][1]]
+          elif self.cropping[1][1] == 0:
+            return inputs[:, :, self.cropping[0][0]:-self.cropping[0][1], self.
+                          cropping[1][0]:, self.cropping[2][0]:-self.cropping[2][1], self.cropping[3][0]:-self.cropping[3][1]]
+          elif self.cropping[2][1] == 0:
+            return inputs[:, :, self.cropping[0][0]:-self.cropping[0][1], self.
+                          cropping[1][0]:-self.cropping[1][1], self.cropping[2][0]:, self.cropping[3][0]:-self.cropping[3][1]]
+      return inputs[:, :, self.cropping[0][0]:-self.cropping[0][1],
+                    self.cropping[1][0]:-self.cropping[1][1], self.cropping[2][
+                        0]:-self.cropping[2][1], self.cropping[3][0]:-self.cropping[3][1]]
+    else:
+      if self.cropping[3][1] == 0:
+          if self.cropping[0][1] == self.cropping[1][1] == self.cropping[2][1] == 0:
+            return inputs[:, self.cropping[0][0]:, self.cropping[1][0]:,
+                          self.cropping[2][0]:, self.cropping[3][0]:, :]
+          elif self.cropping[0][1] == self.cropping[1][1] == 0:
+            return inputs[:, self.cropping[0][0]:, self.cropping[1][0]:,
+                          self.cropping[2][0]:-self.cropping[2][1], self.cropping[3][0]:, :]
+          elif self.cropping[1][1] == self.cropping[2][1] == 0:
+            return inputs[:, self.cropping[0][0]:-self.cropping[0][1],
+                          self.cropping[1][0]:, self.cropping[2][0]:, self.cropping[3][0]:, :]
+          elif self.cropping[0][1] == self.cropping[2][1] == 0:
+            return inputs[:, self.cropping[0][0]:, self.cropping[1][0]:
+                          -self.cropping[1][1], self.cropping[2][0]:, self.cropping[3][0]:, :]
+          elif self.cropping[0][1] == 0:
+            return inputs[:, self.cropping[0][0]:, self.cropping[1][
+                0]:-self.cropping[1][1], self.cropping[2][0]:
+                          -self.cropping[2][1], self.cropping[3][0]:, :]
+          elif self.cropping[1][1] == 0:
+            return inputs[:, self.cropping[0][
+                0]:-self.cropping[0][1], self.cropping[1][0]:, self.cropping[2][0]:
+                          -self.cropping[2][1], self.cropping[3][0]:, :]
+          elif self.cropping[2][1] == 0:
+            return inputs[:, self.cropping[0][0]:-self.cropping[0][1],
+                          self.cropping[1][0]:-self.cropping[1][1], self.cropping[
+                              2][0]:, self.cropping[3][0]:, :]
+      else:
+          if self.cropping[0][1] == self.cropping[1][1] == self.cropping[2][1] == 0:
+              return inputs[:, self.cropping[0][0]:, self.cropping[1][0]:,
+                     self.cropping[2][0]:, self.cropping[3][0]:-self.cropping[3][1], :]
+          elif self.cropping[0][1] == self.cropping[1][1] == 0:
+              return inputs[:, self.cropping[0][0]:, self.cropping[1][0]:,
+                     self.cropping[2][0]:-self.cropping[2][1], self.cropping[3][0]:-self.cropping[3][1], :]
+          elif self.cropping[1][1] == self.cropping[2][1] == 0:
+              return inputs[:, self.cropping[0][0]:-self.cropping[0][1],
+                     self.cropping[1][0]:, self.cropping[2][0]:, self.cropping[3][0]:-self.cropping[3][1], :]
+          elif self.cropping[0][1] == self.cropping[2][1] == 0:
+              return inputs[:, self.cropping[0][0]:, self.cropping[1][0]:-self.cropping[1][1],
+                     self.cropping[2][0]:, self.cropping[3][0]:-self.cropping[3][1], :]
+          elif self.cropping[0][1] == 0:
+              return inputs[:, self.cropping[0][0]:, self.cropping[1][0]:-self.cropping[1][1],
+                     self.cropping[2][0]:-self.cropping[2][1], self.cropping[3][0]:-self.cropping[3][1], :]
+          elif self.cropping[1][1] == 0:
+              return inputs[:, self.cropping[0][0]:-self.cropping[0][1], self.cropping[1][0]:,
+                     self.cropping[2][0]:-self.cropping[2][1], self.cropping[3][0]:-self.cropping[3][1], :]
+          elif self.cropping[2][1] == 0:
+              return inputs[:, self.cropping[0][0]:-self.cropping[0][1], self.cropping[1][0]:-self.cropping[1][1],
+                     self.cropping[2][0]:, self.cropping[3][0]:-self.cropping[3][1], :]
+      return inputs[:, self.cropping[0][0]:-self.cropping[0][1], self.cropping[
+          1][0]:-self.cropping[1][1], self.cropping[2][0]:  # pylint: disable=invalid-unary-operand-type
+                    -self.cropping[2][1], self.cropping[3][0]:-self.cropping[3][1], :]  # pylint: disable=invalid-unary-operand-type
+    # pylint: enable=invalid-unary-operand-type
+
+  def get_config(self):
+    config = {'cropping': self.cropping, 'data_format': self.data_format}
+    base_config = super(Cropping4D, self).get_config()
+    return dict(list(base_config.items()) + list(config.items()))
+
+
+# Aliases
 ComplexConvolution1D = ComplexConv1D
 ComplexConvolution2D = ComplexConv2D
+ComplexConvolution2Dt = ComplexConv2Dt
 ComplexConvolution3D = ComplexConv3D
+ComplexConvolution3Dt = ComplexConv3Dt
 ComplexConvolution2DTranspose = ComplexConv2DTranspose
+ComplexConvolution2DtTranspose = ComplexConv2DtTranspose
 ComplexConvolution3DTranspose = ComplexConv3DTranspose
+ComplexConvolution3DtTranspose = ComplexConv3DtTranspose
 ComplexDeconvolution2D = ComplexDeconv2D = ComplexConv2DTranspose
+ComplexDeconvolution2Dt = ComplexDeconv2Dt = ComplexConv2DtTranspose
 ComplexDeconvolution3D = ComplexDeconv3D = ComplexConv3DTranspose
-
+ComplexDeconvolution3Dt = ComplexDeconv3Dt = ComplexConv3DtTranspose
+Cropping2Dt = Cropping3D
+ZeroPadding2Dt = ZeroPadding3D
+UpSampling2Dt = UpSampling3D
+Cropping3Dt = Cropping4D
+ZeroPadding3Dt = ZeroPadding4D
+UpSampling3Dt = UpSampling4D
 
 class ComplexConv2DTest(unittest.TestCase):
     def _test_fwd(self, conv_fun, kernel_size, strides, dilations, activation, padding):

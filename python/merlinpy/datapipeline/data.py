@@ -5,7 +5,7 @@ import sys
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
-from utils_data import *
+from merlinpy.datapipeline.utils_data import *
 
 
 
