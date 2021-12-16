@@ -53,7 +53,6 @@ jobs:
       - name: Build merlin 
         run: |
           cd ~/actions-runner-merlin/_work/merlin/merlin
-          pip install -r requirements.txt
           ./install.sh
       - name: Check install
         run: |
