@@ -21,13 +21,13 @@ class ToKerasIO():
 
 def get_ndim(dim):
     if dim == '2D':
-        n_dim = 2
+        n_dim = 2  # (x,y
     elif dim == '3D':
-        n_dim = 3
+        n_dim = 3  # (x,y,z)
     elif dim == '2Dt':
-        n_dim = 3
+        n_dim = 3  # (t,x,y)
     elif dim == '3Dt':
-        n_dim = 4
+        n_dim = 4  # (t,x,y,z)
     return n_dim
 
 def validate_input_dimension(dim, param):

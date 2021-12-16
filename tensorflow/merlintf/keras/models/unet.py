@@ -265,7 +265,7 @@ class RealUNet(UNet):
             if self.padding.lower() == 'zero':
                 self.pad_layer = merlintf.keras.layers.ZeroPadding4D
             else:
-                self.pad_layer = merlintf.keras.layers.Pad3D
+                self.pad_layer = merlintf.keras.layers.Pad3Dt
             self.crop_layer = merlinttf.keras.layers.Cropping4D
         else:
             raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
@@ -544,6 +544,44 @@ class UNetTest(unittest.TestCase):
         self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), upsampling='us', network='complex', complex_input=False)
         self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), upsampling='us', network='complex', complex_input=True)
 
+    def test_UNet_2chreal_3dt(self):
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), network='2chreal', complex_input=False)
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), network='2chreal', complex_input=True)
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), network='2chreal', complex_input=True)
+
+        # downsampling
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), downsampling='st', network='2chreal', complex_input=False)
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), downsampling='st', network='2chreal', complex_input=True)
+
+        # normalization
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), normalization='BN', network='2chreal', complex_input=False)
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), normalization='IN', network='2chreal', complex_input=False)
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), normalization='BN', network='2chreal', complex_input=True)
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), normalization='IN', network='2chreal', complex_input=True)
+
+        # upsampling
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), upsampling='us', network='2chreal', complex_input=False)
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), upsampling='us', network='2chreal', complex_input=True)
+
+    def test_UNet_complex_3dt(self):
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), network='complex', complex_input=False)
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), network='complex', complex_input=True)
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), network='complex', complex_input=True)
+
+        # downsampling
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), downsampling='st', network='complex', complex_input=False)
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), downsampling='st', network='complex', complex_input=True)
+
+        # normalization
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), normalization='BN', network='complex', complex_input=False)
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), normalization='IN', network='complex', complex_input=False)
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), normalization='BN', network='complex', complex_input=True)
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), normalization='IN', network='complex', complex_input=True)
+
+        # upsampling
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), upsampling='us', network='complex', complex_input=False)
+        self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), upsampling='us', network='complex', complex_input=True)
+
     def test_UNet_mag_3d_padding(self):
         self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), network='mag', complex_input=True, D=20, M=32, N=32) # padding required
 
@@ -551,7 +589,7 @@ class UNetTest(unittest.TestCase):
     #    self._test_UNet('3D', 32, (3, 3, 3), network='complex', complex_input=False)
     #    self._test_UNet('3D', 32, (3, 3, 3), network='complex', complex_input=True)
 
-    def _test_UNet(self, dim, filters, kernel_size, down_size=(2,2,2), network='complex', complex_input=True, D=30, M=32, N=32, num_level=4):
+    def _test_UNet(self, dim, filters, kernel_size, down_size=(2,2,2), network='complex', complex_input=True, D=30, M=32, N=32, T=4, num_level=4):
         gpus = tf.config.experimental.list_physical_devices('GPU')
         tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
         tf.config.experimental.set_memory_growth(gpus[0], True)
@@ -576,6 +614,11 @@ class UNetTest(unittest.TestCase):
                 x = merlintf.random_normal_complex((nBatch, D, M, N, 1), dtype=tf.float32)
             else:
                 x = tf.random.normal((nBatch, D, M, N, 1), dtype=tf.float32)
+        elif dim == '3Dt':
+            if complex_input:
+                x = merlintf.random_normal_complex((nBatch, T, D, M, N, 1), dtype=tf.float32)
+            else:
+                x = tf.random.normal((nBatch, T, D, M, N, 1), dtype=tf.float32)
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
 
