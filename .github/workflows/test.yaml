@@ -19,21 +19,26 @@ jobs:
         #  ~/miniconda3/condabin/conda activate actions-merlin
       - name: Build merlin 
         run: |
+          source ~/actions-runner-merlin/envs/merlintest/bin/activate
           cd ~/actions-runner-merlin/_work/merlin/merlin
           ./install.sh
       - name: Check install
         run: |
           # conda info
           # conda list
+          source ~/actions-runner-merlin/envs/merlintest/bin/activate
           pip list
       - name: Run python unittests
         run: |
+          source ~/actions-runner-merlin/envs/merlintest/bin/activate
           python3 -m unittest discover -s merlinpy -p "*.py" >> results_py.txt
       - name: Run pytorch unittests
         run: |
+          source ~/actions-runner-merlin/envs/merlintest/bin/activate
           python3 -m unittest discover -s merlinth -p "*.py" >> results_th.txt
       - name: Run tensorflow unittests
         run: |
+          source ~/actions-runner-merlin/envs/merlintest/bin/activate
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/cuda/lib64
           python3 -m unittest discover -s merlintf -p "*.py" >> results_tf.txt
       - name: Write CML report
