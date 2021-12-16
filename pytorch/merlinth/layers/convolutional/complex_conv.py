@@ -359,6 +359,8 @@ class ComplexConv1d(_ComplexConvNd):
     def forward(self, input: Tensor) -> Tensor:
         if self.weight_std:
             weight = self.weight_standardization()
+        else:
+            weight = self.weight
         #return self._conv_forward(input, self.weight, self.bias)
         return self._conv_forward(input, weight, self.bias)
 
@@ -508,6 +510,8 @@ class ComplexConv2d(_ComplexConvNd):
     def forward(self, input: Tensor) -> Tensor:
         if self.weight_std:
             weight = self.weight_standardization()
+        else:
+            weight = self.weight
         #return self._conv_forward(input, self.weight, self.bias)
         return self._conv_forward(input, weight, self.bias)
 
@@ -658,6 +662,8 @@ class ComplexConv3d(_ComplexConvNd):
     def forward(self, input: Tensor) -> Tensor:
         if self.weight_std:
             weight = self.weight_standardization()
+        else:
+            weight = self.weight
         #return self._conv_forward(input, self.weight, self.bias)
         return self._conv_forward(input, weight, self.bias)
 
