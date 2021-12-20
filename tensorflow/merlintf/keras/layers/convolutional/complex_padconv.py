@@ -314,7 +314,7 @@ class ComplexPadConvScale2D(ComplexPadConv2D):
             np_k = np_k @ np_k.T
             np_k /= np_k.sum()
             np_k = np.reshape(np_k, (5, 5, 1, 1))
-            self.blur = tf.Variable(initial_value=tf.convert_to_tensor(np_k), trainable=False)
+            self.blur = tf.Variable(initial_value=tf.convert_to_tensor(np_k, dtype=tf.keras.backend.floatx()), trainable=False)
 
     @property
     def kernel(self):
@@ -449,7 +449,7 @@ class ComplexPadConvScale3D(ComplexPadConv3D):
             np_k = np_k @ np_k.T
             np_k /= np_k.sum()
             np_k = np.reshape(np_k, (1, 5, 5, 1, 1))
-            self.blur = tf.Variable(initial_value=tf.convert_to_tensor(np_k), trainable=False)
+            self.blur = tf.Variable(initial_value=tf.convert_to_tensor(np_k, dtype=tf.keras.backend.floatx()), trainable=False)
 
     @property
     def kernel(self):
@@ -558,10 +558,10 @@ class ComplexPadConv2DTest(unittest.TestCase):
 
     def _test_grad(self, conv_fun, kernel_size, strides, dilation_rate, padding):
         nBatch = 5
-        M = 128
-        N = 128
-        nf_in = 10
-        nf_out = 32
+        M = 64
+        N = 64
+        nf_in = 5
+        nf_out = 16
         shape = [nBatch, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=True)
@@ -589,7 +589,7 @@ class ComplexPadConv2DTest(unittest.TestCase):
 class ComplexPadConv3DTest(unittest.TestCase):
     def test_constraints(self):
         nf_in = 1
-        nf_out = 32
+        nf_out = 16
         
         model = ComplexPadConv3D(nf_out, kernel_size=3, zero_mean=True)
         model.build((None, None, None, None, nf_in))
@@ -606,8 +606,8 @@ class ComplexPadConv3DTest(unittest.TestCase):
 
     def _test_grad(self, conv_fun, kernel_size, strides, dilation_rate, padding):
         nBatch = 5
-        M = 128
-        N = 128
+        M = 64
+        N = 64
         D = 10
         nf_in = 2
         nf_out = 16
@@ -639,8 +639,8 @@ class ComplexPadConv3DTest(unittest.TestCase):
 class ComplexPadConvScaleTest(unittest.TestCase):
     def test_grad(self):
         nBatch = 5
-        M = 128
-        N = 128
+        M = 64
+        N = 64
         nf_in = 10
         nf_out = 32
         shape = [nBatch, M, N, nf_in]
