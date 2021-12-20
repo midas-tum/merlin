@@ -187,7 +187,7 @@ class ComplexResidualBlockSplitFast(ComplexResidualBlock):
 
 class TestComplexResidualBlock3d(unittest.TestCase):
     def _test_unet(self, depth, height, width, nl, activation):
-        x = torch.randn(1, nl, depth, height, width, 2).cuda()
+        x = torch.randn(1, nl, depth, height, width, dtype=torch.complex64).cuda()
         model =  ComplexResidualBlock3d(
             nl, nl,
             bias=True,
@@ -204,7 +204,7 @@ class TestComplexResidualBlock3d(unittest.TestCase):
 
 class TestComplexResidualBlock2dt(unittest.TestCase):
     def _test_unet(self, depth, height, width, nl, activation):
-        x = torch.randn(1, nl, depth, height, width, 2).cuda()
+        x = torch.randn(1, nl, depth, height, width, dtype=torch.complex64).cuda()
         model =  ComplexResidualBlock2dt(
             nl, nl//2, nl,
             bias=True,
@@ -221,7 +221,7 @@ class TestComplexResidualBlock2dt(unittest.TestCase):
 
 class TestComplexResidualBlockFast(unittest.TestCase):
     def _test_unet(self, depth, height, width, nl, activation):
-        x = torch.randn(1, nl, depth, height, width, 2).cuda()
+        x = torch.randn(1, nl, depth, height, width, dtype=torch.complex64).cuda()
         model =  ComplexResidualBlockSplitFast(
             nl, nl//2, nl,
             bias=True,
