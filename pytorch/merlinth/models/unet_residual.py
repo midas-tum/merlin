@@ -689,9 +689,9 @@ class TestUnetFast(unittest.TestCase):
         y = model(x)
     
     def test1(self):
-        self._test_unet(10, 180, 180, 8, 2, 1, 'cPReLU', False)
+        self._test_unet(16, 96, 96, 8, 2, 1, 'cPReLU', False)
     def test2(self):
-        self._test_unet(10, 180, 180, 8, 2, 1, 'ModReLU', True)
+        self._test_unet(16, 96, 96, 8, 2, 1, 'ModReLU', True)
 
 class TestUnet3d(unittest.TestCase):
     def _test_unet(self, depth, height, width, nf, nl, multiplier, activation, local_residual):
@@ -709,9 +709,9 @@ class TestUnet3d(unittest.TestCase):
         y = model(x)
     
     def test1(self):
-        self._test_unet(32, 180, 180, 16, 2, 1, 'cPReLU', False)
+        self._test_unet(16, 96, 96, 16, 2, 1, 'cPReLU', False)
     def test2(self):
-        self._test_unet(32, 180, 180, 16, 2, 1, 'ModReLU', True)
+        self._test_unet(16, 96, 96, 16, 2, 1, 'ModReLU', True)
 
 # class InitTest(unittest.TestCase):
 #     def _test_complex_init(self, ksp, kst, nf, mode, activation, ortho):
