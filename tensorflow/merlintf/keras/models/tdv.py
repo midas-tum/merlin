@@ -238,7 +238,6 @@ class TDV(Regularizer):
         #     state_dict = None
         #     self.tau = 1.0
 
-        self.in_channels = config['in_channels']
         self.out_channels = config['out_channels']
         self.num_features = config['num_features']
         self.multiplier = config['multiplier']
@@ -353,7 +352,6 @@ class GradientTest(unittest.TestCase):
         config = {
             'dim': dim,
             'is_complex': False,
-            'in_channels': 1,
             'out_channels': 1,
             'num_features': 4,
             'num_scales': 3,
@@ -404,7 +402,6 @@ class ComplexGradientTest(unittest.TestCase):
         config = {
             'dim': dim,
             'is_complex': True,
-            'in_channels': 1,
             'out_channels': 1,
             'num_features': 4,
             'num_scales': 3,
@@ -512,7 +509,6 @@ class TestEnergy(unittest.TestCase):
         
         # define the TDV regularizer
         config ={
-            'in_channels': 1,
             'out_channels': 1,
             'num_features': 4,
             'num_scales': 2,
@@ -556,7 +552,6 @@ class TestTransformation(unittest.TestCase):
 
         # define the TDV regularizer
         config ={
-            'in_channels': 1,
             'out_channels': 1,
             'num_features': 4,
             'num_scales': 2,
