@@ -33,7 +33,7 @@ class ItSenseTest(unittest.TestCase):
     def test_iterativeSENSE(self, acc=4):
         kspace = bart(1, 'phantom -3 -x 64 -k')
         smap = bart(1, 'phantom -3 -x 64 -S 8')
-        
+
         reconimg = recon(kspace, smap)
         self.assertTrue(np.shape(reconimg) == (64, 64, 64))
 
