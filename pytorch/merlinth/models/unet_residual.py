@@ -3,7 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import unittest
-from merlinth.layers.convolutional.complex_conv3d import (
+from merlinth.layers.convolutional.complex_padconv import (
     ComplexPadConv3D,
     ComplexPadConvScale3D,
     ComplexPadConvScaleTranspose3D

@@ -1,7 +1,7 @@
 
 import torch
 import torch.nn.functional as F
-from merlinth.layers.convolutional.complex_conv3d import (
+from merlinth.layers.convolutional.complex_padconv import (
     ComplexPadConv3D,
     ComplexPadConvScale3D,
     ComplexPadConvScaleTranspose3D
