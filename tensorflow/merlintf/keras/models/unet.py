@@ -589,18 +589,15 @@ class UNetTest(unittest.TestCase):
     #    self._test_UNet('3D', 32, (3, 3, 3), network='complex', complex_input=False)
     #    self._test_UNet('3D', 32, (3, 3, 3), network='complex', complex_input=True)
 
-    def _test_UNet(self, dim, filters, kernel_size, down_size=(2,2,2), network='complex', complex_input=True, D=30, M=32, N=32, T=4, num_level=4):
-        gpus = tf.config.experimental.list_physical_devices('GPU')
-        tf.config.experimental.set_visible_devices(gpus[0], 'GPU')
-        tf.config.experimental.set_memory_growth(gpus[0], True)
-        tf.config.experimental_run_functions_eagerly(False)
+    def _test_UNet(self, dim, filters, kernel_size, down_size=(2,2,2), downsampling='st', network='complex', complex_input=True, D=30, M=32, N=32, T=4, num_level=4):
+
 
         nBatch = 2
 
         if network == 'complex':
-            model = ComplexUNet(dim, filters, kernel_size, down_size, num_level=num_level)
+            model = ComplexUNet(dim, filters, kernel_size, down_size, num_level=num_level, downsampling=downsampling)
         elif network =='2chreal':
-            model = Real2chUNet(dim, filters, kernel_size, down_size, num_level=num_level)
+            model = Real2chUNet(dim, filters, kernel_size, down_size, num_level=num_level, downsampling=downsampling)
         else:
             model = MagUNet(dim, filters, kernel_size, down_size, num_level=num_level)
 
@@ -623,6 +620,7 @@ class UNetTest(unittest.TestCase):
             raise RuntimeError(f'No implementation for dim {dim} available!')
 
         Kx = model(x)
+        print(x.shape, Kx.shape)
         self.assertTrue(Kx.shape == x.shape)
 
 if __name__ == "__main__":
