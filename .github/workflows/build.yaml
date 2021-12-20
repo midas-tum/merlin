@@ -73,13 +73,11 @@ jobs:
           source ~/actions-runner-merlin/_work/merlin/merlin/merlinenv/bin/activate
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/cuda/lib64
           python3 -m unittest discover -s merlintf -p "*.py" >> results_tf.txt
-      - name: Write CML report
-        env:
-          REPO_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # Post reports as comments in GitHub PRs
-          cat results_py.txt results_tf.txt results_th.txt >> report.md
-          cml-send-comment report.md
+      #- name: Publish Unit Test Results
+      #  uses: EnricoMi/publish-unit-test-result-action@v1
+      #  if: always()
+      #  with:
+      #    files: test-results/**/*.xml
       - name: Cleanup
         run: |
           rm -r ~/actions-runner-merlin/_work/merlin/merlin/merlinenv
