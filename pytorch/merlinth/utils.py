@@ -34,20 +34,28 @@ def get_default_cdtype():
     else:
         raise ValueError(f"No equivalent for dtype='{torch.get_default_dtype()}' ")
 
-# class ToTorchIO():
-#     def __init__(self, input_keys, output_keys):
-#         self.input_keys = input_keys
-#         self.output_keys = output_keys
+class ToTorchIO():
+    def __init__(self, input_keys, output_keys):
+        self.input_keys = input_keys
+        self.output_keys = output_keys
 
-#     def __call__(self, sample):
-#         inputs = []
-#         outputs = []
-#         for key in self.input_keys:
-#             inputs.append(numpy_to_torch_float(sample[key]))
-#         for key in self.output_keys:
-#             outputs.append(numpy_to_torch_float(sample[key]))
-#         return inputs, outputs
+    def __call__(self, sample):
+        inputs = []
+        outputs = []
+        for key in self.input_keys:
+            inputs.append(torch.from_numpy(sample[key]))
+        for key in self.output_keys:
+            outputs.append(torch.from_numpy(sample[key]))
+        return inputs, outputs
 
+class Transpose():
+    def __init__(self, transpose_list):
+        self.transpose_list = transpose_list
+
+    def __call__(self, sample):
+        for key, axes in self.transpose_list:
+            sample[key] = np.ascontiguousarray(np.transpose(sample[key], axes))
+        return sample
 # class ToTorchCuda():
 #     def __call__(self, inputs):
 #         if isinstance(inputs, list):

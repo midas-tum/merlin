@@ -66,7 +66,7 @@ class ModPReLU(torch.nn.Module):
         self.bias_init = bias_init
 
     def forward(self, z):
-        act = torch.max(torch.zeros(z.shape), merlinth.complex_abs(z) + self.bias) + self.alpha * torch.min(torch.zeros(z.shape), merlinth.complex_abs(z) + self.bias)
+        act = torch.max(torch.zeros_like(z).float(), merlinth.complex_abs(z) + self.bias) + self.alpha * torch.min(torch.zeros_like(z).float(), merlinth.complex_abs(z) + self.bias)
         return act * merlinth.complex_norm(z)
 
     def __str__(self):
@@ -84,8 +84,8 @@ class cPReLU(torch.nn.Module):
     def forward(self, z):
         zre = torch.real(z)
         zim = torch.imag(z)
-        actre = torch.max(torch.zeros(z.shape), zre) + self.alpha * torch.min(torch.zeros(z.shape), zre)
-        actim = torch.max(torch.zeros(z.shape), zim) + self.alpha * torch.min(torch.zeros(z.shape), zim)
+        actre = torch.max(torch.zeros_like(z).float(), zre) + self.alpha.float() * torch.min(torch.zeros_like(z).float(), zre)
+        actim = torch.max(torch.zeros_like(z).float(), zim) + self.alpha.float() * torch.min(torch.zeros_like(z).float(), zim)
 
         return torch.complex(actre, actim)
 

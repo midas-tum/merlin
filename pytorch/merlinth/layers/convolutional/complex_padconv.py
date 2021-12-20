@@ -16,12 +16,6 @@ __all__ = ['ComplexPadConv1d',
            'ComplexPadConvScale3dTranspose',
            ]
 
-def complex_pad(pad_fun, x, padding, mode):
-    #TODO handle in optox
-    xp_re = pad_fun(torch.real(x).contiguous(), padding, mode)
-    xp_im = pad_fun(torch.imag(x).contiguous(), padding, mode)
-    return torch.complex(xp_re, xp_im)
-
 class ComplexPadConv(ComplexModule):
     def __init__(self, 
                  rank,
@@ -114,7 +108,7 @@ class ComplexPadConv(ComplexModule):
         # then pad
         pad = self._compute_optox_padding()
         if self.pad and any(pad) > 0:
-            x = complex_pad(self._padding_op, x, pad, mode=self.padding_mode)
+            x = self._padding_op(x, pad, mode=self.padding_mode)
         # compute the convolution
         x = complex_conv(self._convolution_op, x, weight, self.bias, self.stride, self.padding, self.dilation, self.groups)
         return x
@@ -133,7 +127,7 @@ class ComplexPadConv(ComplexModule):
         x = complex_conv_transpose(self._convolutionT_op, x, weight, self.bias, self.stride, self.padding, output_padding, self.groups, self.dilation)
         pad = self._compute_optox_padding()
         if self.pad and any(pad) > 0:
-            x = complex_pad(self._paddingT_op, x, pad, mode=self.padding_mode)
+            x = self._paddingT_op(x, pad, mode=self.padding_mode)
         return x
 
     def extra_repr(self):
@@ -488,7 +482,6 @@ class ComplexPadConv1dTest(unittest.TestCase):
         model.cuda()
         x = merlinth.random_normal_complex(shape, dtype=torch.get_default_dtype()).cuda()
         x.requires_grad_(True)
-
         Kx = model(x)
         loss = 0.5 * torch.sum(torch.conj(Kx) * Kx)
         loss.backward()
