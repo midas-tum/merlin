@@ -57,7 +57,6 @@ class ComplexConvBlock3d(torch.nn.Module):
         self.act = get_activation(activation, out_channels)
 
     def forward(self, x):
-        print(x.shape, self.conv(x).shape)
         return self.act(self.norm(self.conv(x)))
 
 class ComplexConvBlock3dUpsampling(torch.nn.Module):

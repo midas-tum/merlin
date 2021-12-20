@@ -38,7 +38,7 @@ class ComplexPadConv(ComplexModule):
         self.stride = merlinth.utils.validate_input_dimension(rank, stride)
         self.dilation = merlinth.utils.validate_input_dimension(rank, dilation)
         self.groups = groups
-        self.bias = torch.nn.Parameter(torch.zeros(filters), dtype=merlinth.get_default_cdtype()) if bias else None
+        self.bias = torch.nn.Parameter(torch.zeros(filters, dtype=merlinth.get_default_cdtype())) if bias else None
         self.zero_mean = zero_mean
         self.bound_norm = bound_norm
         self.padding = 0

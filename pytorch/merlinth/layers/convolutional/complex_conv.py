@@ -53,7 +53,7 @@ def complex_conv(conv_fun, input, weight, bias, stride, padding, dilation, group
     else:
         bias_re = None
         bias_im = None
-
+    
     conv_rr = conv_fun(x_re, k_re, bias_re, stride, padding, dilation, groups)
     conv_ii = conv_fun(x_im, k_im, bias_im, stride, padding, dilation, groups)
     conv_ri = conv_fun(x_re, k_im, bias_im, stride, padding, dilation, groups)
@@ -158,7 +158,7 @@ class _ComplexConvNd(Module):
         self.output_padding = output_padding
         self.groups = groups
         self.padding_mode = padding_mode
-        self.weight_std = weight_std
+
         # `_reversed_padding_repeated_twice` is the padding to be passed to
         # `F.pad` if needed (e.g., for non-zero padding types that are
         # implemented as two ops: padding + conv). `F.pad` accepts paddings in
@@ -357,12 +357,7 @@ class ComplexConv1d(_ComplexConvNd):
                         self.padding, self.dilation, self.groups)
 
     def forward(self, input: Tensor) -> Tensor:
-        if self.weight_std:
-            weight = self.weight_standardization()
-        else:
-            weight = self.weight
-        #return self._conv_forward(input, self.weight, self.bias)
-        return self._conv_forward(input, weight, self.bias)
+        return self._conv_forward(input, self.weight, self.bias)
 
 
 class ComplexConv2d(_ComplexConvNd):
@@ -508,12 +503,7 @@ class ComplexConv2d(_ComplexConvNd):
                         self.padding, self.dilation, self.groups)
 
     def forward(self, input: Tensor) -> Tensor:
-        if self.weight_std:
-            weight = self.weight_standardization()
-        else:
-            weight = self.weight
-        #return self._conv_forward(input, self.weight, self.bias)
-        return self._conv_forward(input, weight, self.bias)
+        return self._conv_forward(input, self.weight, self.bias)
 
 class ComplexConv3d(_ComplexConvNd):
     __doc__ = r"""Applies a 3D convolution over an input signal composed of several input
@@ -660,12 +650,7 @@ class ComplexConv3d(_ComplexConvNd):
         )
 
     def forward(self, input: Tensor) -> Tensor:
-        if self.weight_std:
-            weight = self.weight_standardization()
-        else:
-            weight = self.weight
-        #return self._conv_forward(input, self.weight, self.bias)
-        return self._conv_forward(input, weight, self.bias)
+        return self._conv_forward(input, self.weight, self.bias)
 
 
 
