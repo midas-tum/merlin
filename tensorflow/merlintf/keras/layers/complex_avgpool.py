@@ -91,15 +91,15 @@ class MagnitudeAveragePool3D(MagnitudeAveragePool):
 
                 return x_pool
             else:
-                x_pool = tf.nn.average_pool3d(x, ksize=self.pool_size, strides=self.strides, padding=self.padding)
+                x_pool = tf.nn.avg_pool3d(x, ksize=self.pool_size, strides=self.strides, padding=self.padding)
                 return x_pool
         else:
             return super().call(x)
 
 
 class MagnitudeAveragePool2Dt(MagnitudeAveragePool):
-    def __init__(self, pool_size, strides=None, padding='SAME'):
-        super(MagnitudeAveragePool2Dt, self).__init__(pool_size, strides, padding)
+    def __init__(self, pool_size, strides=None, padding='SAME', optox=True):
+        super(MagnitudeAveragePool2Dt, self).__init__(pool_size, strides, padding, optox)
 
     def call(self, x):
 
@@ -122,11 +122,9 @@ class MagnitudeAveragePool2Dt(MagnitudeAveragePool):
             return x_pool
 
 
-
-
 class MagnitudeAveragePool3Dt(MagnitudeAveragePool):
-    def __init__(self, pool_size, strides=None, padding='SAME'):
-        super(MagnitudeAveragePool3Dt, self).__init__(pool_size, strides, padding)
+    def __init__(self, pool_size, strides=None, padding='SAME', optox=True):
+        super(MagnitudeAveragePool3Dt, self).__init__(pool_size, strides, padding, optox)
 
     def call(self, x):  # only Optox supported
         orig_shape = x.shape
@@ -179,6 +177,11 @@ class TestMagnitudePool(unittest.TestCase):
         y = pool(x)
         magn = merlintf.complex_abs(y)
 
+    def _test_3dt(self, shape, pool_size=(2, 2, 2, 2), strides=(2, 2, 2, 2)):
+        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        pool = MagnitudeAveragePool3Dt(pool_size, strides, optox=True)
+        y = pool(x)
+        magn = merlintf.complex_abs(y)
 
     def _test_2d_accuracy(self, shape, pool_size=(2, 2), strides=(2, 2)):
         print('_______')
