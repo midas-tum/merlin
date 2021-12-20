@@ -10,7 +10,7 @@ from merlinth.layers.convolutional.complex_padconv import (
 )
 from merlinth.layers.complex_init import *
 from merlinth.layers.complex_norm import get_normalization
-from merlinth.layers.complex_pool import MagnitudeMaxPool3D
+from merlinth.layers.complex_maxpool import MagnitudeMaxPool3D
 from merlinth.layers.complex_regularizer import ComplexRegularizerWrapper3d
 from merlinth.models.unet_complex_residual_block import *
 from merlinth.models.unet_complex_reg_2dt import *

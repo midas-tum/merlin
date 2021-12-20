@@ -11,7 +11,7 @@ from merlinth.models.unet_complex_reg_2dt import (
 from merlinth.layers.complex_init import *
 #from merlinth.layers.complex_regularizer import *
 from merlinth.layers.complex_norm import get_normalization
-from merlinth.layers.complex_pool import MagnitudeMaxPool3D
+from merlinth.layers.complex_maxpool import MagnitudeMaxPool3D
 
 __all__ = ['ComplexResidualBlock3d', 'ComplexResidualBlock2dt', 'ComplexResidualBlockSplitFast']
 
