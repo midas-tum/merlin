@@ -367,6 +367,12 @@ class ComplexConv2DtTranspose(tf.keras.layers.Layer):
 
             return x_sp
 
+# Aliases
+ComplexConvolution2Dt = ComplexConv2Dt
+ComplexConvolution2DtTranspose = ComplexConv2DtTranspose
+ComplexDeconvolution2Dt = ComplexDeconv2Dt = ComplexConv2DtTranspose
+
+
 class ComplexConv2dtTest(unittest.TestCase):
     def test_ComplexConv2dt(self):
         self._test_Conv2dt()

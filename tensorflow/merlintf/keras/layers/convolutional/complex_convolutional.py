@@ -50,8 +50,6 @@ from tensorflow.python.util.tf_export import keras_export
 # pylint: disable=g-classes-have-attributes
 import unittest
 
-from merlintf.keras.layers.complex_conv2dt import ComplexConv2Dt, ComplexConv2DtTranspose
-from merlintf.keras.layers.complex_conv3dt import ComplexConv3Dt, ComplexConv3DtTranspose
 from merlintf.keras.layers.convolutional import complex_conv as complex_nn_ops
 from merlintf.keras.layers import complex_act as activations
 import merlintf
@@ -107,21 +105,21 @@ def deserialize(op):
     elif op == 'ComplexConv2D' or op == 'ComplexConvolution2D':
         return ComplexConv2D
     elif op == 'ComplexConv2Dt' or op == 'ComplexConvolution2Dt':
-        return ComplexConv2Dt
+        return merlintf.keras.layers.complex_conv2dt.ComplexConv2Dt
     elif op == 'ComplexConv3D' or op == 'ComplexConvolution3D':
         return ComplexConv3D
     elif op == 'ComplexConv3Dt' or op == 'ComplexConvolution3Dt':
-        return ComplexConv3Dt
+        return merlintf.keras.layers.complex_conv3dt.ComplexConv3Dt
     elif op == 'ComplexConv1DTranspose' or op == 'ComplexConvolution1DTranspose':
         return ComplexConv1DTranspose
     elif op == 'ComplexConv2DTranspose' or op == 'ComplexConvolution2DTranspose':
         return ComplexConv2DTranspose
     elif op == 'ComplexConv2DtTranspose' or op == 'ComplexConvolution2DtTranspose':
-        return ComplexConv2DtTranspose
+        return merlintf.keras.layers.complex_conv2dt.ComplexConv2DtTranspose
     elif op == 'ComplexConv3DTranspose' or op == 'ComplexConvolution3DTranspose':
         return ComplexConv3DTranspose
     elif op == 'ComplexConv3DtTranspose' or op == 'ComplexConvolution3DtTranspose':
-        return ComplexConv3DtTranspose
+        return merlintf.keras.layers.complex_conv3dt.ComplexConv3DtTranspose
     elif op == 'UpSampling1D':
         return UpSampling1D
     elif op == 'UpSampling2D':
@@ -3117,17 +3115,11 @@ class Cropping4D(Layer):
 # Aliases
 ComplexConvolution1D = ComplexConv1D
 ComplexConvolution2D = ComplexConv2D
-ComplexConvolution2Dt = ComplexConv2Dt
 ComplexConvolution3D = ComplexConv3D
-ComplexConvolution3Dt = ComplexConv3Dt
 ComplexConvolution2DTranspose = ComplexConv2DTranspose
-ComplexConvolution2DtTranspose = ComplexConv2DtTranspose
 ComplexConvolution3DTranspose = ComplexConv3DTranspose
-ComplexConvolution3DtTranspose = ComplexConv3DtTranspose
 ComplexDeconvolution2D = ComplexDeconv2D = ComplexConv2DTranspose
-ComplexDeconvolution2Dt = ComplexDeconv2Dt = ComplexConv2DtTranspose
 ComplexDeconvolution3D = ComplexDeconv3D = ComplexConv3DTranspose
-ComplexDeconvolution3Dt = ComplexDeconv3Dt = ComplexConv3DtTranspose
 Cropping2Dt = Cropping3D
 ZeroPadding2Dt = ZeroPadding3D
 UpSampling2Dt = UpSampling3D
