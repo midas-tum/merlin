@@ -108,7 +108,7 @@ class Real2chCNNTest(unittest.TestCase):
 
 class ComplexCNNTest(unittest.TestCase):
     def test_cnn_complex_2d(self):
-        self._test_cnn_complex('2D', 3, 'crelu')
+        self._test_cnn_complex('2D', 3, 'cReLU')
 
     def test_cnn_complex_2d_2(self):
         self._test_cnn_complex('2D', (3,5), 'ModReLU')
