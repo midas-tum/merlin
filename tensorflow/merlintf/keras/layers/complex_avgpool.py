@@ -159,7 +159,7 @@ class TestMagnitudePool(unittest.TestCase):
         y = pool(x)
         magn = merlintf.complex_abs(y)
 
-    def _test_2dt(self, shape, pool_size=2, strides=2):
+    def _test_2dt(self, shape, pool_size=(2, 2, 2), strides=(2, 2, 2)):
         x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
         pool = MagnitudeAveragePool2Dt(pool_size, strides)
         y = pool(x)
@@ -210,7 +210,7 @@ class TestMagnitudePool(unittest.TestCase):
         y = pool(x)
 
         x_abs = tf.math.abs(x)
-        x_abs = tf.nn.average_pool3d(x_abs, pool_size, strides, padding='SAME')
+        x_abs = tf.nn.avg_pool3d(x_abs, pool_size, strides, padding='SAME')
 
         print('tf.math.abs(y) - x_abs', tf.math.abs(y) - x_abs)
         shape = x_abs.shape
