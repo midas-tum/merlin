@@ -50,8 +50,8 @@ from tensorflow.python.util.tf_export import keras_export
 # pylint: disable=g-classes-have-attributes
 import unittest
 
-from merlintf.keras.layers.complex_conv2dt import ComplexConv2D, ComplexConv2DTranspose
-from merlintf.keras.layers.complex_conv3dt import ComplexConv3D, ComplexConv3DTranspose
+from merlintf.keras.layers.complex_conv2dt import ComplexConv2Dt, ComplexConv2DtTranspose
+from merlintf.keras.layers.complex_conv3dt import ComplexConv3Dt, ComplexConv3DtTranspose
 from merlintf.keras.layers.convolutional import complex_conv as complex_nn_ops
 from merlintf.keras.layers import complex_act as activations
 import merlintf
