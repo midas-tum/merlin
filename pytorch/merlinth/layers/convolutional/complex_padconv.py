@@ -456,6 +456,19 @@ class ComplexPadConv2Dt(torch.nn.Module):
         xT_sp = self.conv_xy.backward(xT_t, output_shape)
         return xT_sp
 
+# Aliases
+ComplexPadConv1D = ComplexPadConv1d
+ComplexPadConvRealWeight1D = ComplexPadConvRealWeight1d
+ComplexPadConv2D = ComplexPadConv2d
+ComplexPadConvRealWeight2D = ComplexPadConvRealWeight2d
+ComplexPadConvScale2D = ComplexPadConvScale2d
+ComplexPadConvScaleTranspose2D = ComplexPadConvScaleTranspose2d
+ComplexPadConv3D = ComplexPadConv3d
+ComplexPadConvRealWeight3D = ComplexPadConvRealWeight3d
+ComplexPadConvScale3D = ComplexPadConvScale3d
+ComplexPadConvScaleTranspose3D = ComplexPadConvScaleTranspose3d
+ComplexPadConv2dt = ComplexPadConv2Dt
+
 class ComplexPadConv1dTest(unittest.TestCase):
     def test_constraints(self):
         nf_in = 1
