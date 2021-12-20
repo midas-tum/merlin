@@ -84,8 +84,8 @@ class cPReLU(torch.nn.Module):
     def forward(self, z):
         zre = torch.real(z)
         zim = torch.imag(z)
-        actre = torch.max(torch.zeros_like(z).float(), zre) + self.alpha * torch.min(torch.zeros_like(z).float(), zre)
-        actim = torch.max(torch.zeros_like(z).float(), zim) + self.alpha * torch.min(torch.zeros_like(z).float(), zim)
+        actre = torch.max(torch.zeros_like(z).float(), zre) + self.alpha.float() * torch.min(torch.zeros_like(z).float(), zre)
+        actim = torch.max(torch.zeros_like(z).float(), zim) + self.alpha.float() * torch.min(torch.zeros_like(z).float(), zim)
 
         return torch.complex(actre, actim)
 
