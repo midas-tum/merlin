@@ -103,7 +103,7 @@ class ComplexPadConv(ComplexConv):
                     tmp = tmp - tf.reduce_mean(tmp, reduction_dim_mean, True)
                 # normalize by the l2-norm
                 if self.bound_norm:
-                    norm = tf.math.sqrt(tf.reduce_sum(tmp ** 2, self._kernel.reduction_dim, True))
+                    norm = tf.math.sqrt(tf.reduce_sum(tmp * tf.math.conj(tmp), self._kernel.reduction_dim, True))
                     if surface:
                         tmp = tmp / tf.math.maximum(norm, tf.ones_like(norm)*1e-9)
                     else:
@@ -220,6 +220,7 @@ class ComplexPadConv2D(ComplexPadConv):
         kernel_constraint=constraints.get(kernel_constraint),
         bias_constraint=constraints.get(bias_constraint),
         zero_mean=zero_mean,
+        bound_norm=bound_norm,
         pad=pad,
         **kwargs)
 
