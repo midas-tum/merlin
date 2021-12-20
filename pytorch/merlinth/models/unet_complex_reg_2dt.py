@@ -2,9 +2,9 @@
 import torch
 import torch.nn.functional as F
 from merlinth.layers.convolutional.complex_padconv import (
-    ComplexPadConv3D,
-    ComplexPadConvScale3D,
-    ComplexPadConvScaleTranspose3D
+    ComplexPadConv3d,
+    ComplexPadConvScale3d,
+    ComplexPadConvScaleTranspose3d
 )
 from merlinth.layers.complex_init import *
 from merlinth.layers.complex_norm import get_normalization
