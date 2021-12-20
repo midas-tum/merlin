@@ -411,7 +411,7 @@ class ModStudentT2(tf.keras.layers.Layer):
                                       )
 
     def call(self, z):
-        mz = tf.cast(merlintf.complex_abs(z), tf.complex64)
+        mz = tf.cast(merlintf.complex_abs(z), z.dtype)
         nz = merlintf.complex_norm(z)
 
         alpha = tf.cast(self._alpha, z.dtype)
