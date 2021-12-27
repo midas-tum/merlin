@@ -56,7 +56,7 @@ import merlintf
 
 def ComplexConvolution(identifier):
     if isinstance(identifier, six.string_types):
-        identifier = 'ComplexConvolution' + str(identifier).upper()
+        identifier = 'ComplexConvolution' + str(identifier).upper() if len(identifier) == 2 else str(identifier[0:2]).upper() + str(identifier[-1])
         return deserialize(identifier)
     elif callable(identifier):
         return identifier
@@ -65,7 +65,7 @@ def ComplexConvolution(identifier):
 
 def ComplexConvolutionTranspose(identifier):
     if isinstance(identifier, six.string_types):
-        identifier = 'ComplexConvolution' + str(identifier).upper() + 'Transpose'
+        identifier = 'ComplexConvolution' + (str(identifier).upper() if len(identifier) == 2 else str(identifier[0:2]).upper() + str(identifier[-1])) + 'Transpose'
         return deserialize(identifier)
     elif callable(identifier):
         return identifier
@@ -74,7 +74,7 @@ def ComplexConvolutionTranspose(identifier):
 
 def UpSampling(identifier):
     if isinstance(identifier, six.string_types):
-        identifier = 'UpSampling' + str(identifier).upper()
+        identifier = 'UpSampling' + (str(identifier).upper() if len(identifier) == 2 else str(identifier[0:2]).upper() + str(identifier[-1]))
         return deserialize(identifier)
     elif callable(identifier):
         return identifier
@@ -83,7 +83,7 @@ def UpSampling(identifier):
 
 def ZeroPadding(identifier):
     if isinstance(identifier, six.string_types):
-        identifier = 'ZeroPadding' + str(identifier).upper()
+        identifier = 'ZeroPadding' + (str(identifier).upper() if len(identifier) == 2 else str(identifier[0:2]).upper() + str(identifier[-1]))
         return deserialize(identifier)
     elif callable(identifier):
         return identifier
@@ -92,7 +92,7 @@ def ZeroPadding(identifier):
 
 def Cropping(identifier):
     if isinstance(identifier, six.string_types):
-        identifier = 'Cropping' + str(identifier).upper()
+        identifier = 'Cropping' + (str(identifier).upper() if len(identifier) == 2 else str(identifier[0:2]).upper() + str(identifier[-1]))
         return deserialize(identifier)
     elif callable(identifier):
         return identifier
