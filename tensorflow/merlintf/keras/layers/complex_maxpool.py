@@ -1,6 +1,10 @@
+import sys
 import tensorflow as tf
 import numpy as np
-import optotf.maxpooling
+try:
+    import optotf.maxpooling
+except:
+    print('optotf could not be imported')
 import merlintf
 import unittest
 import six
@@ -45,10 +49,10 @@ class MagnitudeMaxPool(tf.keras.layers.Layer):
         self.padding = padding
         self.alpha = 1  # magnitude ratio in real part
         self.beta = 1  # magnitude ratio in imag part
-        self.optox = optox  # True: execute Optox pooling; False: use TF pooling (not supported for all cases)
+        self.optox = optox and (True if 'optotf' in sys.modules else False)  # True: execute Optox pooling; False: use TF pooling (not supported for all cases)
         self.argmax_index = argmax_index
 
-    def call(self, x):  # default to TF
+    def call(self, x, **kwargs):  # default to TF
         xabs = merlintf.complex_abs(x)
         _, idx = tf.nn.max_pool_with_argmax(
             xabs, self.pool_size, self.strides, self.padding, include_batch_in_index=True)
@@ -66,7 +70,7 @@ class MagnitudeMaxPool2D(MagnitudeMaxPool):
     def __init__(self, pool_size, strides=None, padding='SAME', optox=True, argmax_index=False):
         super(MagnitudeMaxPool2D, self).__init__(pool_size, strides, padding, optox, argmax_index)
 
-    def call(self, x):
+    def call(self, x, **kwargs):
         if self.optox:
             if merlintf.iscomplextf(x):
 
@@ -85,14 +89,14 @@ class MagnitudeMaxPool2D(MagnitudeMaxPool):
                 else:
                     return x_pool
         else:
-            return super().call(x)
+            return super().call(x, **kwargs)
 
 
 class MagnitudeMaxPool3D(MagnitudeMaxPool):
     def __init__(self, pool_size, strides=None, padding='SAME', optox=True, argmax_index=False):
         super(MagnitudeMaxPool3D, self).__init__(pool_size, strides, padding, optox, argmax_index)
 
-    def call(self, x):
+    def call(self, x, **kwargs):
         if self.optox:
             if merlintf.iscomplextf(x):
                 x_pool, x_pool_index = optotf.maxpooling.maxpooling3d(x, pool_size=self.pool_size, strides=self.strides,
@@ -112,14 +116,14 @@ class MagnitudeMaxPool3D(MagnitudeMaxPool):
                     x_pool = tf.nn.max_pool3d(x, ksize=self.pool_size, strides=self.strides, padding=self.padding)
                     return x_pool
         else:
-            return super().call(x)
+            return super().call(x, **kwargs)
 
 
 class MagnitudeMaxPool2Dt(MagnitudeMaxPool):
     def __init__(self, pool_size, strides=None, padding='SAME', optox=True, argmax_index=False):
         super(MagnitudeMaxPool2Dt, self).__init__(pool_size, strides, padding, optox, argmax_index)
 
-    def call(self, x):
+    def call(self, x, **kwargs):
         if self.optox:
             orig_shape = x.shape
             batched_shape = [x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4]]
@@ -162,10 +166,10 @@ class MagnitudeMaxPool3Dt(MagnitudeMaxPool):
     def __init__(self, pool_size, strides=None, padding='SAME', optox=True, argmax_index=False):
         super(MagnitudeMaxPool3Dt, self).__init__(pool_size, strides, padding, optox, argmax_index)
 
-    def call(self, x):  # only Optox supported
+    def call(self, x, **kwargs):  # only Optox supported
         orig_shape = x.shape
         rank = tf.rank(x)
-        batched_shape=0
+        batched_shape = 0
         if rank == 6:
             batched_shape = [x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4], x.shape[5]]
         elif rank == 5:
@@ -344,7 +348,6 @@ class TestMagnitudePool(unittest.TestCase):
         self._test_3d([2, 16, 8, 4, 1], (4, 2, 2))
         # input shape: [batch, height, width, depth, channel]
         self._test_3d_accuracy([2, 8, 6, 8, 2], pool_size=(3, 2, 2))
-
 
 
 if __name__ == "__main__":

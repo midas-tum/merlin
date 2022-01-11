@@ -4,9 +4,9 @@ from merlintf.keras.layers.convolutional.complex_convolutional import ComplexCon
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv3DTranspose
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConvolution
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConvolutionTranspose
-from merlintf.keras.layers.convolutional.complex_convolutional import UpSampling
-from merlintf.keras.layers.convolutional.complex_convolutional import ZeroPadding
-from merlintf.keras.layers.convolutional.complex_convolutional import Cropping
+from merlintf.keras.layers.convolutional.complex_convolutional import UpSampling, UpSampling1D, UpSampling2D, UpSampling3D, UpSampling4D
+from merlintf.keras.layers.convolutional.complex_convolutional import ZeroPadding, ZeroPadding1D, ZeroPadding2D, ZeroPadding3D, ZeroPadding4D
+from merlintf.keras.layers.convolutional.complex_convolutional import Cropping, Cropping1D, Cropping2D, Cropping3D, Cropping4D
 try:
     from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConv2D
     from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConv3D
@@ -26,10 +26,10 @@ except:
     print('padconv layers in keras.layers.convolutional could not be loaded. Optox might not be installed.')
 
 try:
-    from merlintf.keras.layers.complex_maxpool import MagnitudeMaxPooling, MagnitudeMaxPooling1D, \
-        MagnitudeMaxPooling2D, MagnitudeMaxPooling2Dt, MagnitudeMaxPooling3D, MagnitudeMaxPooling3Dt
-    from merlintf.keras.layers.complex_avgpool import MagnitudeAveragePooling, MagnitudeAveragePooling1D, \
-        MagnitudeAveragePooling2D, MagnitudeAveragePooling2Dt, MagnitudeAveragePooling3D, MagnitudeAveragePooling3Dt
+    from merlintf.keras.layers.complex_maxpool import MagnitudeMaxPooling, MagnitudeMaxPool1D, \
+        MagnitudeMaxPool2D, MagnitudeMaxPool2Dt, MagnitudeMaxPool3D, MagnitudeMaxPool3Dt
+    from merlintf.keras.layers.complex_avgpool import MagnitudeAveragePooling, MagnitudeAveragePool1D, \
+        MagnitudeAveragePool2D, MagnitudeAveragePool2Dt, MagnitudeAveragePool3D, MagnitudeAveragePool3Dt
 except:
     print('pooling layers in keras.layers could not be loaded. Optox might not be installed.')
 
@@ -41,7 +41,7 @@ from merlintf.keras.layers.complex_act import Activation
 from merlintf.keras.layers.complex_bn import ComplexBatchNormalization
 from merlintf.keras.layers.complex_norm import ComplexInstanceNormalization
 try:
-    from merlintf.keras.layers.complex_pad import Pad1D, Pad2D, Pad3D, Pad2DTranspose, Pad3DTranspose
+    from merlintf.keras.layers.complex_pad import Pad1D, Pad2D, Pad3D, Pad4D, Pad1DTranspose, Pad2DTranspose, Pad3DTranspose, Pad4DTranspose
 except:
     print('keras.layers.complex_pad could not be loaded. Optox might not be installed.')
 from merlintf.keras.layers.data_consistency import DCGD

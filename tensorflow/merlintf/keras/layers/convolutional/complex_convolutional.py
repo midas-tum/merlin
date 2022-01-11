@@ -56,7 +56,7 @@ import merlintf
 
 def ComplexConvolution(identifier):
     if isinstance(identifier, six.string_types):
-        identifier = 'ComplexConvolution' + str(identifier).upper() if len(identifier) == 2 else str(identifier[0:2]).upper() + str(identifier[-1])
+        identifier = 'ComplexConvolution' + (str(identifier).upper() if len(identifier) == 2 else str(identifier[0:2]).upper() + str(identifier[-1]))
         return deserialize(identifier)
     elif callable(identifier):
         return identifier
@@ -1978,6 +1978,8 @@ class UpSampling3D(Layer):
     base_config = super(UpSampling3D, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
 
+
+#@keras_export('keras.layers.UpSampling4D')
 class UpSampling4D(Layer):
   """Upsampling layer for 4D inputs.
   Repeats the 1st, 2nd, 3rd and 4th dimensions
@@ -2071,6 +2073,7 @@ class UpSampling4D(Layer):
     config = {'size': self.size, 'data_format': self.data_format}
     base_config = super(UpSampling4D, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
+
 
 #@keras_export('keras.layers.ZeroPadding1D')
 class ZeroPadding1D(Layer):
@@ -2372,6 +2375,8 @@ class ZeroPadding3D(Layer):
     base_config = super(ZeroPadding3D, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
 
+
+#@keras_export('keras.layers.ZeroPadding4D')
 class ZeroPadding4D(Layer):
   """Zero-padding layer for 4D data (spatial or spatio-temporal).
   Examples:
@@ -2878,6 +2883,7 @@ class Cropping3D(Layer):
     return dict(list(base_config.items()) + list(config.items()))
 
 
+#@keras_export('keras.layers.Cropping4D')
 class Cropping4D(Layer):
   """Cropping layer for 4D data (e.g. spatial or spatio-temporal).
     Examples:
