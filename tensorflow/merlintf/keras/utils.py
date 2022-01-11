@@ -21,7 +21,7 @@ class ToKerasIO():
 
 def get_ndim(dim):
     if dim == '2D':
-        n_dim = 2  # (x,y
+        n_dim = 2  # (x,y)
     elif dim == '3D':
         n_dim = 3  # (x,y,z)
     elif dim == '2Dt':
