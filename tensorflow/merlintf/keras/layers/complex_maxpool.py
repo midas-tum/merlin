@@ -116,7 +116,17 @@ class MagnitudeMaxPool3D(MagnitudeMaxPool):
                     x_pool = tf.nn.max_pool3d(x, ksize=self.pool_size, strides=self.strides, padding=self.padding)
                     return x_pool
         else:
-            return super().call(x, **kwargs)
+            if self.argmax_index or merlintf.iscomplextf(x):
+                xabs = merlintf.complex_abs(x)
+                xangle = merlintf.complex_angle(x)
+                x_pool = tf.nn.max_pool3d(xabs, ksize=self.pool_size, strides=self.strides,
+                                                        padding=self.padding)
+                xangle_pool = tf.nn.max_pool3d(xangle, ksize=self.pool_size, strides=self.strides,
+                                                        padding=self.padding)
+                return merlintf.magpha2complex(tf.concat([x_pool, xangle_pool], -1))
+            else:
+                x_pool = tf.nn.max_pool3d(x, ksize=self.pool_size, strides=self.strides, padding=self.padding)
+                return x_pool
 
 
 class MagnitudeMaxPool2Dt(MagnitudeMaxPool):
