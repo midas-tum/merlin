@@ -49,7 +49,7 @@ class MagnitudeAveragePool(tf.keras.layers.Layer):
         self.padding = padding
         self.alpha = 1  # magnitude ratio in real part
         self.beta = 1  # magnitude ratio in imag part
-        self.optox = optox and (True if 'optotf' in sys.modules else False)  # True: execute Optox pooling; False: use TF pooling (not supported for all cases)
+        self.optox = optox and (True if 'optotf.averagepooling' in sys.modules else False)  # True: execute Optox pooling; False: use TF pooling (not supported for all cases)
 
     def call(self, x, **kwargs):  # default to TF
         xabs = merlintf.complex_abs(x)

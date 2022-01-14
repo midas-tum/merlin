@@ -50,12 +50,14 @@ def Activation(identifier):
             'Could not interpret activation function identifier: {}'.format(
                 identifier))
 
+
 def deserialize(name, custom_objects=None):
     return deserialize_keras_object(
       name,
       module_objects=globals(),
       custom_objects=custom_objects,
       printable_module_name='activation function')
+
 
 def serialize(act):
     return serialize_keras_object(act)
