@@ -347,7 +347,7 @@ class GradientTest(unittest.TestCase):
             x = shape = (2,10,64,64,1)
         else:
             raise ValueError
-        x = random_normal_complex(shape)
+        x = tf.random.normal(shape)
 
         # define the TDV regularizer
         config = {
