@@ -186,5 +186,4 @@ class CgTest(unittest.TestCase):
         self.assertTrue(np.abs(grad_b - grad_b_num) < 1e-4)
 
 if __name__ == "__main__":
-    tf.keras.backend.set_floatx('float64')
     unittest.test()
