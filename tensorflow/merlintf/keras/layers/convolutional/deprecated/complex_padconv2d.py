@@ -55,12 +55,11 @@ class ComplexPadConv2d(tf.keras.layers.Layer):
         self._weight = self.add_weight('weight',
                                       shape=self.weight_shape,
                                       initializer=initializer,
-                                      dtype=tf.float32
                                       )
         self._bias   = self.add_weight('bias',
                                       shape=self.bias_shape,
-                                      initializer=tf.keras.initializers.Zeros(),
-                                      dtype=tf.float32) if self.use_bias else None
+                                      initializer=tf.keras.initializers.Zeros()
+                                      ) if self.use_bias else None
         
         # define the weight constraints
         if self.zero_mean or self.bound_norm:
@@ -238,12 +237,11 @@ class ComplexPadConvRealWeight2d(tf.keras.layers.Layer):
         self._weight = self.add_weight('weight',
                                       shape=self.weight_shape,
                                       initializer=initializer,
-                                      dtype=tf.float32
                                       )
         self._bias   = self.add_weight('bias',
                                       shape=self.bias_shape,
-                                      initializer=tf.keras.initializers.Zeros(),
-                                      dtype=tf.float32) if self.use_bias else None
+                                      initializer=tf.keras.initializers.Zeros()
+                                      ) if self.use_bias else None
         
         # define the weight constraints
         if self.zero_mean or self.bound_norm:

@@ -5,6 +5,7 @@ import merlinpy
 import gc
 
 center_crop = merlinpy.center_crop
+#TODO do we really want to have merlinpy dependency here?
 
 class ToKerasIO():
     def __init__(self, input_keys, output_keys):

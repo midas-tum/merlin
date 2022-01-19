@@ -191,7 +191,6 @@ class TestMulticoilOps(unittest.TestCase):
 class TestMulticoilMotionOps(unittest.TestCase):
     #TODO test warping if features are present
     def _get_data(self, shape):
-        tf.keras.backend.set_floatx('float64')
         batch, frames, frames_all, M, N, ncoils = shape
         img = np.random.randn(*(batch, frames, M, N)) + 1j * np.random.randn(*(batch, frames, M, N))
         uv = np.random.randn(*(batch, frames, frames_all, M, N, 2))

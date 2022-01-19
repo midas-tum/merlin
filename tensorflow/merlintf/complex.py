@@ -39,6 +39,6 @@ def iscomplextf(x):
     else:
           return False
 
-def random_normal_complex(shape, dtype=tf.float64):
+def random_normal_complex(shape, dtype=tf.keras.backend.floatx()):
     return tf.complex(tf.random.normal(shape, dtype=dtype), 
                       tf.random.normal(shape, dtype=dtype))

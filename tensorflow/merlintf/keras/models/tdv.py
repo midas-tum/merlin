@@ -339,7 +339,6 @@ class TDV(Regularizer):
 # to run execute: python -m unittest [-v] ddr.tdv
 class GradientTest(unittest.TestCase):
     def _test_tdv_gradient(self, dim):
-        tf.keras.backend.set_floatx('float64')
         # setup the data
         if dim == '2D':
             x = np.random.randn(2,64,64,1)
@@ -390,7 +389,6 @@ class GradientTest(unittest.TestCase):
 
 class ComplexGradientTest(unittest.TestCase):
     def _test_complex_tdv_gradient(self, dim):
-        tf.keras.backend.set_floatx('float64')
         # setup the data
         if dim == '2D':
             x = np.random.randn(2,64,64,1) + 1j * np.random.randn(2,64,64,1)
@@ -431,7 +429,6 @@ class ComplexGradientTest(unittest.TestCase):
 
 class TestComplexMicroBlock(unittest.TestCase):
     def _test_gradient(self, dim):
-        tf.keras.backend.set_floatx('float64')
         # setup the data
         nf = 32
         if dim == '2D':
@@ -465,7 +462,6 @@ class TestComplexMicroBlock(unittest.TestCase):
 
 class TestComplexMacroBlock(unittest.TestCase):
     def _test_gradient(self, dim):
-        tf.keras.backend.set_floatx('float64')
         # setup the data
         nf = 32
         if dim == '2D':
@@ -500,7 +496,6 @@ class TestComplexMacroBlock(unittest.TestCase):
 
 class TestEnergy(unittest.TestCase):
     def _test_gradient(self, dim):
-        tf.keras.backend.set_floatx('float64')
         # setup the data
         if dim == '2D':
             shape = (1,1,1,1)
@@ -544,7 +539,6 @@ class TestEnergy(unittest.TestCase):
 
 class TestTransformation(unittest.TestCase):
     def _test_gradient(self, dim):
-        tf.keras.backend.set_floatx('float64')
         # setup the data
         if dim == '2D':
             shape = (2,64,64,1)

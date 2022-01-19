@@ -322,7 +322,7 @@ class Conv3dtTest(unittest.TestCase):
             model = Conv3Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
                             strides=stride, data_format=data_format)
 
-        x = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+        x = tf.random.normal(shape)
         Kx = model(x)
 
         self.assertTrue(Kx.shape == expected_shape)

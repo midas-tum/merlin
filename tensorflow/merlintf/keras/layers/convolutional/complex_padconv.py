@@ -315,7 +315,7 @@ class ComplexPadConvScale2D(ComplexPadConv2D):
             np_k = np_k @ np_k.T
             np_k /= np_k.sum()
             np_k = np.reshape(np_k, (5, 5, 1, 1))
-            self.blur = tf.Variable(initial_value=tf.convert_to_tensor(np_k, dtype=tf.keras.backend.floatx()), trainable=False)
+            self.blur = tf.Variable(initial_value=tf.convert_to_tensor(np_k), trainable=False)
 
     @property
     def kernel(self):
@@ -450,7 +450,7 @@ class ComplexPadConvScale3D(ComplexPadConv3D):
             np_k = np_k @ np_k.T
             np_k /= np_k.sum()
             np_k = np.reshape(np_k, (1, 5, 5, 1, 1))
-            self.blur = tf.Variable(initial_value=tf.convert_to_tensor(np_k, dtype=tf.keras.backend.floatx()), trainable=False)
+            self.blur = tf.Variable(initial_value=tf.convert_to_tensor(np_k), trainable=False)
 
     @property
     def kernel(self):
@@ -566,7 +566,7 @@ class ComplexPadConv2DTest(unittest.TestCase):
         shape = [nBatch, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=True)
-        x = merlintf.random_normal_complex(shape, tf.float32)
+        x = merlintf.random_normal_complex(shape)
 
         with tf.GradientTape() as g:
             g.watch(x)
@@ -615,7 +615,7 @@ class ComplexPadConv3DTest(unittest.TestCase):
         shape = [nBatch, D, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=True)
-        x = merlintf.random_normal_complex(shape, tf.float32)
+        x = merlintf.random_normal_complex(shape)
 
         with tf.GradientTape() as g:
             g.watch(x)
@@ -647,7 +647,7 @@ class ComplexPadConvScaleTest(unittest.TestCase):
         shape = [nBatch, M, N, nf_in]
 
         model = ComplexPadConvScale2D(nf_out, kernel_size=3, strides=2)
-        x = merlintf.random_normal_complex(shape, tf.float32)
+        x = merlintf.random_normal_complex(shape)
         #model2 = ComplexPadConvScale2DTranspose(nf_out, kernel_size=3, strides=2)
 
         with tf.GradientTape() as g:

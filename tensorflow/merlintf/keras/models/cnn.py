@@ -98,9 +98,9 @@ class Real2chCNNTest(unittest.TestCase):
         model = Real2chCNN(**config)
 
         if dim == '2D':
-            x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
+            x = merlintf.random_normal_complex((nBatch, M, N, 1))
         elif dim == '3D' or dim == '2Dt':
-            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
+            x = merlintf.random_normal_complex((nBatch, D, M, N, 1))
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
         
@@ -134,9 +134,9 @@ class ComplexCNNTest(unittest.TestCase):
         model = ComplexCNN(**config)
 
         if dim == '2D':
-            x = merlintf.random_normal_complex((nBatch, M, N, 1), tf.float32)
+            x = merlintf.random_normal_complex((nBatch, M, N, 1))
         elif dim == '3D' or dim == '2Dt':
-            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), tf.float32)
+            x = merlintf.random_normal_complex((nBatch, D, M, N, 1))
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
         

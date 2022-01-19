@@ -323,8 +323,8 @@ class ComplexConv3dtTest(unittest.TestCase):
             model = ComplexConv3Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
                             strides=stride, data_format=data_format)
 
-        x_real = tf.cast(tf.random.normal(shape), dtype=tf.float32)
-        x_imag = tf.cast(tf.random.normal(shape), dtype=tf.float32)
+        x_real = tf.random.normal(shape)
+        x_imag = tf.random.normal(shape)
         x = tf.complex(x_real, x_imag)
         Kx = model(x)
 

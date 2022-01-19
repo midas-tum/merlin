@@ -1286,7 +1286,7 @@ class ComplexConv2DTest(unittest.TestCase):
         shape = [nBatch, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = merlintf.random_normal_complex(shape, tf.float32)
+        x = merlintf.random_normal_complex(shape)
         Kx = model(x)
         #print(Kx.shape)
 
@@ -1310,7 +1310,7 @@ class ComplexConv3DTest(unittest.TestCase):
         shape = [nBatch, D, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = merlintf.random_normal_complex(shape, tf.float32)
+        x = merlintf.random_normal_complex(shape)
         Kx = model(x)
         #print(Kx.shape)
 

@@ -129,7 +129,6 @@ class DCPM(tf.keras.layers.Layer):
 # unittests
 class CgTest(unittest.TestCase):
     def testcg(self):
-        K.set_floatx('float64')
 
         from merlintf.keras.layers import mri
         
@@ -140,16 +139,16 @@ class CgTest(unittest.TestCase):
 
         shape=(5,10,10,1)
         kshape=(5,3,10,10)
-        x = tf.complex(tf.random.normal(shape, dtype=tf.float64), 
-                       tf.random.normal(shape, dtype=tf.float64))
-        y = tf.complex(tf.random.normal(kshape, dtype=tf.float64),
-                       tf.random.normal(kshape, dtype=tf.float64))
-        mask = tf.ones(kshape, dtype=tf.float64)
-        smaps = tf.complex(tf.random.normal(kshape, dtype=tf.float64), 
-                           tf.random.normal(kshape, dtype=tf.float64))
+        x = tf.complex(tf.random.normal(shape), 
+                       tf.random.normal(shape))
+        y = tf.complex(tf.random.normal(kshape),
+                       tf.random.normal(kshape))
+        mask = tf.ones(kshape)
+        smaps = tf.complex(tf.random.normal(kshape), 
+                           tf.random.normal(kshape))
 
-        tf_a = tf.Variable(np.array([1.1]), trainable=True, dtype=tf.float64)
-        tf_b = tf.Variable(np.array([1.1]), trainable=True, dtype=tf.float64)
+        tf_a = tf.Variable(np.array([1.1]), trainable=True)
+        tf_b = tf.Variable(np.array([1.1]), trainable=True)
 
         # perform a gradient check:
         epsilon = 1e-5
