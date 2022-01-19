@@ -96,4 +96,5 @@ class TestWarping(unittest.TestCase):
         self._test_adjointness(True)
 
 if __name__ == "__main__":
+    tf.keras.backend.set_floatx('float64')
     unittest.test()

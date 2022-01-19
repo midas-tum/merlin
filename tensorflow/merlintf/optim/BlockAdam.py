@@ -164,11 +164,9 @@ class BlockAdamOptimizer(optimizer.Optimizer):
     v_sqrt = math_ops.sqrt(v_t)
 
     if hasattr(var, 'proj'):
-      #print('proj', var)
       var_update = state_ops.assign(
         var, var.proj(var - lr * m_t / (v_sqrt + epsilon_t)), use_locking=self._use_locking)
     else:
-      #print('noproj', var)
       var_update = state_ops.assign_sub(
         var, lr * m_t / (v_sqrt + epsilon_t), use_locking=self._use_locking)
 

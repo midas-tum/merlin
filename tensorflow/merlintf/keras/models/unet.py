@@ -655,7 +655,6 @@ class UNetTest(unittest.TestCase):
             raise RuntimeError(f'No implementation for dim {dim} available!')
 
         Kx = model(x)
-        print(x.shape, Kx.shape)
         self.assertTrue(Kx.shape == x.shape)
 
 if __name__ == "__main__":

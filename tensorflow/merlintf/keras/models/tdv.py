@@ -1,5 +1,6 @@
 import tensorflow as tf
 import numpy as np
+from merlintf import random_normal_complex
 
 from merlintf.keras.models.foe import Regularizer
 from merlintf.keras.layers.convolutional.padconv import (
@@ -341,12 +342,12 @@ class GradientTest(unittest.TestCase):
     def _test_tdv_gradient(self, dim):
         # setup the data
         if dim == '2D':
-            x = np.random.randn(2,64,64,1)
+            x = shape = (2,64,64,1)
         elif dim == '3D':
-            x = np.random.randn(2,10,64,64,1)
+            x = shape = (2,10,64,64,1)
         else:
             raise ValueError
-        x = tf.convert_to_tensor(x)
+        x = random_normal_complex(shape)
 
         # define the TDV regularizer
         config = {
@@ -391,12 +392,12 @@ class ComplexGradientTest(unittest.TestCase):
     def _test_complex_tdv_gradient(self, dim):
         # setup the data
         if dim == '2D':
-            x = np.random.randn(2,64,64,1) + 1j * np.random.randn(2,64,64,1)
+            shape = (2,64,64,1)
         elif dim == '3D':
-            x = np.random.randn(2,10,64,64,1) + 1j * np.random.randn(2,10,64,64,1)
+            shape = (2,10,64,64,1)
         else:
             raise ValueError
-        x = tf.convert_to_tensor(x)
+        x = random_normal_complex(shape)
 
         # define the TDV regularizer
         config = {
@@ -437,8 +438,7 @@ class TestComplexMicroBlock(unittest.TestCase):
             shape = (2,10,64,64,nf)
         else:
             raise ValueError
-        x = np.random.randn(*shape) + 1j * np.random.randn(*shape)
-        x = tf.convert_to_tensor(x)
+        x = random_normal_complex(shape)
         
         R = ComplexMicroBlock(dim, nf)
 
@@ -471,8 +471,7 @@ class TestComplexMacroBlock(unittest.TestCase):
         else:
             raise ValueError
 
-        x = np.random.randn(*shape) + 1j * np.random.randn(*shape)
-        x = tf.convert_to_tensor(x)
+        x = random_normal_complex(shape)
         
         R = MacroBlock(dim, nf, num_scales=1, is_complex=True)
         
@@ -504,8 +503,7 @@ class TestEnergy(unittest.TestCase):
         else:
             raise ValueError
 
-        x = np.random.randn(*shape) + 1j * np.random.randn(*shape)
-        x = tf.convert_to_tensor(x)
+        x = random_normal_complex(shape)
         
         # define the TDV regularizer
         config ={
@@ -547,8 +545,7 @@ class TestTransformation(unittest.TestCase):
         else:
             raise ValueError
 
-        x = np.random.randn(*shape) + 1j * np.random.randn(*shape)
-        x = tf.convert_to_tensor(x)
+        x = random_normal_complex(shape)
 
         # define the TDV regularizer
         config ={

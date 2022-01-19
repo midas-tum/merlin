@@ -28,7 +28,6 @@ class DCGD(tf.keras.layers.Layer):
 
         parallel_iterations = kwargs.get('parallel_iterations', None)
         if parallel_iterations != None:
-            print('HERE')
             def A_call(x, *constants):
                 def A_fn(inputs):
                     return A(*inputs)
@@ -147,8 +146,8 @@ class CgTest(unittest.TestCase):
         smaps = tf.complex(tf.random.normal(kshape), 
                            tf.random.normal(kshape))
 
-        tf_a = tf.Variable(np.array([1.1]), trainable=True)
-        tf_b = tf.Variable(np.array([1.1]), trainable=True)
+        tf_a = tf.Variable(np.array([1.1]), dtype=tf.keras.backend.floatx(), trainable=True)
+        tf_b = tf.Variable(np.array([1.1]), dtype=tf.keras.backend.floatx(), trainable=True)
 
         # perform a gradient check:
         epsilon = 1e-5
@@ -187,4 +186,5 @@ class CgTest(unittest.TestCase):
         self.assertTrue(np.abs(grad_b - grad_b_num) < 1e-4)
 
 if __name__ == "__main__":
+    tf.keras.backend.set_floatx('float64')
     unittest.test()

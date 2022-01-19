@@ -162,13 +162,6 @@ class ComplexPadConv(ComplexConv):
                  [[0,0,],]
         x = tf.pad(x, tf_pad)
        
-        # print('strides', self.strides)
-        # print(output_shape, x.shape)
-        # print(output_padding)
-        # print(pad)
-        # print(ksz)
-        # print(pad_k)
-
         # remove bias
         if self.use_bias:
             x = tf.nn.bias_add(x, -1 * self.bias)
