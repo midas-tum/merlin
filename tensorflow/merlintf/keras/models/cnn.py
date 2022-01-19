@@ -31,6 +31,7 @@ class ComplexCNN(tf.keras.Model):
     def call(self, inputs):
         x = inputs
         for op in self.ops:
+            print(op, x.dtype, op(x).dtype)
             x = op(x)
         return x
 
