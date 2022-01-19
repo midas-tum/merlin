@@ -72,8 +72,8 @@ jobs:
         run: |
           source ~/actions-runner-merlin/_work/merlin/merlin/merlinenv/bin/activate
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/cuda/lib64
-          #python3 -m unittest discover -s merlintf -p "*.py" >> results_tf.txt
-          python3 -m unittest merlintf.keras.models.cnn >> results_tf.txt
+          python3 -m unittest discover -s merlintf -p "*.py" >> results_tf.txt
+          #python3 -m unittest merlintf.keras.models.cnn >> results_tf.txt
       #- name: Publish Unit Test Results
       #  uses: EnricoMi/publish-unit-test-result-action@v1
       #  if: always()
