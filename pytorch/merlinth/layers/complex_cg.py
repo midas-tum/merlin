@@ -65,8 +65,9 @@ class ComplexCG(torch.autograd.Function):
                        ComplexCG.dotp(QQe, rhs).sum()
         grad_lambdaa = torch.real(grad_lambdaa)
 
-        return None, None, None, None, grad_lambdaa, grad_x, None, None, None
-
+        output = None, None, None, None, grad_lambdaa, grad_x, None, *[None for _ in constants]
+        return output
+        
 class CGClass(torch.nn.Module):
     def __init__(self, A, AH, max_iter=10, tol=1e-10):
         super().__init__()
