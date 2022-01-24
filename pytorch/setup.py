@@ -3,9 +3,9 @@ import os
 
 setup(
     name='merlinth',
-    version='0.2.0',
-    author="Kerstin Hammernik",
-    author_email="k.hammernik@imperial.ac.uk",
+    version='0.3.0',
+    author="Kerstin Hammernik, Thomas Kuestner",
+    author_email="k.hammernik@imperial.ac.uk, thomas.kuestner@med.uni-tuebingen.de",
     packages=["merlinth",
               "merlinth.optim",
               "merlinth.layers",
@@ -15,6 +15,7 @@ setup(
     package_dir={"merlinth": os.path.join('.', "merlinth"),
                  "merlinth.optim": os.path.join('.', "merlinth/optim"),
                  "merlinth.layers": os.path.join('.', "merlinth/layers"),
+                 "merlinth.losses": os.path.join('.', "merlinth/losses"),
                  "merlinth.layers.convolutional": os.path.join('.', "merlinth/layers/convolutional"),
                  "merlinth.models": os.path.join('.', "merlinth/models"),
     },
