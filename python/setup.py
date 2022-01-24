@@ -15,6 +15,7 @@ setup(
     packages=["merlinpy",
               "merlinpy.fastmri",
               "merlinpy.wandb",
+              "merlinpy.recon",
               "merlinpy.datapipeline",
               "merlinpy.datapipeline.sampling",
               "merlinpy.datapipeline.sampling.VISTA",

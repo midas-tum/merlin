@@ -9,6 +9,7 @@ setup(
     packages=["merlinth",
               "merlinth.optim",
               "merlinth.layers",
+              "merlinth.losses",
               "merlinth.layers.convolutional",
               "merlinth.models",
               ],
