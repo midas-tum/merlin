@@ -10,11 +10,11 @@ import numpy as np
 import unittest
 import torch
 
-import common.mytorch.loss as loss
+from merlinth.losses.pairwise_loss import mse, nmse, psnr
+from merlinth.losses.ssim import SSIM
 
-from common import utils
-from common.evaluate import mse, nmse, psnr, ssim
-
+def torch_to_numpy(data):
+    return data.numpy()
 
 def create_input_pair(shape, sigma=0.1):
     input = np.arange(np.product(shape)).reshape(shape).astype(float)
@@ -24,7 +24,6 @@ def create_input_pair(shape, sigma=0.1):
     input2 = torch.from_numpy(input2).float()
     return input, input2
 
-
 class TestLosses(unittest.TestCase):
     def test_psnr(self):
         self._test_psnr([10, 32, 32])
@@ -32,20 +31,20 @@ class TestLosses(unittest.TestCase):
 
     def _test_psnr(self, shape):
         input, input2 = create_input_pair(shape, sigma=0.1)
-        input_numpy = utils.torch_to_numpy(input)
-        input2_numpy = utils.torch_to_numpy(input2)
+        input_numpy = torch_to_numpy(input)
+        input2_numpy = torch_to_numpy(input2)
 
-        err = loss.psnr(input, input2, batch=False).item()
+        err = psnr(input, input2, batch=False).item()
         err_numpy = psnr(input_numpy, input2_numpy)
         self.assertTrue(np.allclose(err, err_numpy))
 
     def test_psnr_batch(self):
         shape4d = [4, 6, 32, 32]
         input, input2 = create_input_pair(shape4d, sigma=0.1)
-        input_numpy = utils.torch_to_numpy(input)
-        input2_numpy = utils.torch_to_numpy(input2)
+        input_numpy = torch_to_numpy(input)
+        input2_numpy = torch_to_numpy(input2)
 
-        err = loss.psnr(input, input2, batch=True).item()
+        err = psnr(input, input2, batch=True).item()
         err_numpy = 0
         for i in range(shape4d[0]):
             err_curr = psnr(input_numpy[i], input2_numpy[i])
@@ -55,10 +54,10 @@ class TestLosses(unittest.TestCase):
 
         shape5d = [4, 6, 1, 32, 32]
         input, input2 = create_input_pair(shape5d, sigma=0.1)
-        input_numpy = utils.torch_to_numpy(input)
-        input2_numpy = utils.torch_to_numpy(input2)
+        input_numpy = torch_to_numpy(input)
+        input2_numpy = torch_to_numpy(input2)
 
-        err = loss.psnr(input, input2)
+        err = psnr(input, input2)
         err_numpy = 0
         for i in range(shape5d[0]):
             err_numpy += psnr(input_numpy[i][:,0], input2_numpy[i][:,0])
@@ -72,10 +71,10 @@ class TestLosses(unittest.TestCase):
 
     def _test_ssim(self, shape):
         input, input2 = create_input_pair(shape, sigma=0.1)
-        input_numpy = utils.torch_to_numpy(input)
-        input2_numpy = utils.torch_to_numpy(input2)
+        input_numpy = torch_to_numpy(input)
+        input2_numpy = torch_to_numpy(input2)
 
-        torch_ssim = loss.SSIM(win_size=7, device='cpu')
+        torch_ssim = SSIM(win_size=7, device='cpu')
 
         err = torch_ssim(input.unsqueeze(1), input2.unsqueeze(1)).item()
         err_numpy = ssim(input_numpy, input2_numpy)
@@ -84,10 +83,10 @@ class TestLosses(unittest.TestCase):
     def test_ssim_batch(self):
         shape4d = [4, 6, 96, 96]
         input, input2 = create_input_pair(shape4d, sigma=0.1)
-        input_numpy = utils.torch_to_numpy(input)
-        input2_numpy = utils.torch_to_numpy(input2)
+        input_numpy = torch_to_numpy(input)
+        input2_numpy = torch_to_numpy(input2)
 
-        torch_ssim = loss.SSIM(win_size=7, device='cpu')
+        torch_ssim = SSIM(win_size=7, device='cpu')
 
         data_range = input.view(4, -1).max(1)[0].repeat(6)
         err = torch_ssim(
@@ -110,8 +109,8 @@ class TestLosses(unittest.TestCase):
 
     def _test_mse(self,shape):
         input, input2 = create_input_pair(shape, sigma=0.1)
-        input_numpy = utils.torch_to_numpy(input)
-        input2_numpy = utils.torch_to_numpy(input2)
+        input_numpy = torch_to_numpy(input)
+        input2_numpy = torch_to_numpy(input2)
 
         err = torch.nn.functional.mse_loss(input, input2).item()
         err_numpy = mse(input_numpy, input2_numpy)
@@ -120,8 +119,8 @@ class TestLosses(unittest.TestCase):
     def test_mse_batch(self):
         shape4d = [4, 6, 32, 32]
         input, input2 = create_input_pair(shape4d, sigma=0.1)
-        input_numpy = utils.torch_to_numpy(input)
-        input2_numpy = utils.torch_to_numpy(input2)
+        input_numpy = torch_to_numpy(input)
+        input2_numpy = torch_to_numpy(input2)
 
         err = torch.nn.functional.mse_loss(input, input2).item()
         err_numpy = 0
@@ -133,8 +132,8 @@ class TestLosses(unittest.TestCase):
 
         shape5d = [4, 6, 1, 32, 32]
         input, input2 = create_input_pair(shape5d, sigma=0.1)
-        input_numpy = utils.torch_to_numpy(input)
-        input2_numpy = utils.torch_to_numpy(input2)
+        input_numpy = torch_to_numpy(input)
+        input2_numpy = torch_to_numpy(input2)
 
         err = torch.nn.functional.mse_loss(input, input2).item()
         err_numpy = 0
@@ -152,20 +151,20 @@ class TestLosses(unittest.TestCase):
 
     def _test_nmse(self, shape):
         input, input2 = create_input_pair(shape, sigma=0.1)
-        input_numpy = utils.torch_to_numpy(input)
-        input2_numpy = utils.torch_to_numpy(input2)
+        input_numpy = torch_to_numpy(input)
+        input2_numpy = torch_to_numpy(input2)
 
-        err = loss.nmse(input, input2, batch=False).item()
+        err = nmse(input, input2, batch=False).item()
         err_numpy = nmse(input_numpy, input2_numpy)
         self.assertTrue(np.allclose(err, err_numpy))
 
     def test_nmse_batch(self):
         shape4d = [4, 6, 32, 32]
         input, input2 = create_input_pair(shape4d, sigma=0.1)
-        input_numpy = utils.torch_to_numpy(input)
-        input2_numpy = utils.torch_to_numpy(input2)
+        input_numpy = torch_to_numpy(input)
+        input2_numpy = torch_to_numpy(input2)
 
-        err = loss.nmse(input, input2).item()
+        err = nmse(input, input2).item()
         err_numpy = 0
         for i in range(shape4d[0]):
             err_curr = nmse(input_numpy[i], input2_numpy[i])
@@ -175,10 +174,10 @@ class TestLosses(unittest.TestCase):
 
         shape5d = [4, 6, 1, 32, 32]
         input, input2 = create_input_pair(shape5d, sigma=0.1)
-        input_numpy = utils.torch_to_numpy(input)
-        input2_numpy = utils.torch_to_numpy(input2)
+        input_numpy = torch_to_numpy(input)
+        input2_numpy = torch_to_numpy(input2)
 
-        err = loss.nmse(input, input2).item()
+        err = nmse(input, input2).item()
         err_numpy = 0
         for i in range(shape5d[0]):
             err_numpy += nmse(input_numpy[i][:,0], input2_numpy[i][:,0])
