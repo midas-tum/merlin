@@ -44,4 +44,4 @@ except:
 # from .complex_act import *
 # from .foe2d import *
 
-from merlinth.layers.mri import *
+from .mri import *
