@@ -78,11 +78,14 @@ class BARTTest(unittest.TestCase):
         importsuccess = setup_bart('/home/gitaction/bart')
         if importsuccess:
             from bart import bart
-            kspace = bart(1, 'phantom -3 -x 64 -k')
+            kspace = bart(1, 'phantom -3 -x 64 -k -s 8')
             smap = bart(1, 'phantom -3 -x 64 -S 8')
 
-            reconimg = recon(kspace, smap, None, '-d5 -m -S -R W:7:0:0.01 - R T:7:0:0.001')
-            self.assertTrue(np.shape(reconimg) == (64, 64, 64))
+            kspace = np.expand_dims(kspace, 0).transpose((0, -1, 1, 2, 3))
+            smap = np.expand_dims(smap, 0).transpose((0, -1, 1, 2, 3))
+
+            reconimg = recon(kspace, smap, None, None, '-d5 -m -S -R W:7:0:0.01 -R T:7:0:0.001', dim='3D')
+            self.assertTrue(np.shape(reconimg) == (1, 64, 64, 64))
         else:
             self.assertTrue(True)
 
