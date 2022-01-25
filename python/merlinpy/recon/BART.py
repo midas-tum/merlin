@@ -10,10 +10,10 @@ def setup_bart(bart_path):
     sys.path.append(os.path.join(bart_path, 'python'))
     try:
         from bart import bart
-        return true
+        return True
     except Exception:
         print(Warning("BART toolbox not setup properly or not available"))
-        return false
+        return False
 
 def recon(kspace, smap, mask=None, noisy=None, bartpara='', dim='2D'):
     # kspace        raw k-space data as [batch, coils, X, Y] or [batch, coils, X, Y, Z] or [batch, coils, time, X, Y] or [batch, coils, time, X, Y, Z]
