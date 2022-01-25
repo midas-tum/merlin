@@ -3,6 +3,7 @@ import sys
 import h5py
 import numpy as np
 import tempfile
+import unittest
 
 def setup_bart(bart_path):
     os.environ['TOOLBOX_PATH'] = bart_path
