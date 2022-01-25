@@ -75,6 +75,7 @@ def recon(kspace, smap, mask=None, noisy=None, bartpara='', dim='2D'):
 
 class BARTTest(unittest.TestCase):
     def test_BARTrecon(self, acc=4):
+        from bart import bart
         kspace = bart(1, 'phantom -3 -x 64 -k')
         smap = bart(1, 'phantom -3 -x 64 -S 8')
 
