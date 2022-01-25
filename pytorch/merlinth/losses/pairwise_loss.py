@@ -165,3 +165,4 @@ class NRMSELoss(torch.nn.Module):
             batch=self.batch,
             reduce=self.reduce,
         )
+

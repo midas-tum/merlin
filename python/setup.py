@@ -16,6 +16,7 @@ setup(
               "merlinpy.fastmri",
               "merlinpy.wandb",
               "merlinpy.recon",
+              "merlinpy.losses",
               "merlinpy.datapipeline",
               "merlinpy.datapipeline.sampling",
               "merlinpy.datapipeline.sampling.VISTA",
@@ -24,6 +25,7 @@ setup(
                  "merlinpy.fastmri": os.path.join('.', "merlinpy/fastmri"),
                  "merlinpy.wandb": os.path.join('.', "merlinpy/wandb"),
                  "merlinpy.recon": os.path.join('.', "merlinpy/recon"),
+                 "merlinpy.losses": os.path.join('.', "merlinpy/losses"),
                  "merlinpy.datapipeline": os.path.join('.', "merlinpy/datapipeline"),
                  "merlinpy.datapipeline.sampling": os.path.join('.', "merlinpy/datapipeline/sampling"),
                  "merlinpy.datapipeline.sampling.VISTA": os.path.join('.', "merlinpy/datapipeline/sampling/VISTA"),
@@ -38,6 +40,7 @@ setup(
         "pandas",
         "tqdm",
         "scipy",
+        "scikit-image",
         "matplotlib",
         "joblib"
     ],

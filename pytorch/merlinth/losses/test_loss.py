@@ -11,7 +11,8 @@ import unittest
 import torch
 
 from merlinth.losses.pairwise_loss import mse, nmse, psnr
-from merlinth.losses.ssim import SSIM
+from merlinpy.losses.pairwise_loss import mse as mse_py, nmse as nmse_py, psnr as psnr_py
+from merlinth.losses.ssim import SSIM, ssim
 
 def torch_to_numpy(data):
     return data.numpy()
@@ -35,7 +36,7 @@ class TestLosses(unittest.TestCase):
         input2_numpy = torch_to_numpy(input2)
 
         err = psnr(input, input2, batch=False).item()
-        err_numpy = psnr(input_numpy, input2_numpy)
+        err_numpy = psnr_py(input_numpy, input2_numpy)
         self.assertTrue(np.allclose(err, err_numpy))
 
     def test_psnr_batch(self):
@@ -47,7 +48,7 @@ class TestLosses(unittest.TestCase):
         err = psnr(input, input2, batch=True).item()
         err_numpy = 0
         for i in range(shape4d[0]):
-            err_curr = psnr(input_numpy[i], input2_numpy[i])
+            err_curr = psnr_py(input_numpy[i], input2_numpy[i])
             err_numpy += err_curr
         err_numpy /= shape4d[0]
         self.assertTrue(np.allclose(err, err_numpy))
@@ -60,7 +61,7 @@ class TestLosses(unittest.TestCase):
         err = psnr(input, input2)
         err_numpy = 0
         for i in range(shape5d[0]):
-            err_numpy += psnr(input_numpy[i][:,0], input2_numpy[i][:,0])
+            err_numpy += psnr_py(input_numpy[i][:,0], input2_numpy[i][:,0])
         err_numpy /= shape5d[0]
 
         self.assertTrue(np.allclose(err, err_numpy))
@@ -77,7 +78,7 @@ class TestLosses(unittest.TestCase):
         torch_ssim = SSIM(win_size=7, device='cpu')
 
         err = torch_ssim(input.unsqueeze(1), input2.unsqueeze(1)).item()
-        err_numpy = ssim(input_numpy, input2_numpy)
+        err_numpy = ssim_py(input_numpy, input2_numpy)
         self.assertTrue(abs(err - err_numpy) < 1e-4)
 
     def test_ssim_batch(self):
@@ -96,7 +97,7 @@ class TestLosses(unittest.TestCase):
         ).item()
         err_numpy = 0
         for i in range(shape4d[0]):
-            err_curr = ssim(input_numpy[i], input2_numpy[i])
+            err_curr = ssim_py(input_numpy[i], input2_numpy[i])
             err_numpy += err_curr
         err_numpy /= shape4d[0]
         self.assertTrue(abs(err - err_numpy) < 1e-4)
@@ -113,7 +114,7 @@ class TestLosses(unittest.TestCase):
         input2_numpy = torch_to_numpy(input2)
 
         err = torch.nn.functional.mse_loss(input, input2).item()
-        err_numpy = mse(input_numpy, input2_numpy)
+        err_numpy = mse_py(input_numpy, input2_numpy)
         self.assertTrue(np.allclose(err, err_numpy))
 
     def test_mse_batch(self):
@@ -125,7 +126,7 @@ class TestLosses(unittest.TestCase):
         err = torch.nn.functional.mse_loss(input, input2).item()
         err_numpy = 0
         for i in range(shape4d[0]):
-            err_curr = mse(input_numpy[i], input2_numpy[i])
+            err_curr = mse_py(input_numpy[i], input2_numpy[i])
             err_numpy += err_curr
         err_numpy /= shape4d[0]
         self.assertTrue(np.allclose(err, err_numpy))
@@ -138,7 +139,7 @@ class TestLosses(unittest.TestCase):
         err = torch.nn.functional.mse_loss(input, input2).item()
         err_numpy = 0
         for i in range(shape5d[0]):
-            err_numpy += mse(input_numpy[i][:,0], input2_numpy[i][:,0])
+            err_numpy += mse_py(input_numpy[i][:,0], input2_numpy[i][:,0])
         err_numpy /= shape5d[0]
 
         self.assertTrue(np.allclose(err, err_numpy))
@@ -155,7 +156,7 @@ class TestLosses(unittest.TestCase):
         input2_numpy = torch_to_numpy(input2)
 
         err = nmse(input, input2, batch=False).item()
-        err_numpy = nmse(input_numpy, input2_numpy)
+        err_numpy = nmse_py(input_numpy, input2_numpy)
         self.assertTrue(np.allclose(err, err_numpy))
 
     def test_nmse_batch(self):
@@ -167,7 +168,7 @@ class TestLosses(unittest.TestCase):
         err = nmse(input, input2).item()
         err_numpy = 0
         for i in range(shape4d[0]):
-            err_curr = nmse(input_numpy[i], input2_numpy[i])
+            err_curr = nmse_py(input_numpy[i], input2_numpy[i])
             err_numpy += err_curr
         err_numpy /= shape4d[0]
         self.assertTrue(np.allclose(err, err_numpy))
@@ -180,7 +181,10 @@ class TestLosses(unittest.TestCase):
         err = nmse(input, input2).item()
         err_numpy = 0
         for i in range(shape5d[0]):
-            err_numpy += nmse(input_numpy[i][:,0], input2_numpy[i][:,0])
+            err_numpy += nmse_py(input_numpy[i][:,0], input2_numpy[i][:,0])
         err_numpy /= shape5d[0]
 
         self.assertTrue(np.allclose(err, err_numpy))
+
+if __name__ == "__main__":
+    unittest.main()
