@@ -45,3 +45,4 @@ except:
 # from .foe2d import *
 
 from .mri import *
+from .data_consistency import *
