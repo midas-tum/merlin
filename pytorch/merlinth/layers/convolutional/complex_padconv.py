@@ -38,7 +38,7 @@ class ComplexPadConv(ComplexModule):
         self.stride = merlinth.utils.validate_input_dimension(rank, stride)
         self.dilation = merlinth.utils.validate_input_dimension(rank, dilation)
         self.groups = groups
-        self.bias = torch.nn.Parameter(torch.zeros(filters), dtype=merlinth.get_default_cdtype()) if bias else None
+        self.bias = torch.nn.Parameter(torch.zeros(filters, dtype=merlinth.get_default_cdtype())) if bias else None
         self.zero_mean = zero_mean
         self.bound_norm = bound_norm
         self.padding = 0
@@ -455,6 +455,19 @@ class ComplexPadConv2Dt(torch.nn.Module):
         xT_t = self.conv_t.backward(x, output_shape)
         xT_sp = self.conv_xy.backward(xT_t, output_shape)
         return xT_sp
+
+# Aliases
+ComplexPadConv1D = ComplexPadConv1d
+ComplexPadConvRealWeight1D = ComplexPadConvRealWeight1d
+ComplexPadConv2D = ComplexPadConv2d
+ComplexPadConvRealWeight2D = ComplexPadConvRealWeight2d
+ComplexPadConvScale2D = ComplexPadConvScale2d
+ComplexPadConvScaleTranspose2D = ComplexPadConvScaleTranspose2d
+ComplexPadConv3D = ComplexPadConv3d
+ComplexPadConvRealWeight3D = ComplexPadConvRealWeight3d
+ComplexPadConvScale3D = ComplexPadConvScale3d
+ComplexPadConvScaleTranspose3D = ComplexPadConvScaleTranspose3d
+ComplexPadConv2dt = ComplexPadConv2Dt
 
 class ComplexPadConv1dTest(unittest.TestCase):
     def test_constraints(self):

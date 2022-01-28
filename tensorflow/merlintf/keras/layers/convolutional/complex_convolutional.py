@@ -50,15 +50,13 @@ from tensorflow.python.util.tf_export import keras_export
 # pylint: disable=g-classes-have-attributes
 import unittest
 
-from merlintf.keras.layers.complex_conv2dt import ComplexConv2D, ComplexConv2DTranspose
-from merlintf.keras.layers.complex_conv3dt import ComplexConv3D, ComplexConv3DTranspose
 from merlintf.keras.layers.convolutional import complex_conv as complex_nn_ops
 from merlintf.keras.layers import complex_act as activations
 import merlintf
 
 def ComplexConvolution(identifier):
     if isinstance(identifier, six.string_types):
-        identifier = 'ComplexConvolution' + str(identifier).upper()
+        identifier = 'ComplexConvolution' + (str(identifier).upper() if len(identifier) == 2 else str(identifier[0:2]).upper() + str(identifier[-1]))
         return deserialize(identifier)
     elif callable(identifier):
         return identifier
@@ -67,7 +65,7 @@ def ComplexConvolution(identifier):
 
 def ComplexConvolutionTranspose(identifier):
     if isinstance(identifier, six.string_types):
-        identifier = 'ComplexConvolution' + str(identifier).upper() + 'Transpose'
+        identifier = 'ComplexConvolution' + (str(identifier).upper() if len(identifier) == 2 else str(identifier[0:2]).upper() + str(identifier[-1])) + 'Transpose'
         return deserialize(identifier)
     elif callable(identifier):
         return identifier
@@ -76,7 +74,7 @@ def ComplexConvolutionTranspose(identifier):
 
 def UpSampling(identifier):
     if isinstance(identifier, six.string_types):
-        identifier = 'UpSampling' + str(identifier).upper()
+        identifier = 'UpSampling' + (str(identifier).upper() if len(identifier) == 2 else str(identifier[0:2]).upper() + str(identifier[-1]))
         return deserialize(identifier)
     elif callable(identifier):
         return identifier
@@ -85,7 +83,7 @@ def UpSampling(identifier):
 
 def ZeroPadding(identifier):
     if isinstance(identifier, six.string_types):
-        identifier = 'ZeroPadding' + str(identifier).upper()
+        identifier = 'ZeroPadding' + (str(identifier).upper() if len(identifier) == 2 else str(identifier[0:2]).upper() + str(identifier[-1]))
         return deserialize(identifier)
     elif callable(identifier):
         return identifier
@@ -94,7 +92,7 @@ def ZeroPadding(identifier):
 
 def Cropping(identifier):
     if isinstance(identifier, six.string_types):
-        identifier = 'Cropping' + str(identifier).upper()
+        identifier = 'Cropping' + (str(identifier).upper() if len(identifier) == 2 else str(identifier[0:2]).upper() + str(identifier[-1]))
         return deserialize(identifier)
     elif callable(identifier):
         return identifier
@@ -107,21 +105,21 @@ def deserialize(op):
     elif op == 'ComplexConv2D' or op == 'ComplexConvolution2D':
         return ComplexConv2D
     elif op == 'ComplexConv2Dt' or op == 'ComplexConvolution2Dt':
-        return ComplexConv2Dt
+        return merlintf.keras.layers.complex_conv2dt.ComplexConv2Dt
     elif op == 'ComplexConv3D' or op == 'ComplexConvolution3D':
         return ComplexConv3D
     elif op == 'ComplexConv3Dt' or op == 'ComplexConvolution3Dt':
-        return ComplexConv3Dt
+        return merlintf.keras.layers.complex_conv3dt.ComplexConv3Dt
     elif op == 'ComplexConv1DTranspose' or op == 'ComplexConvolution1DTranspose':
         return ComplexConv1DTranspose
     elif op == 'ComplexConv2DTranspose' or op == 'ComplexConvolution2DTranspose':
         return ComplexConv2DTranspose
     elif op == 'ComplexConv2DtTranspose' or op == 'ComplexConvolution2DtTranspose':
-        return ComplexConv2DtTranspose
+        return merlintf.keras.layers.complex_conv2dt.ComplexConv2DtTranspose
     elif op == 'ComplexConv3DTranspose' or op == 'ComplexConvolution3DTranspose':
         return ComplexConv3DTranspose
     elif op == 'ComplexConv3DtTranspose' or op == 'ComplexConvolution3DtTranspose':
-        return ComplexConv3DtTranspose
+        return merlintf.keras.layers.complex_conv3dt.ComplexConv3DtTranspose
     elif op == 'UpSampling1D':
         return UpSampling1D
     elif op == 'UpSampling2D':
@@ -1980,6 +1978,8 @@ class UpSampling3D(Layer):
     base_config = super(UpSampling3D, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
 
+
+#@keras_export('keras.layers.UpSampling4D')
 class UpSampling4D(Layer):
   """Upsampling layer for 4D inputs.
   Repeats the 1st, 2nd, 3rd and 4th dimensions
@@ -2073,6 +2073,7 @@ class UpSampling4D(Layer):
     config = {'size': self.size, 'data_format': self.data_format}
     base_config = super(UpSampling4D, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
+
 
 #@keras_export('keras.layers.ZeroPadding1D')
 class ZeroPadding1D(Layer):
@@ -2374,6 +2375,8 @@ class ZeroPadding3D(Layer):
     base_config = super(ZeroPadding3D, self).get_config()
     return dict(list(base_config.items()) + list(config.items()))
 
+
+#@keras_export('keras.layers.ZeroPadding4D')
 class ZeroPadding4D(Layer):
   """Zero-padding layer for 4D data (spatial or spatio-temporal).
   Examples:
@@ -2880,6 +2883,7 @@ class Cropping3D(Layer):
     return dict(list(base_config.items()) + list(config.items()))
 
 
+#@keras_export('keras.layers.Cropping4D')
 class Cropping4D(Layer):
   """Cropping layer for 4D data (e.g. spatial or spatio-temporal).
     Examples:
@@ -3117,17 +3121,11 @@ class Cropping4D(Layer):
 # Aliases
 ComplexConvolution1D = ComplexConv1D
 ComplexConvolution2D = ComplexConv2D
-ComplexConvolution2Dt = ComplexConv2Dt
 ComplexConvolution3D = ComplexConv3D
-ComplexConvolution3Dt = ComplexConv3Dt
 ComplexConvolution2DTranspose = ComplexConv2DTranspose
-ComplexConvolution2DtTranspose = ComplexConv2DtTranspose
 ComplexConvolution3DTranspose = ComplexConv3DTranspose
-ComplexConvolution3DtTranspose = ComplexConv3DtTranspose
 ComplexDeconvolution2D = ComplexDeconv2D = ComplexConv2DTranspose
-ComplexDeconvolution2Dt = ComplexDeconv2Dt = ComplexConv2DtTranspose
 ComplexDeconvolution3D = ComplexDeconv3D = ComplexConv3DTranspose
-ComplexDeconvolution3Dt = ComplexDeconv3Dt = ComplexConv3DtTranspose
 Cropping2Dt = Cropping3D
 ZeroPadding2Dt = ZeroPadding3D
 UpSampling2Dt = UpSampling3D
@@ -3145,9 +3143,8 @@ class ComplexConv2DTest(unittest.TestCase):
         shape = [nBatch, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = merlintf.random_normal_complex(shape, tf.float32)
+        x = merlintf.random_normal_complex(shape)
         Kx = model(x)
-        #print(Kx.shape)
 
     def test1(self):
         self._test_fwd(ComplexConvolution2D, 3, 2, 1, None, 'same')
@@ -3169,9 +3166,8 @@ class ComplexConv2DTest(unittest.TestCase):
         shape = [nBatch, M, N, nf_in]
 
         model = op(size)
-        x = merlintf.random_normal_complex(shape, tf.float32)
+        x = merlintf.random_normal_complex(shape)
         Kx = model(x)
-        #print(Kx.shape)
 
     def test_pad(self):
         self._test_other(ZeroPadding2D, 2)
@@ -3193,9 +3189,8 @@ class ComplexConv3DTest(unittest.TestCase):
         shape = [nBatch, D, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = merlintf.random_normal_complex(shape, tf.float32)
+        x = merlintf.random_normal_complex(shape)
         Kx = model(x)
-        #print(Kx.shape)
 
     def test1(self):
         self._test_fwd(ComplexConvolution3D, 3, 2, 1, None, 'same')
@@ -3218,9 +3213,8 @@ class ComplexConv3DTest(unittest.TestCase):
         shape = [nBatch, D, M, N, nf_in]
 
         model = op(size)
-        x = merlintf.random_normal_complex(shape, tf.float32)
+        x = merlintf.random_normal_complex(shape)
         Kx = model(x)
-        #print(Kx.shape)
 
     def test_pad(self):
         self._test_other(ZeroPadding3D, 2)
@@ -3240,9 +3234,8 @@ class ComplexConv1DTest(unittest.TestCase):
         shape = [nBatch, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = merlintf.random_normal_complex(shape, tf.float32)
+        x = merlintf.random_normal_complex(shape)
         Kx = model(x)
-        #print(Kx.shape)
 
     def test1(self):
         self._test_fwd(ComplexConvolution1D, 3, 2, 1, None, 'same')
@@ -3257,9 +3250,8 @@ class ComplexConv1DTest(unittest.TestCase):
         shape = [nBatch, N, nf_in]
 
         model = op(size)
-        x = merlintf.random_normal_complex(shape, tf.float32)
+        x = merlintf.random_normal_complex(shape)
         Kx = model(x)
-        #print(Kx.shape)
 
     def test_pad(self):
         self._test_other(ZeroPadding1D, 2)

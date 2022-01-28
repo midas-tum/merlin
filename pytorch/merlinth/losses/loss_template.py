@@ -5,13 +5,12 @@ This source code is licensed under the MIT license found in the
 LICENSE file in the root directory of this source tree.
 """
 
-
 import torch
 
-from merlinth.mytorch import loss
+from merlinth.losses.ssim import SSIM
 
 def define_losses():
-    _ssim = loss.SSIM(device='cuda')
+    _ssim = SSIM(device='cuda')
 
     def mse(x, xgt, sample):
         tmp = (x - xgt) * sample['fg_mask_normedsqrt'].cuda()

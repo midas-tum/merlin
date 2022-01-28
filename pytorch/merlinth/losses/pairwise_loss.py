@@ -8,6 +8,22 @@ LICENSE file in the root directory of this source tree.
 import torch
 import torch.nn.functional as F
 
+def mse(gt, pred, batch=True, reduce=True):
+    """ torch mse for batch input"""
+    if batch:
+        batch_size = gt.shape[0]
+    else:
+        batch_size = 1
+
+    # reshape the view
+    pred = pred.contiguous().view(batch_size, -1)
+    gt = gt.contiguous().view(batch_size, -1)
+
+    error = (torch.norm(gt - pred, dim=1)) ** 2
+    if reduce:
+        return error.mean()
+    else:
+        return error
 
 def nmse(gt, pred, batch=True, reduce=True):
     """ torch nmse for batch input"""
@@ -149,3 +165,4 @@ class NRMSELoss(torch.nn.Module):
             batch=self.batch,
             reduce=self.reduce,
         )
+

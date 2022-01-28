@@ -41,20 +41,14 @@ class WarpAdjoint(tf.keras.layers.Layer):
     
 class TestWarping(unittest.TestCase):
     def _get_data(self, shape, is_complex):
-        tf.keras.backend.set_floatx('float64')
         batch, frames, frames_all, M, N = shape
         if is_complex:
             img = tf.complex(tf.random.normal((batch, frames, M, N)), tf.random.normal((batch, frames, M, N)))
             imgT = tf.complex(tf.random.normal((batch, frames, frames_all, M, N)), tf.random.normal((batch, frames, frames_all, M, N)))
-            img = tf.cast(img, tf.complex128)
-            imgT = tf.cast(imgT, tf.complex128)
         else:
             img = tf.random.normal((batch, frames, M, N))
             imgT = tf.random.normal((batch, frames, frames_all, M, N))
-            img = tf.cast(img, tf.float64)
-            imgT = tf.cast(imgT, tf.float64)
         uv = tf.random.normal((batch, frames, frames_all, M, N, 2))
-        uv = tf.cast(uv, tf.float64)
         return img, imgT, uv
 
     def _test_forward(self, is_complex):

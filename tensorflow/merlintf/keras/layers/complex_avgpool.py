@@ -1,6 +1,10 @@
+import sys
 import tensorflow as tf
 import numpy as np
-import optotf.averagepooling
+try:
+    import optotf.averagepooling
+except:
+    print('optotf could not be imported')
 import merlintf
 import unittest
 import six
@@ -45,14 +49,14 @@ class MagnitudeAveragePool(tf.keras.layers.Layer):
         self.padding = padding
         self.alpha = 1  # magnitude ratio in real part
         self.beta = 1  # magnitude ratio in imag part
-        self.optox = optox  # True: execute Optox pooling; False: use TF pooling (not supported for all cases)
+        self.optox = optox and (True if 'optotf.averagepooling' in sys.modules else False)  # True: execute Optox pooling; False: use TF pooling (not supported for all cases)
 
-
-    def call(self, x):  # default to TF
+    def call(self, x, **kwargs):  # default to TF
         xabs = merlintf.complex_abs(x)
         x_pool = tf.nn.avg_pool(
             xabs, self.pool_size, self.strides, self.padding)
         return x_pool
+
 
 class MagnitudeAveragePool1D(MagnitudeAveragePool):
     def __init__(self, pool_size, strides=None, padding='SAME', optox=True):
@@ -63,7 +67,7 @@ class MagnitudeAveragePool2D(MagnitudeAveragePool):
     def __init__(self, pool_size, strides=None, padding='SAME', optox=True):
         super(MagnitudeAveragePool2D, self).__init__(pool_size, strides, padding, optox)
 
-    def call(self, x):
+    def call(self, x, **kwargs):
         if self.optox:
             if merlintf.iscomplextf(x):
                 x_pool = optotf.averagepooling.averagepooling2d(x, pool_size=self.pool_size, strides=self.strides,
@@ -74,14 +78,14 @@ class MagnitudeAveragePool2D(MagnitudeAveragePool):
                 x_pool = tf.nn.avg_pool2d(x, self.pool_size, self.strides, self.padding)
                 return x_pool
         else:
-            return super().call(x)
+            return super().call(x, **kwargs)
 
 
 class MagnitudeAveragePool3D(MagnitudeAveragePool):
     def __init__(self, pool_size, strides=None, padding='SAME', optox=True):
         super(MagnitudeAveragePool3D, self).__init__(pool_size, strides, padding, optox)
 
-    def call(self, x):
+    def call(self, x, **kwargs):
         if self.optox:
             if merlintf.iscomplextf(x):
                 x_pool = optotf.averagepooling.averagepooling3d(x, pool_size=self.pool_size,
@@ -91,18 +95,18 @@ class MagnitudeAveragePool3D(MagnitudeAveragePool):
 
                 return x_pool
             else:
-                x_pool = tf.nn.average_pool3d(x, ksize=self.pool_size, strides=self.strides, padding=self.padding)
+                x_pool = tf.nn.avg_pool3d(x, ksize=self.pool_size, strides=self.strides, padding=self.padding)
                 return x_pool
         else:
-            return super().call(x)
+            return super().call(x, **kwargs)
 
 
 class MagnitudeAveragePool2Dt(MagnitudeAveragePool):
-    def __init__(self, pool_size, strides=None, padding='SAME'):
-        super(MagnitudeAveragePool2Dt, self).__init__(pool_size, strides, padding)
+    def __init__(self, pool_size, strides=None, padding='SAME', optox=True):
+        super(MagnitudeAveragePool2Dt, self).__init__(pool_size, strides, padding, optox)
 
-    def call(self, x):
-
+    def call(self, x, **kwargs):
+        if self.optox:
             orig_shape = x.shape
             batched_shape = [x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4]]
             x = tf.reshape(x, batched_shape)
@@ -120,15 +124,15 @@ class MagnitudeAveragePool2Dt(MagnitudeAveragePool):
             x_pool = tf.reshape(x_pool, pooled_shape)
 
             return x_pool
-
-
+        else:
+            return super().call(x, **kwargs)
 
 
 class MagnitudeAveragePool3Dt(MagnitudeAveragePool):
-    def __init__(self, pool_size, strides=None, padding='SAME'):
-        super(MagnitudeAveragePool3Dt, self).__init__(pool_size, strides, padding)
+    def __init__(self, pool_size, strides=None, padding='SAME', optox=True):
+        super(MagnitudeAveragePool3Dt, self).__init__(pool_size, strides, padding, optox)
 
-    def call(self, x):  # only Optox supported
+    def call(self, x, **kwargs):  # only Optox supported
         orig_shape = x.shape
         rank = tf.rank(x)
         batched_shape = 0
@@ -161,7 +165,7 @@ class TestMagnitudePool(unittest.TestCase):
         y = pool(x)
         magn = merlintf.complex_abs(y)
 
-    def _test_2dt(self, shape, pool_size=2, strides=2):
+    def _test_2dt(self, shape, pool_size=(2, 2, 2), strides=(2, 2, 2)):
         x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
         pool = MagnitudeAveragePool2Dt(pool_size, strides)
         y = pool(x)
@@ -179,6 +183,11 @@ class TestMagnitudePool(unittest.TestCase):
         y = pool(x)
         magn = merlintf.complex_abs(y)
 
+    def _test_3dt(self, shape, pool_size=(2, 2, 2, 2), strides=(2, 2, 2, 2)):
+        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        pool = MagnitudeAveragePool3Dt(pool_size, strides, optox=True)
+        y = pool(x)
+        magn = merlintf.complex_abs(y)
 
     def _test_2d_accuracy(self, shape, pool_size=(2, 2), strides=(2, 2)):
         print('_______')
@@ -207,7 +216,7 @@ class TestMagnitudePool(unittest.TestCase):
         y = pool(x)
 
         x_abs = tf.math.abs(x)
-        x_abs = tf.nn.average_pool3d(x_abs, pool_size, strides, padding='SAME')
+        x_abs = tf.nn.avg_pool3d(x_abs, pool_size, strides, padding='SAME')
 
         print('tf.math.abs(y) - x_abs', tf.math.abs(y) - x_abs)
         shape = x_abs.shape

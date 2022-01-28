@@ -23,14 +23,14 @@ def loss_complex_mse(y_true, y_pred, axis=(2,3,4)):
 def loss_complex_mse_2D(y_true, y_pred):
     if tf.keras.backend.image_data_format() == 'channels_first':
         return loss_complex_mse(y_true, y_pred, axis=(2,3))
-    elif if tf.keras.backend.image_data_format() == 'channels_last':
+    elif tf.keras.backend.image_data_format() == 'channels_last':
         return loss_complex_mse(y_true, y_pred, axis=(1,2))
 
 @tf.function
 def loss_complex_mse_3D(y_true, y_pred):
     if tf.keras.backend.image_data_format() == 'channels_first':
         return loss_complex_mse(y_true, y_pred, axis=(2,3,4))
-    elif if tf.keras.backend.image_data_format() == 'channels_last':
+    elif tf.keras.backend.image_data_format() == 'channels_last':
         return loss_complex_mse(y_true, y_pred, axis=(1,2,3))
 
 @tf.function
@@ -41,7 +41,7 @@ def loss_complex_mse_2Dt(y_true, y_pred):
 def loss_complex_mse_4D(y_true, y_pred):
     if tf.keras.backend.image_data_format() == 'channels_first':
         return loss_complex_mse(y_true, y_pred, axis=(2,3,4,5))
-    elif if tf.keras.backend.image_data_format() == 'channels_last':
+    elif tf.keras.backend.image_data_format() == 'channels_last':
         return loss_complex_mse(y_true, y_pred, axis=(1,2,3,4))
 
 @tf.function
@@ -64,14 +64,14 @@ def loss_abs_mse(y_true, y_pred, axis=(2,3,4)):
 def loss_abs_mse_2D(y_true, y_pred):
     if tf.keras.backend.image_data_format() == 'channels_first':
         return loss_abs_mse(y_true, y_pred, axis=(2, 3))
-    elif if tf.keras.backend.image_data_format() == 'channels_last':
+    elif tf.keras.backend.image_data_format() == 'channels_last':
         return loss_abs_mse(y_true, y_pred, axis=(1, 2))
 
 @tf.function
 def loss_abs_mse_3D(y_true, y_pred):
     if tf.keras.backend.image_data_format() == 'channels_first':
         return loss_abs_mse(y_true, y_pred, axis=(2, 3, 4))
-    elif if tf.keras.backend.image_data_format() == 'channels_last':
+    elif tf.keras.backend.image_data_format() == 'channels_last':
         return loss_abs_mse(y_true, y_pred, axis=(1, 2, 3))
 
 @tf.function
@@ -82,7 +82,7 @@ def loss_abs_mse_2Dt(y_true, y_pred):
 def loss_abs_mse_4D(y_true, y_pred):
     if tf.keras.backend.image_data_format() == 'channels_first':
         return loss_abs_mse(y_true, y_pred, axis=(2, 3, 4, 5))
-    elif if tf.keras.backend.image_data_format() == 'channels_last':
+    elif tf.keras.backend.image_data_format() == 'channels_last':
         return loss_abs_mse(y_true, y_pred, axis=(1, 2, 3, 4))
 
 @tf.function
@@ -105,14 +105,14 @@ def loss_complex_mae(y_true, y_pred, axis=(2,3,4)):
 def loss_complex_mae_2D(y_true, y_pred):
     if tf.keras.backend.image_data_format() == 'channels_first':
         return loss_complex_mae(y_true, y_pred, axis=(2, 3))
-    elif if tf.keras.backend.image_data_format() == 'channels_last':
+    elif tf.keras.backend.image_data_format() == 'channels_last':
         return loss_complex_mae(y_true, y_pred, axis=(1, 2))
 
 @tf.function
 def loss_complex_mae_3D(y_true, y_pred):
     if tf.keras.backend.image_data_format() == 'channels_first':
         return loss_complex_mae(y_true, y_pred, axis=(2, 3, 4))
-    elif if tf.keras.backend.image_data_format() == 'channels_last':
+    elif tf.keras.backend.image_data_format() == 'channels_last':
         return loss_complex_mae(y_true, y_pred, axis=(1, 2, 3))
 
 @tf.function
@@ -123,7 +123,7 @@ def loss_complex_mae_2Dt(y_true, y_pred):
 def loss_complex_mae_4D(y_true, y_pred):
     if tf.keras.backend.image_data_format() == 'channels_first':
         return loss_complex_mae(y_true, y_pred, axis=(2, 3, 4, 5))
-    elif if tf.keras.backend.image_data_format() == 'channels_last':
+    elif tf.keras.backend.image_data_format() == 'channels_last':
         return loss_complex_mae(y_true, y_pred, axis=(1, 2, 3, 4))
 
 @tf.function
@@ -146,14 +146,14 @@ def loss_abs_mae(y_true, y_pred, axis=(2,3,4)):
 def loss_abs_mae_2D(y_true, y_pred):
     if tf.keras.backend.image_data_format() == 'channels_first':
         return loss_abs_mae(y_true, y_pred, axis=(2, 3))
-    elif if tf.keras.backend.image_data_format() == 'channels_last':
+    elif tf.keras.backend.image_data_format() == 'channels_last':
         return loss_abs_mae(y_true, y_pred, axis=(1, 2))
 
 @tf.function
 def loss_abs_mae_3D(y_true, y_pred):
     if tf.keras.backend.image_data_format() == 'channels_first':
         return loss_abs_mae(y_true, y_pred, axis=(2, 3, 4))
-    elif if tf.keras.backend.image_data_format() == 'channels_last':
+    elif tf.keras.backend.image_data_format() == 'channels_last':
         return loss_abs_mae(y_true, y_pred, axis=(1, 2, 3))
 
 @tf.function
@@ -164,7 +164,7 @@ def loss_abs_mae_2Dt(y_true, y_pred):
 def loss_abs_mae_4D(y_true, y_pred):
     if tf.keras.backend.image_data_format() == 'channels_first':
         return loss_abs_mae(y_true, y_pred, axis=(2, 3, 4, 5))
-    elif if tf.keras.backend.image_data_format() == 'channels_last':
+    elif tf.keras.backend.image_data_format() == 'channels_last':
         return loss_abs_mae(y_true, y_pred, axis=(1, 2, 3, 4))
 
 @tf.function

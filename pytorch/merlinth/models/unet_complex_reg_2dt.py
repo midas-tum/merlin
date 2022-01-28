@@ -1,7 +1,7 @@
 
 import torch
 import torch.nn.functional as F
-from merlinth.layers.convolutional.complex_conv3d import (
+from merlinth.layers.convolutional.complex_padconv import (
     ComplexPadConv3D,
     ComplexPadConvScale3D,
     ComplexPadConvScaleTranspose3D
@@ -22,8 +22,8 @@ __all__ = ['ComplexSplitFast',
            'ComplexConvBlock2dtUpsampling']
 
 def get_activation(activation, num_parameters):
-    if activation == 'ReLU':
-        return torch.nn.ReLU(inplace=True)
+    if activation == 'cReLU':
+        return cReLU()
     elif activation == 'cPReLU':
         return cPReLU(num_parameters)
     elif activation == 'ModReLU':
@@ -32,14 +32,8 @@ def get_activation(activation, num_parameters):
         return ModPReLU(num_parameters)
     elif activation == 'identity':
         return Identity(num_parameters)
-    elif activation == 'ComplexTrainablePolarActivation':
-        return ComplexTrainablePolarActivation(num_parameters)
-    elif activation == 'ComplexTrainableMagnitudeActivation':
-        return ComplexTrainableMagnitudeActivation(num_parameters)
-    elif activation == 'ComplexStudentT':
-        return ComplexStudentT(num_parameters)
     else:
-        raise ValueError("Options for activation: ['ReLU', 'cPReLU', 'ModPReLU', 'ModReLU', 'ComplexTrainablePolarActivation', 'ComplexTrainableMagnitudeActivation', 'ComplexStudentT']")
+        raise ValueError("Options for activation: ['cReLU', 'cPReLU', 'ModPReLU', 'ModReLU', 'ComplexTrainablePolarActivation', 'ComplexTrainableMagnitudeActivation', 'ComplexStudentT']")
 
 class ComplexConvBlock3d(torch.nn.Module):
     def __init__(self, in_channels, out_channels, kernel_size_sp=3, kernel_size_t=3,
@@ -313,14 +307,14 @@ class InitTest(unittest.TestCase):
                     complex_independent_filters_init(module.weight, mode=mode)
                 else:
                     complex_init(module.weight, mode=mode)
-
-                print('weight', mode, ortho, module.weight.min(), module.weight.max())
+                weight = torch.view_as_real(module.weight.data)
+                print('weight', mode, ortho, weight.min(), weight.max())
         model.apply(weight_init)
 
-        x = torch.randn(nBatch, nf_in, D, M, N, 2).cuda()
+        x = torch.randn(nBatch, nf_in, D, M, N, dtype=torch.complex64).cuda()
         model.cuda()
         Kx = model(x)
-        print('Kx: ', Kx.min(), Kx.max())
+        print('Kx: ', Kx.abs().min(), Kx.abs().max())
 
     def test_complex_init_1(self):
         self._test_complex_init(3, 3, 16, 32, 'he', 'ModReLU', False)
@@ -339,7 +333,7 @@ class InitTest(unittest.TestCase):
     def test_complex_init_4_ortho(self):
         self._test_complex_init(3, 3, 16, 32, 'glorot', 'cPReLU', True)
     def test_complex_init_5_ortho(self):
-        self._test_complex_init(3, 3, 16, 32, 'glorot', 'ReLU', True)
+        self._test_complex_init(3, 3, 16, 32, 'glorot', 'cReLU', True)
 
 if __name__ == "__main__":
     unittest.test()

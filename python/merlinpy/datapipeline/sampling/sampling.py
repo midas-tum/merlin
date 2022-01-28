@@ -10,7 +10,7 @@ from merlinpy.datapipeline.sampling import VDPDGauss as VDPDGauss
 class Sampling:  # abstract parent class
     # subsampling of phase-encoding directions (y/z) and along time (t)
     def __init__(self, dim, acc, trajectory, is_elliptical):
-        self.dim = dim  # x - y - z - t - MRcha
+        self.dim = dim  # y - z - t
         self.acc = acc  # acceleration factor
         self.trajectory = trajectory  # CASPR, Poisson-Disc, Gaussian, GoldenRadial, TinyGoldenRadial,
         self.is_elliptical = is_elliptical

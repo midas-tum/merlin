@@ -103,7 +103,7 @@ class ComplexPadConv(ComplexConv):
                     tmp = tmp - tf.reduce_mean(tmp, reduction_dim_mean, True)
                 # normalize by the l2-norm
                 if self.bound_norm:
-                    norm = tf.math.sqrt(tf.reduce_sum(tmp ** 2, self._kernel.reduction_dim, True))
+                    norm = tf.math.sqrt(tf.reduce_sum(tmp * tf.math.conj(tmp), self._kernel.reduction_dim, True))
                     if surface:
                         tmp = tmp / tf.math.maximum(norm, tf.ones_like(norm)*1e-9)
                     else:
@@ -162,13 +162,6 @@ class ComplexPadConv(ComplexConv):
                  [[0,0,],]
         x = tf.pad(x, tf_pad)
        
-        # print('strides', self.strides)
-        # print(output_shape, x.shape)
-        # print(output_padding)
-        # print(pad)
-        # print(ksz)
-        # print(pad_k)
-
         # remove bias
         if self.use_bias:
             x = tf.nn.bias_add(x, -1 * self.bias)
@@ -220,6 +213,7 @@ class ComplexPadConv2D(ComplexPadConv):
         kernel_constraint=constraints.get(kernel_constraint),
         bias_constraint=constraints.get(bias_constraint),
         zero_mean=zero_mean,
+        bound_norm=bound_norm,
         pad=pad,
         **kwargs)
 
@@ -558,14 +552,14 @@ class ComplexPadConv2DTest(unittest.TestCase):
 
     def _test_grad(self, conv_fun, kernel_size, strides, dilation_rate, padding):
         nBatch = 5
-        M = 128
-        N = 128
-        nf_in = 10
-        nf_out = 32
+        M = 64
+        N = 64
+        nf_in = 5
+        nf_out = 16
         shape = [nBatch, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=True)
-        x = merlintf.random_normal_complex(shape, tf.float32)
+        x = merlintf.random_normal_complex(shape)
 
         with tf.GradientTape() as g:
             g.watch(x)
@@ -589,7 +583,7 @@ class ComplexPadConv2DTest(unittest.TestCase):
 class ComplexPadConv3DTest(unittest.TestCase):
     def test_constraints(self):
         nf_in = 1
-        nf_out = 32
+        nf_out = 16
         
         model = ComplexPadConv3D(nf_out, kernel_size=3, zero_mean=True)
         model.build((None, None, None, None, nf_in))
@@ -606,15 +600,15 @@ class ComplexPadConv3DTest(unittest.TestCase):
 
     def _test_grad(self, conv_fun, kernel_size, strides, dilation_rate, padding):
         nBatch = 5
-        M = 128
-        N = 128
+        M = 64
+        N = 64
         D = 10
         nf_in = 2
         nf_out = 16
         shape = [nBatch, D, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=True)
-        x = merlintf.random_normal_complex(shape, tf.float32)
+        x = merlintf.random_normal_complex(shape)
 
         with tf.GradientTape() as g:
             g.watch(x)
@@ -639,14 +633,14 @@ class ComplexPadConv3DTest(unittest.TestCase):
 class ComplexPadConvScaleTest(unittest.TestCase):
     def test_grad(self):
         nBatch = 5
-        M = 128
-        N = 128
+        M = 64
+        N = 64
         nf_in = 10
         nf_out = 32
         shape = [nBatch, M, N, nf_in]
 
         model = ComplexPadConvScale2D(nf_out, kernel_size=3, strides=2)
-        x = merlintf.random_normal_complex(shape, tf.float32)
+        x = merlintf.random_normal_complex(shape)
         #model2 = ComplexPadConvScale2DTranspose(nf_out, kernel_size=3, strides=2)
 
         with tf.GradientTape() as g:

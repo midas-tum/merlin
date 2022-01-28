@@ -1,20 +1,20 @@
+from functools import total_ordering
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import numpy as np
 import unittest
-from merlinth.layers.convolutional.complex_conv3d import (
+from merlinth.layers.convolutional.complex_padconv import (
     ComplexPadConv3D,
     ComplexPadConvScale3D,
     ComplexPadConvScaleTranspose3D
 )
 from merlinth.layers.complex_init import *
 from merlinth.layers.complex_norm import get_normalization
-from merlinth.layers.complex_pool import MagnitudeMaxPool3D
-from merlinth.layers.complex_regularizer import ComplexRegularizerWrapper3d
+from merlinth.layers.complex_maxpool import MagnitudeMaxPool3D
 from merlinth.models.unet_complex_residual_block import *
 from merlinth.models.unet_complex_reg_2dt import *
-from merlinth.layers.pad import complex_pad3d
+import optoth.pad
 
 __all__ = ['ResidualUnetModel3d', 'ResidualUnetModel2dt', 'ResidualUnetModelFast']
 
@@ -61,48 +61,50 @@ class ResidualUnetModel(nn.Module):
         #print('mode=', self.mode, 'ortho=', self.ortho)
 
     def weight_init(self, module):
-        if isinstance(module, ComplexPadConv3D) \
-            or isinstance(module, ComplexPadConvScale3D) \
-            or isinstance(module, ComplexPadConvScaleTranspose3D):
+        pass
+#         TODO
+#         if isinstance(module, ComplexPadConv3D) \
+#             or isinstance(module, ComplexPadConvScale3D) \
+#             or isinstance(module, ComplexPadConvScaleTranspose3D):
 
-            if self.ortho:
-                complex_independent_filters_init(module.weight, mode=self.mode)
-            else:
-                complex_init(module.weight, mode=self.mode)
+#             if self.ortho:
+#                 complex_independent_filters_init(module.weight, mode=self.mode)
+#             else:
+#                 complex_init(module.weight, mode=self.mode)
 
-            if hasattr(module.weight, 'proj'):
-                # initially call the projection
-                module.weight.proj(True)
+#             if hasattr(module.weight, 'proj'):
+#                 # initially call the projection
+#                 module.weight.proj(True)
 
-            if module.bias is not None:
-                module.bias.data.fill_(0)
+#             if module.bias is not None:
+#                 module.bias.data.fill_(0)
 
-        if isinstance(module, torch.nn.Conv3d) \
-           or isinstance(module, torch.nn.Linear):
-            # torch.nn.init.kaiming_normal_(
-            #     module.weight,
-            #     mode='fan_in',
-            #     nonlinearity='relu',
-            # )
-#             torch.nn.init.kaiming_uniform_(
-#                 module.weight, a=self.gain,
-#                 mode='fan_in',
-#                 nonlinearity='relu',
-#             )
-            torch.nn.init.xavier_normal_(module.weight, gain=self.gain)
-            #torch.nn.init.xavier_uniform_(module.weight, gain=self.gain)
+#         if isinstance(module, torch.nn.Conv3d) \
+#            or isinstance(module, torch.nn.Linear):
+#             # torch.nn.init.kaiming_normal_(
+#             #     module.weight,
+#             #     mode='fan_in',
+#             #     nonlinearity='relu',
+#             # )
+# #             torch.nn.init.kaiming_uniform_(
+# #                 module.weight, a=self.gain,
+# #                 mode='fan_in',
+# #                 nonlinearity='relu',
+# #             )
+#             torch.nn.init.xavier_normal_(module.weight, gain=self.gain)
+#             #torch.nn.init.xavier_uniform_(module.weight, gain=self.gain)
 
-            if hasattr(module.weight, 'proj'):
-                # initially call the projection
-                module.weight.proj(True)
+#             if hasattr(module.weight, 'proj'):
+#                 # initially call the projection
+#                 module.weight.proj(True)
 
-            if module.bias is not None:
-                module.bias.data.fill_(0)
+#             if module.bias is not None:
+#                 module.bias.data.fill_(0)
 
     def calculate_downsampling_padding3d(self, tensor):
         # calculate pad size
         factor = 2 ** self.num_pool_layers
-        imshape = np.array(tensor.shape[-4:-1])
+        imshape = np.array(tensor.shape[-4:])
         paddings = np.ceil(imshape / factor) * factor - imshape
         paddings = paddings.astype(np.int) // 2
         # reversed order of paddings
@@ -115,7 +117,7 @@ class ResidualUnetModel(nn.Module):
     def pad3d(self, tensor, p3d):
         # print("padding", p3d)
         if np.any(p3d):
-            tensor = complex_pad3d(tensor, p3d[0], p3d[1], p3d[2], mode='symmetric')
+            tensor = optoth.pad.pad3d(tensor, [p3d[0], p3d[0], p3d[1], p3d[1], p3d[2], p3d[2]], mode='symmetric')
         return tensor
 
     def unpad3d(self, tensor, shape):
@@ -137,17 +139,16 @@ class ResidualUnetModel(nn.Module):
         Returns:
             torch.Tensor: The center cropped image
         """
-        assert data.shape[-1] == 2
-        assert 0 < shape[0] <= data.shape[-4]
-        assert 0 < shape[1] <= data.shape[-3]
-        assert 0 < shape[2] <= data.shape[-2]
-        d_from = (data.shape[-4] - shape[0]) // 2
-        w_from = (data.shape[-3] - shape[1]) // 2
-        h_from = (data.shape[-2] - shape[2]) // 2
+        assert 0 < shape[0] <= data.shape[-3]
+        assert 0 < shape[1] <= data.shape[-2]
+        assert 0 < shape[2] <= data.shape[-1]
+        d_from = (data.shape[-3] - shape[0]) // 2
+        w_from = (data.shape[-2] - shape[1]) // 2
+        h_from = (data.shape[-1] - shape[2]) // 2
         d_to = d_from + shape[0]
         w_to = w_from + shape[1]
         h_to = h_from + shape[2]
-        return data[..., d_from:d_to, w_from:w_to, h_from:h_to, :]
+        return data[..., d_from:d_to, w_from:w_to, h_from:h_to]
 
     # def normalize(self, data, eps=0.):
     #     """
@@ -189,7 +190,6 @@ class ResidualUnetModel(nn.Module):
         p3d = self.calculate_downsampling_padding3d(output)
         #print(p3d)
         output = self.pad3d(output, p3d)
-
         output = self.block_in(output)
 
         #print('block in', output.shape)
@@ -218,8 +218,8 @@ class ResidualUnetModel(nn.Module):
             #print('Block dec', output.shape)
 
         output = self.conv_out(output)
-        # output = self.norm(output)
-        # print('Conv out', output.shape)
+        #output = self.norm(output)
+        #print('Conv out', output.shape)
 
         output = self.unpad3d(output, orig_shape3d)
 
@@ -675,13 +675,13 @@ class ResidualUnetModel3d(ResidualUnetModel):
 
 class TestUnetFast(unittest.TestCase):
     def _test_unet(self, depth, height, width, nf, nl, multiplier, activation, local_residual):
-        x = torch.randn(depth, height, width, 2).cuda()
-        model =  ComplexRegularizerWrapper3d(ResidualUnetModelFast(
+        x = torch.randn(5, 1, depth, height, width, dtype=torch.complex64).cuda()
+        model =  ResidualUnetModelFast(
             1, 1, nf, nl,
             local_residual=local_residual,
             bias=True,
             multiplier=multiplier,
-            activation=activation)).cuda()
+            activation=activation).cuda()
         print(model)
         count = sum([np.prod(p.size()) for p in model.parameters() if p.requires_grad])
         #print(model)
@@ -689,19 +689,19 @@ class TestUnetFast(unittest.TestCase):
         y = model(x)
     
     def test1(self):
-        self._test_unet(10, 180, 180, 8, 2, 1, 'cPReLU', False)
+        self._test_unet(16, 96, 96, 8, 2, 1, 'cPReLU', False)
     def test2(self):
-        self._test_unet(10, 180, 180, 8, 2, 1, 'ModReLU', True)
+        self._test_unet(16, 96, 96, 8, 2, 1, 'ModReLU', True)
 
 class TestUnet3d(unittest.TestCase):
     def _test_unet(self, depth, height, width, nf, nl, multiplier, activation, local_residual):
-        x = torch.randn(depth, height, width, 2).cuda()
-        model =  ComplexRegularizerWrapper3d(ResidualUnetModel3d(
+        x = torch.randn(5, 1, depth, height, width, dtype=torch.complex64).cuda()
+        model =  ResidualUnetModel3d(
             1, 1, nf, nl,
             local_residual=local_residual,
             bias=True,
             multiplier=multiplier,
-            activation=activation)).cuda()
+            activation=activation).cuda()
         print(model)
         count = sum([np.prod(p.size()) for p in model.parameters() if p.requires_grad])
         #print(model)
@@ -709,9 +709,9 @@ class TestUnet3d(unittest.TestCase):
         y = model(x)
     
     def test1(self):
-        self._test_unet(64, 180, 180, 16, 2, 1, 'cPReLU', False)
+        self._test_unet(16, 96, 96, 16, 2, 1, 'cPReLU', False)
     def test2(self):
-        self._test_unet(64, 180, 180, 16, 2, 1, 'ModReLU', True)
+        self._test_unet(16, 96, 96, 16, 2, 1, 'ModReLU', True)
 
 # class InitTest(unittest.TestCase):
 #     def _test_complex_init(self, ksp, kst, nf, mode, activation, ortho):

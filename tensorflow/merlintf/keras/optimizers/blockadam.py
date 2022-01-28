@@ -184,11 +184,9 @@ class BlockAdam(optimizer_v2.OptimizerV2):
     if not self.amsgrad:
         v_sqrt = math_ops.sqrt(v_t)
         if hasattr(var, 'proj'):
-            #print('proj', var)
             var_update = state_ops.assign(
             var, var.proj(var - coefficients['lr'] * m_t / (v_sqrt + coefficients['epsilon'])), use_locking=self._use_locking)
         else:
-            #print('noproj', var)
             var_update = state_ops.assign_sub(
             var, coefficients['lr'] * m_t / (v_sqrt + coefficients['epsilon']), use_locking=self._use_locking)
 
@@ -224,11 +222,9 @@ class BlockAdam(optimizer_v2.OptimizerV2):
     if not self.amsgrad:
         v_sqrt = math_ops.sqrt(v_t)
         if hasattr(var, 'proj'):
-            #print('proj', var)
             var_update = state_ops.assign(
             var, var.proj(var - coefficients['lr'] * m_t / (v_sqrt + coefficients['epsilon'])), use_locking=self._use_locking)
         else:
-            #print('noproj', var)
             var_update = state_ops.assign_sub(
             var, coefficients['lr'] * m_t / (v_sqrt + coefficients['epsilon']), use_locking=self._use_locking)
 

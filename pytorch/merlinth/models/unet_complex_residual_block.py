@@ -11,7 +11,7 @@ from merlinth.models.unet_complex_reg_2dt import (
 from merlinth.layers.complex_init import *
 #from merlinth.layers.complex_regularizer import *
 from merlinth.layers.complex_norm import get_normalization
-from merlinth.layers.complex_pool import MagnitudeMaxPool3D
+from merlinth.layers.complex_maxpool import MagnitudeMaxPool3D
 
 __all__ = ['ComplexResidualBlock3d', 'ComplexResidualBlock2dt', 'ComplexResidualBlockSplitFast']
 
@@ -187,7 +187,7 @@ class ComplexResidualBlockSplitFast(ComplexResidualBlock):
 
 class TestComplexResidualBlock3d(unittest.TestCase):
     def _test_unet(self, depth, height, width, nl, activation):
-        x = torch.randn(1, nl, depth, height, width, 2).cuda()
+        x = torch.randn(1, nl, depth, height, width, dtype=torch.complex64).cuda()
         model =  ComplexResidualBlock3d(
             nl, nl,
             bias=True,
@@ -204,7 +204,7 @@ class TestComplexResidualBlock3d(unittest.TestCase):
 
 class TestComplexResidualBlock2dt(unittest.TestCase):
     def _test_unet(self, depth, height, width, nl, activation):
-        x = torch.randn(1, nl, depth, height, width, 2).cuda()
+        x = torch.randn(1, nl, depth, height, width, dtype=torch.complex64).cuda()
         model =  ComplexResidualBlock2dt(
             nl, nl//2, nl,
             bias=True,
@@ -221,7 +221,7 @@ class TestComplexResidualBlock2dt(unittest.TestCase):
 
 class TestComplexResidualBlockFast(unittest.TestCase):
     def _test_unet(self, depth, height, width, nl, activation):
-        x = torch.randn(1, nl, depth, height, width, 2).cuda()
+        x = torch.randn(1, nl, depth, height, width, dtype=torch.complex64).cuda()
         model =  ComplexResidualBlockSplitFast(
             nl, nl//2, nl,
             bias=True,

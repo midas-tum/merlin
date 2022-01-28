@@ -5,6 +5,7 @@ import merlinpy
 import gc
 
 center_crop = merlinpy.center_crop
+#TODO do we really want to have merlinpy dependency here?
 
 class ToKerasIO():
     def __init__(self, input_keys, output_keys):
@@ -21,7 +22,7 @@ class ToKerasIO():
 
 def get_ndim(dim):
     if dim == '2D':
-        n_dim = 2  # (x,y
+        n_dim = 2  # (x,y)
     elif dim == '3D':
         n_dim = 3  # (x,y,z)
     elif dim == '2Dt':
