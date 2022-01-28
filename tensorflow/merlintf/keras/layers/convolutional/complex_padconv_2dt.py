@@ -6,9 +6,6 @@ from tensorflow.python.keras import regularizers
 from merlintf.keras.layers.convolutional.complex_padconv import ComplexPadConv3D, ComplexPadConvScale3D
 from merlintf.keras.utils import validate_input_dimension
 
-import numpy as np
-import unittest
-
 class ComplexPadConv2Dt(tf.keras.layers.Layer):
     def __init__(self,
                filters,
@@ -95,62 +92,3 @@ class ComplexPadConv2Dt(tf.keras.layers.Layer):
         xT_t = self.conv_t.backward(x, output_shape)
         xT_sp = self.conv_xy.backward(xT_t, output_shape)
         return xT_sp
-
-class ComplexPadConv2dtTest(unittest.TestCase):
-    def _test_grad(self, ksz):
-        nBatch = 5
-        M = 128
-        N = 128
-        D = 24
-        nf_in = 2
-        nf_out = 32
-        shape = [nBatch, D, M, N, nf_in]
-        
-        ksz = validate_input_dimension('2Dt', ksz)
-
-        nf_inter = np.ceil((nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
-        model = ComplexPadConv2Dt(nf_out, nf_inter, kernel_size=ksz)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        Kx = model(x)
-
-        with tf.GradientTape() as g:
-            g.watch(x)
-            Kx = model(x)
-            loss = 0.5 * tf.reduce_sum(tf.math.conj(Kx) * Kx)
-        grad_x = g.gradient(loss, x)
-        x_autograd = grad_x.numpy()
-
-        KHKx = model.backward(Kx, output_shape=x.shape)
-        x_bwd = KHKx.numpy()
-
-        self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
-
-    def test_grad_tuple(self):
-        self._test_grad((3,5,5))
-
-    def test_grad_int(self):
-        self._test_grad(3)
-
-    def test_adjoint(self):
-        nBatch = 5
-        M = 128
-        N = 128
-        D = 24
-        nf_in = 2
-        nf_out = 32
-        shape = [nBatch, D, M, N, nf_in]
-
-        ksz = (3,5,5)
-        nf_inter = np.ceil((nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
-
-        model = ComplexPadConv2Dt(nf_out, nf_inter, kernel_size=ksz)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        Kx = model(x)
-
-        y = tf.complex(tf.random.normal(Kx.shape), tf.random.normal(Kx.shape))
-        KHy = model.backward(y, x.shape)
-
-        rhs = tf.reduce_sum(Kx * y).numpy()
-        lhs = tf.reduce_sum(x * KHy).numpy()
-
-        self.assertTrue(rhs, lhs)

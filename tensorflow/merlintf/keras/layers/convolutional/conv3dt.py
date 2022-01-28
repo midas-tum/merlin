@@ -3,22 +3,11 @@ from tensorflow.python.keras import constraints
 from tensorflow.python.keras import initializers
 from tensorflow.python.keras import regularizers
 from tensorflow.python.keras.utils import conv_utils
-from merlintf.keras.layers import complex_act as activations
 from tensorflow.keras.layers import Conv3D, Conv3DTranspose
-from tensorflow.keras.layers import Layer
 import numpy as np
-from tensorflow.python.keras.engine.input_spec import InputSpec
-from tensorflow.python.eager import context
-from tensorflow.python.framework import tensor_shape
-import unittest
-import six
-import functools
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import nn
-from tensorflow.python.ops import nn_ops
-#from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv, ComplexConv2D, ComplexConv3DTranspose, ComplexConv3D
 from merlintf.keras.utils import validate_input_dimension
 
+#TODO remove
 def calculate_intermediate_filters_3D(filters, kernel_size, channel_in):
     return np.ceil((filters * channel_in * np.prod(kernel_size)) /
             (channel_in * kernel_size[1] * kernel_size[2] * kernel_size[3] + filters * kernel_size[0])).astype(np.int32)
@@ -284,49 +273,3 @@ class Conv3DtTranspose(tf.keras.layers.Layer):
 Convolution3Dt = Conv3Dt
 Convolution3DtTranspose = Conv3DtTranspose
 Deconvolution3Dt = Deconv3Dt = Conv3DtTranspose
-
-class Conv3dtTest(unittest.TestCase):
-    def test_Conv3dt(self):
-        self._test_Conv3dt()
-        self._test_Conv3dt(stride=(2, 2, 2, 2))
-        self._test_Conv3dt(channel_last=False)
-
-    def test_Conv3dtTranspose(self):
-        self._test_Conv3dt(is_transpose=True)
-        self._test_Conv3dt(is_transpose=True, stride=(2, 2, 2, 2))
-        self._test_Conv3dt(is_transpose=True, channel_last=False)
-
-    def _test_Conv3dt(self, dim_in=[8, 32, 32, 12], nBatch=2, nf_in=3, nf_out=18, ksz=(3, 5, 5, 5), stride=(1, 1, 1, 1),
-                      channel_last=True, axis_conv_t=2, is_transpose=False):
-        if is_transpose:
-            dim_out = list((np.asarray(dim_in) * np.asarray(stride)).astype(int))
-        else:
-            dim_out = list((np.asarray(dim_in) / np.asarray(stride)).astype(int))
-
-        if channel_last:
-            shape = [nBatch] + dim_in + [nf_in]
-            expected_shape = [nBatch] + dim_out + [nf_out]
-            data_format = 'channels_last'
-        else:
-            shape = [nBatch] + [nf_in] + dim_in
-            expected_shape = [nBatch] + [nf_out] + dim_out
-            data_format = 'channels_first'
-
-        ksz = validate_input_dimension('3Dt', ksz)
-        nf_inter = calculate_intermediate_filters_3D(nf_out, ksz, nf_in)
-
-        if is_transpose:
-            model = Conv3DtTranspose(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
-                                     strides=stride, data_format=data_format)
-        else:
-            model = Conv3Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
-                            strides=stride, data_format=data_format)
-
-        x = tf.random.normal(shape)
-        Kx = model(x)
-
-        self.assertTrue(Kx.shape == expected_shape)
-
-
-if __name__ == "__main__":
-    unittest.main()
