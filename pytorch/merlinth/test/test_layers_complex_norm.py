@@ -80,4 +80,4 @@ class TestComplexInstanceNorm(unittest.TestCase):
         self._test_gradient((2,5,10,10))
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()

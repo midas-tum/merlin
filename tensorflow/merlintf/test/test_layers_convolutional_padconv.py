@@ -529,4 +529,4 @@ class PadConvScaleTest(unittest.TestCase):
         self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()

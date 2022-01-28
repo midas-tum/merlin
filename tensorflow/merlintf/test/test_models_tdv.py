@@ -253,4 +253,4 @@ class TestTransformation(unittest.TestCase):
         self._test_gradient('3D')
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()

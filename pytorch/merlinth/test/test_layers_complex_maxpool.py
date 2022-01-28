@@ -25,4 +25,4 @@ class TestMagnitudePool(unittest.TestCase):
         self.assertTrue(y.is_complex())
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()

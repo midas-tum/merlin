@@ -58,4 +58,4 @@ class TestComplexResidualBlockFast(unittest.TestCase):
         self._test_unet(10, 180, 180, 16, 'ModReLU')
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()

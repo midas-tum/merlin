@@ -510,4 +510,4 @@ class ComplexPadConvScale3dTest(unittest.TestCase):
 if __name__ == "__main__":
     for gpu in tf.config.list_physical_devices('GPU'):
         tf.config.experimental.set_memory_growth(gpu, True)
-    unittest.test()
+    unittest.main()

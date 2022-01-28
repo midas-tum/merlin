@@ -269,4 +269,4 @@ class RealFoETest(unittest.TestCase):
         self.assertTrue(Kx.shape == x.shape)
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()

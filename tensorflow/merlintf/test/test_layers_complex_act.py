@@ -74,4 +74,4 @@ class TestActivation2(unittest.TestCase):
         self._test(Cardioid2, {'bias':0.1, 'trainable':True}, [5, 32])
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()

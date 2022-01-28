@@ -274,4 +274,4 @@ class PadConvScale3dTest(unittest.TestCase):
         self.assertTrue(rhs, lhs)
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()

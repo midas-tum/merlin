@@ -86,5 +86,5 @@ class InitTest(unittest.TestCase):
         self._test_complex_init(3, 3, 16, 32, 'glorot', 'cReLU', True)
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()
 

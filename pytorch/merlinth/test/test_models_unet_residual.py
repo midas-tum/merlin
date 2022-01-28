@@ -71,4 +71,4 @@ class TestUnet2dt(unittest.TestCase):
         self._test_unet(16, 96, 96, 16, 2, 1, 'ModReLU', True)
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()

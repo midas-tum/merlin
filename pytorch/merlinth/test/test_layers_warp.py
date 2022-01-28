@@ -96,4 +96,4 @@ class TestWarping(unittest.TestCase):
         self._test_backward_grad(True)
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()

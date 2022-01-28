@@ -190,4 +190,4 @@ class TestActivation2(unittest.TestCase):
 
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()

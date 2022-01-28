@@ -127,4 +127,4 @@ class TestMulticoilMotionOps(unittest.TestCase):
         self._test_adjointness(True)
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()
