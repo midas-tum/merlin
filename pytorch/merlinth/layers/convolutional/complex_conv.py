@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import math
-import warnings
 
 import torch
 from torch import Tensor
@@ -14,7 +13,6 @@ from torch._torch_docs import reproducibility_notes
 from torch.nn.common_types import _size_1_t, _size_2_t, _size_3_t
 from typing import Optional, List, Tuple, Union
 import merlinth
-import unittest
 
 convolution_notes = \
     {"groups_note": r"""* :attr:`groups` controls the connections between inputs and outputs.
@@ -1127,69 +1125,3 @@ class ComplexConvTranspose3d(_ComplexConvTransposeNd):
         return complex_conv_transpose(F.conv_transpose3d,
             input, self.weight, self.bias, self.stride, self.padding,
             output_padding, self.groups, self.dilation)
-
-class Test1D(unittest.TestCase):
-    def _test(self, conv_fun):
-        nBatch = 5
-        N = 320
-        nf_in = 1
-        nf_out = 32
-        
-        model = conv_fun(nf_in, nf_out, kernel_size=3).cuda()
-        
-        x = merlinth.random_normal_complex((nBatch, nf_in, N), dtype=torch.get_default_dtype()).cuda()
-        Kx = model(x)
-        
-        self.assertTrue(True)
-
-    def test_conv(self):
-        self._test(ComplexConv1d)
-
-    def test_convT(self):
-        self._test(ComplexConvTranspose1d)
-
-class Test2D(unittest.TestCase):
-    def _test(self, conv_fun):
-        nBatch = 5
-        M = 320
-        N = 320
-        nf_in = 1
-        nf_out = 32
-        
-        model = conv_fun(nf_in, nf_out, kernel_size=3).cuda()
-        
-        x = merlinth.random_normal_complex((nBatch, nf_in, M, N), dtype=torch.get_default_dtype()).cuda()
-        Kx = model(x)
-        
-        self.assertTrue(True)
-
-    def test_conv(self):
-        self._test(ComplexConv2d)
-
-    def test_convT(self):
-        self._test(ComplexConvTranspose2d)
-
-class Test3D(unittest.TestCase):
-    def _test(self, conv_fun):
-        nBatch = 5
-        D = 16
-        M = 320
-        N = 320
-        nf_in = 1
-        nf_out = 32
-        
-        model = conv_fun(nf_in, nf_out, kernel_size=3).cuda()
-        
-        x = merlinth.random_normal_complex((nBatch, nf_in, D, M, N), dtype=torch.get_default_dtype()).cuda()
-        Kx = model(x)
-        
-        self.assertTrue(True)
-
-    def test_conv(self):
-        self._test(ComplexConv3d)
-
-    def test_convT(self):
-        self._test(ComplexConvTranspose3d)
-
-if __name__ == "__main__":
-    unittest.test()

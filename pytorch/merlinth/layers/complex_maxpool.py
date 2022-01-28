@@ -1,6 +1,5 @@
 import torch
 import merlinth
-import unittest
 
 class MagnitudeMaxPool(torch.nn.Module):
     def __init__(self, rank):
@@ -32,23 +31,3 @@ class MagnitudeMaxPool3D(MagnitudeMaxPool):
 class MagnitudeMaxPool2D(MagnitudeMaxPool):
     def __init__(self):
         super().__init__(2)
-
-class TestMagnitudePool(unittest.TestCase):
-    def test3d(self):
-        shape = (1,1,4,4,4,)
-        x = merlinth.random_normal_complex(shape, dtype=torch.get_default_dtype())
-        pool = MagnitudeMaxPool3D()
-
-        y = pool(x)
-        self.assertTrue(y.is_complex())
-
-    def test2d(self):
-        shape = (1,1,4,4,)
-        x = merlinth.random_normal_complex(shape, dtype=torch.get_default_dtype())
-        pool = MagnitudeMaxPool2D()
-
-        y = pool(x)
-        self.assertTrue(y.is_complex())
-
-if __name__ == "__main__":
-    unittest.test()

@@ -12,6 +12,7 @@ setup(
               "merlinth.losses",
               "merlinth.layers.convolutional",
               "merlinth.models",
+              "merlinth.test",
               ],
     package_dir={"merlinth": os.path.join('.', "merlinth"),
                  "merlinth.optim": os.path.join('.', "merlinth/optim"),
@@ -19,6 +20,7 @@ setup(
                  "merlinth.losses": os.path.join('.', "merlinth/losses"),
                  "merlinth.layers.convolutional": os.path.join('.', "merlinth/layers/convolutional"),
                  "merlinth.models": os.path.join('.', "merlinth/models"),
+                 "merlinth.test": os.path.join('.', "merlinth/test"),
     },
     install_requires=[
         "numpy >= 1.15",
