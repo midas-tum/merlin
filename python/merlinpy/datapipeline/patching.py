@@ -199,7 +199,7 @@ def unpatching(patches, patchSize, patchOverlap, actualSize, overlapRegion='avg'
 
     if len(patchSize) > len(actualSize):
         print('Warning: dimension of patchSize (=%d) > image shape (=%d), cropping patchSize dimensions' % (len(patchSize), len(actualSize)))
-        patchSize = patchSize[:np.ndim(dicom_numpy_array)]
+        patchSize = patchSize[:len(actualSize)]
 
     if patches.ndim == 3:
         return unpatching2D(patches, patchSize, patchOverlap, actualSize, overlapRegion)
