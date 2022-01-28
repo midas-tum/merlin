@@ -11,8 +11,8 @@ import unittest
 import torch
 
 from merlinth.losses.pairwise_loss import mse, nmse, psnr
-from merlinpy.losses.pairwise_loss import mse as mse_py, nmse as nmse_py, psnr as psnr_py
-from merlinth.losses.ssim import SSIM, ssim
+from merlinpy.losses.pairwise_loss import mse as mse_py, nmse as nmse_py, psnr as psnr_py, ssim as ssim_py
+from merlinth.losses.ssim import SSIM
 
 def torch_to_numpy(data):
     return data.numpy()
