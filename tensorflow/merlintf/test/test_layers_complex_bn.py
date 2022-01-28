@@ -3,12 +3,14 @@ import tensorflow.keras.backend as K
 import tensorflow as tf
 from merlintf.keras.layers.complex_bn import ComplexBatchNormalization
 import numpy as np
+import tensorflow.keras.backend as K
+K.set_floatx('float64')
 
 class ComplexNormTest(unittest.TestCase):
     def _test_norm(self, shape, channel_last=True):
 
         model = ComplexBatchNormalization(channel_last=channel_last, scale=False)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape)*2)
+        x = tf.complex(tf.random.normal(shape, dtype=K.floatx()), tf.random.normal(shape, dtype=K.floatx())*2)
 
         for i in range(2):
             xn = model(x, training=True)

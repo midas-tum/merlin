@@ -11,7 +11,6 @@ import merlintf
 
 class TestWarping(unittest.TestCase):
     def _get_data(self, shape, is_complex):
-        print(tf.keras.backend.floatx())
         batch, frames, frames_all, M, N = shape
         if is_complex:
             img = merlintf.random_normal_complex((batch, frames, M, N), dtype=tf.keras.backend.floatx())

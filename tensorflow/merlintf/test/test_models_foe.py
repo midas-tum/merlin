@@ -11,6 +11,9 @@ from merlintf.keras.models.foe import (
     MagnitudeFoE
 )
 
+import tensorflow.keras.backend as K
+K.set_floatx('float64')
+
 class PolarFoETest(unittest.TestCase):
     def test_FoE_polar_2d(self):
         self._test_FoE_polar('2D', 11)
@@ -60,9 +63,9 @@ class PolarFoETest(unittest.TestCase):
         model = PolarFoE(config)
 
         if dim == '2D':
-            x = merlintf.random_normal_complex((nBatch, M, N, 1))
+            x = merlintf.random_normal_complex((nBatch, M, N, 1), dtype=K.floatx())
         elif dim == '3D' or dim == '2Dt':
-            x = merlintf.random_normal_complex((nBatch, D, M, N, 1))
+            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), dtype=K.floatx())
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
         
@@ -110,9 +113,9 @@ class MagnitudeFoETest(unittest.TestCase):
         model = MagnitudeFoE(config)
 
         if dim == '2D':
-            x = merlintf.random_normal_complex((nBatch, M, N, 1))
+            x = merlintf.random_normal_complex((nBatch, M, N, 1), dtype=K.floatx())
         elif dim == '3D' or dim == '2Dt':
-            x = merlintf.random_normal_complex((nBatch, D, M, N, 1))
+            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), dtype=K.floatx())
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')        
         
@@ -160,9 +163,9 @@ class ComplexFoETest(unittest.TestCase):
         model = ComplexFoE(config)
 
         if dim == '2D':
-            x = merlintf.random_normal_complex((nBatch, M, N, 1))
+            x = merlintf.random_normal_complex((nBatch, M, N, 1), dtype=K.floatx())
         elif dim == '3D' or dim == '2Dt':
-            x = merlintf.random_normal_complex((nBatch, D, M, N, 1))
+            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), dtype=K.floatx())
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
 
@@ -207,9 +210,9 @@ class Real2chFoETest(unittest.TestCase):
         model = Real2chFoE(config)
 
         if dim == '2D':
-            x = merlintf.random_normal_complex((nBatch, M, N, 1))
+            x = merlintf.random_normal_complex((nBatch, M, N, 1), dtype=K.floatx())
         elif dim == '3D' or dim == '2Dt':
-            x = merlintf.random_normal_complex((nBatch, D, M, N, 1))
+            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), dtype=K.floatx())
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
         
@@ -257,11 +260,11 @@ class RealFoETest(unittest.TestCase):
         model = FoE(config)
 
         if dim == '1D':
-            x = tf.random.normal((nBatch, N, 1))
+            x = tf.random.normal((nBatch, N, 1), dtype=K.floatx())
         elif dim == '2D':
-            x = tf.random.normal((nBatch, M, N, 1))
+            x = tf.random.normal((nBatch, M, N, 1), dtype=K.floatx())
         elif dim == '3D' or dim == '2Dt':
-            x = tf.random.normal((nBatch, D, M, N, 1))
+            x = tf.random.normal((nBatch, D, M, N, 1), dtype=K.floatx())
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
         

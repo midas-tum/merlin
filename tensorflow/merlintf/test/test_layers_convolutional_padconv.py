@@ -26,6 +26,8 @@ from merlintf.keras.layers.convolutional.padconv import (
     PadConvScale2D,
     PadConvScale3D,
 )
+import tensorflow.keras.backend as K
+K.set_floatx('float64')
 
 # complex_padconv.py
 class ComplexPadConv2DTest(unittest.TestCase):
@@ -55,7 +57,7 @@ class ComplexPadConv2DTest(unittest.TestCase):
         shape = [nBatch, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=True)
-        x = merlintf.random_normal_complex(shape)
+        x = merlintf.random_normal_complex(shape, dtype=K.floatx())
 
         with tf.GradientTape() as g:
             g.watch(x)
@@ -104,7 +106,7 @@ class ComplexPadConv3DTest(unittest.TestCase):
         shape = [nBatch, D, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=True)
-        x = merlintf.random_normal_complex(shape)
+        x = merlintf.random_normal_complex(shape, dtype=K.floatx())
 
         with tf.GradientTape() as g:
             g.watch(x)
@@ -136,7 +138,7 @@ class ComplexPadConvScaleTest(unittest.TestCase):
         shape = [nBatch, M, N, nf_in]
 
         model = ComplexPadConvScale2D(nf_out, kernel_size=3, strides=2)
-        x = merlintf.random_normal_complex(shape)
+        x = merlintf.random_normal_complex(shape, dtype=K.floatx())
         #model2 = ComplexPadConvScale2DTranspose(nf_out, kernel_size=3, strides=2)
 
         with tf.GradientTape() as g:
@@ -180,7 +182,7 @@ class ComplexPadConv2DRealKernelTest(unittest.TestCase):
         shape = [nBatch, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=True, bound_norm=True)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = tf.complex(tf.random.normal(shape, dtype=K.floatx()), tf.random.normal(shape, dtype=K.floatx()))
 
         with tf.GradientTape() as g:
             g.watch(x)
@@ -198,7 +200,7 @@ class ComplexPadConv2DRealKernelTest(unittest.TestCase):
     def test3(self):
         self._test_grad(ComplexPadConvRealWeight2D, 3, 1, 1, 'symmetric')
 
-class ComplexPadConvRealKernel3DTest(unittest.TestCase):
+class ComplexPadConv3DRealKernelTest(unittest.TestCase):
     def test_constraints(self):
         nf_in = 1
         nf_out = 32
@@ -225,7 +227,7 @@ class ComplexPadConvRealKernel3DTest(unittest.TestCase):
         shape = [nBatch, D, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=True, bound_norm=True)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = tf.complex(tf.random.normal(shape, dtype=K.floatx()), tf.random.normal(shape, dtype=K.floatx()))
 
         with tf.GradientTape() as g:
             g.watch(x)
@@ -259,7 +261,7 @@ class ComplexPadConv2dtTest(unittest.TestCase):
 
         nf_inter = np.ceil((nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
         model = ComplexPadConv2Dt(nf_out, nf_inter, kernel_size=ksz)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = tf.complex(tf.random.normal(shape, dtype=K.floatx()), tf.random.normal(shape, dtype=K.floatx()))
         Kx = model(x)
 
         with tf.GradientTape() as g:
@@ -293,10 +295,10 @@ class ComplexPadConv2dtTest(unittest.TestCase):
         nf_inter = np.ceil((nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] + nf_out * ksz[0])).astype(np.int32)
 
         model = ComplexPadConv2Dt(nf_out, nf_inter, kernel_size=ksz)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = tf.complex(tf.random.normal(shape, dtype=K.floatx()), tf.random.normal(shape, dtype=K.floatx()))
         Kx = model(x)
 
-        y = tf.complex(tf.random.normal(Kx.shape), tf.random.normal(Kx.shape))
+        y = tf.complex(tf.random.normal(Kx.shape, dtype=K.floatx()), tf.random.normal(Kx.shape, dtype=K.floatx()))
         KHy = model.backward(y, x.shape)
 
         rhs = tf.reduce_sum(Kx * y).numpy()
@@ -320,7 +322,7 @@ class ComplexPadConv3dtTest(unittest.TestCase):
 
         nf_inter = np.ceil((nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] * ksz[3] + nf_out * ksz[0])).astype(np.int32)
         model = ComplexPadConv3Dt(nf_out, nf_inter, kernel_size=ksz)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = tf.complex(tf.random.normal(shape, dtype=K.floatx()), tf.random.normal(shape, dtype=K.floatx()))
         Kx = model(x)
 
         with tf.GradientTape() as g:
@@ -354,10 +356,10 @@ class ComplexPadConv3dtTest(unittest.TestCase):
         nf_inter = np.ceil((nf_out * nf_in * np.prod(ksz)) / (nf_in * ksz[1] * ksz[2] * ksz[3] + nf_out * ksz[0])).astype(np.int32)
 
         model = ComplexPadConv3Dt(nf_out, nf_inter, kernel_size=ksz)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = tf.complex(tf.random.normal(shape, dtype=K.floatx()), tf.random.normal(shape, dtype=K.floatx()))
         Kx = model(x)
 
-        y = tf.complex(tf.random.normal(Kx.shape), tf.random.normal(Kx.shape))
+        y = tf.complex(tf.random.normal(Kx.shape, dtype=K.floatx()), tf.random.normal(Kx.shape, dtype=K.floatx()))
         KHy = model.backward(y, x.shape)
 
         rhs = tf.reduce_sum(Kx * y).numpy()
@@ -390,7 +392,7 @@ class PadConv1DTest(unittest.TestCase):
         shape = [nBatch, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=False)
-        x = tf.random.normal(shape)
+        x = tf.random.normal(shape, dtype=K.floatx())
 
         with tf.GradientTape() as g:
             g.watch(x)
@@ -431,7 +433,7 @@ class PadConv2DTest(unittest.TestCase):
         shape = [nBatch, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=False)
-        x = tf.random.normal(shape)
+        x = tf.random.normal(shape, dtype=K.floatx())
 
         with tf.GradientTape() as g:
             g.watch(x)
@@ -479,7 +481,7 @@ class PadConv3DTest(unittest.TestCase):
         shape = [nBatch, D, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=False)
-        x = tf.random.normal(shape)
+        x = tf.random.normal(shape, dtype=K.floatx())
 
         with tf.GradientTape() as g:
             g.watch(x)
@@ -511,7 +513,7 @@ class PadConvScaleTest(unittest.TestCase):
         shape = [nBatch, M, N, nf_in]
 
         model = PadConvScale2D(nf_out, kernel_size=3, strides=2)
-        x = tf.random.normal(shape)
+        x = tf.random.normal(shape, dtype=K.floatx())
         #model2 = PadConvScale2DTranspose(nf_out, kernel_size=3, strides=2)
 
         with tf.GradientTape() as g:

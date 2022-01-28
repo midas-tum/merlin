@@ -43,6 +43,8 @@ from merlintf.keras.layers.convolutional.conv3dt import (
     Conv3Dt,
     Conv3DtTranspose
 )
+import tensorflow.keras.backend as K
+K.set_floatx('float64')
 
 # complex_conv2dt.py
 class ComplexConv2dtTest(unittest.TestCase):
@@ -88,8 +90,8 @@ class ComplexConv2dtTest(unittest.TestCase):
             model = ComplexConv2Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
                             strides=stride, data_format=data_format, use_3D_convs=use_3D_convs)
 
-        x_real = tf.random.normal(shape)
-        x_imag = tf.random.normal(shape)
+        x_real = tf.random.normal(shape, dtype=K.floatx())
+        x_imag = tf.random.normal(shape, dtype=K.floatx())
         x = tf.complex(x_real, x_imag)
         Kx = model(x)
 
@@ -133,8 +135,8 @@ class ComplexConv3dtTest(unittest.TestCase):
             model = ComplexConv3Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
                             strides=stride, data_format=data_format)
 
-        x_real = tf.random.normal(shape)
-        x_imag = tf.random.normal(shape)
+        x_real = tf.random.normal(shape, dtype=K.floatx())
+        x_imag = tf.random.normal(shape, dtype=K.floatx())
         x = tf.complex(x_real, x_imag)
         Kx = model(x)
 
@@ -162,10 +164,10 @@ class ComplexConv3dtTest(unittest.TestCase):
             model = ComplexConv3Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
                             strides=stride, data_format=data_format)
 
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = tf.complex(tf.random.normal(shape, dtype=K.floatx()), tf.random.normal(shape, dtype=K.floatx()))
         Kx = model(x)
 
-        y = tf.complex(tf.random.normal(Kx.shape), tf.random.normal(Kx.shape))
+        y = tf.complex(tf.random.normal(Kx.shape, dtype=K.floatx()), tf.random.normal(Kx.shape, dtype=K.floatx()))
         with tf.GradientTape() as g:
             g.watch(y)
             Ky = model(y)
@@ -213,7 +215,7 @@ class ComplexConv3DTest(unittest.TestCase):
         shape = [nBatch, D, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = merlintf.random_normal_complex(shape)
+        x = merlintf.random_normal_complex(shape, dtype=K.floatx())
         Kx = model(x)
 
     def test1(self):
@@ -236,7 +238,7 @@ class ComplexConv2DTest(unittest.TestCase):
         shape = [nBatch, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = merlintf.random_normal_complex(shape)
+        x = merlintf.random_normal_complex(shape, dtype=K.floatx())
         Kx = model(x)
 
     def test1(self):
@@ -282,7 +284,7 @@ class ComplexConv3DTest(unittest.TestCase):
         shape = [nBatch, D, M, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = merlintf.random_normal_complex(shape)
+        x = merlintf.random_normal_complex(shape, dtype=K.floatx())
         Kx = model(x)
 
     def test1(self):
@@ -327,7 +329,7 @@ class ComplexConv1DTest(unittest.TestCase):
         shape = [nBatch, N, nf_in]
 
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = merlintf.random_normal_complex(shape)
+        x = merlintf.random_normal_complex(shape, dtype=K.floatx())
         Kx = model(x)
 
     def test1(self):
@@ -399,7 +401,7 @@ class Conv2dtTest(unittest.TestCase):
             model = Conv2Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
                             strides=stride, data_format=data_format, use_3D_convs=use_3D_convs)
 
-        x = tf.random.normal(shape)
+        x = tf.random.normal(shape, dtype=K.floatx())
         Kx = model(x)
 
         self.assertTrue(Kx.shape == expected_shape)
@@ -442,7 +444,7 @@ class Conv3dtTest(unittest.TestCase):
             model = Conv3Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
                             strides=stride, data_format=data_format)
 
-        x = tf.random.normal(shape)
+        x = tf.random.normal(shape, dtype=K.floatx())
         Kx = model(x)
 
         self.assertTrue(Kx.shape == expected_shape)

@@ -14,11 +14,13 @@ from merlintf.keras.layers.complex_act import (
     Cardioid,
     Cardioid2,
 )
+import tensorflow.keras.backend as K
+K.set_floatx('float64')
 
 class TestActivation(unittest.TestCase):   
     def _test(self, act, args, shape):
         model = act(**args)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = tf.complex(tf.random.normal(shape, dtype=K.floatx()), tf.random.normal(shape, dtype=K.floatx()))
         Kx = model(x)
         print(model)
         print(model.get_config())
@@ -47,7 +49,7 @@ class TestActivation(unittest.TestCase):
 class TestActivation2(unittest.TestCase):   
     def _test(self, act, args, shape):
         model = act(**args)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        x = tf.complex(tf.random.normal(shape, dtype=K.floatx()), tf.random.normal(shape, dtype=K.floatx()))
 
         with tf.GradientTape() as g:
             g.watch(x)

@@ -7,6 +7,8 @@ from merlintf.keras.models.unet import (
     ComplexUNet,
     Real2chUNet
 )
+import tensorflow.keras.backend as K
+K.set_floatx('float64')
 
 class UNetTest(unittest.TestCase):
     #TODO split unittests
@@ -159,19 +161,19 @@ class UNetTest(unittest.TestCase):
 
         if dim == '2D':
             if complex_input:
-                x = merlintf.random_normal_complex((nBatch, M, N, 1))
+                x = merlintf.random_normal_complex((nBatch, M, N, 1), dtype=K.floatx())
             else:
-                x = tf.random.normal((nBatch, M, N, 1))
+                x = tf.random.normal((nBatch, M, N, 1), dtype=K.floatx())
         elif dim == '3D' or dim == '2Dt':
             if complex_input:
-                x = merlintf.random_normal_complex((nBatch, M, N, D, 1))
+                x = merlintf.random_normal_complex((nBatch, M, N, D, 1), dtype=K.floatx())
             else:
-                x = tf.random.normal((nBatch, M, N, D, 1))
+                x = tf.random.normal((nBatch, M, N, D, 1), dtype=K.floatx())
         elif dim == '3Dt':
             if complex_input:
-                x = merlintf.random_normal_complex((nBatch, T, M, N, D, 1))
+                x = merlintf.random_normal_complex((nBatch, T, M, N, D, 1), dtype=K.floatx())
             else:
-                x = tf.random.normal((nBatch, T, M, N, D, 1))
+                x = tf.random.normal((nBatch, T, M, N, D, 1), dtype=K.floatx())
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
 
