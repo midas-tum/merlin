@@ -153,3 +153,6 @@ class MagnitudeAveragePool3Dt(MagnitudeAveragePool):
         pooled_shape = [orig_shape[0], orig_shape[1], x_pool.shape[1], x_pool.shape[2], orig_shape[-1]]
         x_pool = tf.reshape(x_pool, pooled_shape)
         return x_pool
+
+# Aliases
+MagnitudeAveragePool4D = MagnitudeAveragePool3Dt

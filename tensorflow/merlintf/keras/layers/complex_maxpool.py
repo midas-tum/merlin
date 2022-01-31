@@ -1,7 +1,7 @@
 import sys
 import tensorflow as tf
 try:
-    import optotf.maxpooling
+    import optotf.keras.maxpooling
 except:
     print('optotf could not be imported')
 import merlintf
@@ -46,7 +46,7 @@ class MagnitudeMaxPool(tf.keras.layers.Layer):
         self.padding = padding
         self.alpha = 1  # magnitude ratio in real part
         self.beta = 1  # magnitude ratio in imag part
-        self.optox = optox and (True if 'optotf.maxpooling' in sys.modules else False)  # True: execute Optox pooling; False: use TF pooling (not supported for all cases)
+        self.optox = optox and (True if 'optotf.keras.maxpooling' in sys.modules else False)  # True: execute Optox pooling; False: use TF pooling (not supported for all cases)
         self.argmax_index = argmax_index
 
     def call(self, x, **kwargs):  # default to TF
@@ -66,52 +66,47 @@ class MagnitudeMaxPool1D(MagnitudeMaxPool):
 class MagnitudeMaxPool2D(MagnitudeMaxPool):
     def __init__(self, pool_size, strides=None, padding='SAME', optox=True, argmax_index=False):
         super(MagnitudeMaxPool2D, self).__init__(pool_size, strides, padding, optox, argmax_index)
+        self.op = optotf.keras.maxpooling.Maxpooling2d(pool_size=self.pool_size, strides=self.strides,
+                                                       alpha=self.alpha, beta=self.beta,
+                                                       channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                       mode=self.padding, argmax=self.argmax_index)
+        self.grad = optotf.keras.maxpooling.Maxpooling2d_grad_backward(pool_size=self.pool_size, strides=self.strides,
+                                                                       alpha=self.alpha, beta=self.beta,
+                                                                       channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                                       mode=self.padding)
 
     def call(self, x, **kwargs):
         if self.optox:
-            if merlintf.iscomplextf(x):
-
-                x_pool, x_pool_index = optotf.maxpooling.maxpooling2d(x, pool_size=self.pool_size, strides=self.strides,
-                                                                      alpha=self.alpha, beta=self.beta,
-                                                                      mode=self.padding)
-                if self.argmax_index:
-                    return x_pool, x_pool_index
-                else:
-                    return x_pool
-            else:
-                x_pool, x_pool_index = tf.nn.max_pool_with_argmax(x, ksize=self.pool_size, strides=self.strides,
-                                                                  padding=self.padding)
-                if self.argmax_index:
-                    return x_pool, x_pool_index
-                else:
-                    return x_pool
+            @tf.custom_gradient
+            def optox_pool(x):
+                def grad(dy):
+                    return self.grad(x, dy)
+                return self.op(x), grad
+            return optox_pool(x)
         else:
-            return super().call(x, **kwargs)
+            return super(MagnitudeMaxPool2D, self).call(x, **kwargs)
 
 
 class MagnitudeMaxPool3D(MagnitudeMaxPool):
     def __init__(self, pool_size, strides=None, padding='SAME', optox=True, argmax_index=False):
         super(MagnitudeMaxPool3D, self).__init__(pool_size, strides, padding, optox, argmax_index)
+        self.op = optotf.keras.maxpooling.Maxpooling3d(pool_size=self.pool_size, strides=self.strides,
+                                                       alpha=self.alpha, beta=self.beta,
+                                                       channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                       mode=self.padding, argmax=self.argmax_index)
+        self.grad = optotf.keras.maxpooling.Maxpooling3d_grad_backward(pool_size=self.pool_size, strides=self.strides,
+                                                                       alpha=self.alpha, beta=self.beta,
+                                                                       channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                                       mode=self.padding)
 
     def call(self, x, **kwargs):
         if self.optox:
-            if merlintf.iscomplextf(x):
-                x_pool, x_pool_index = optotf.maxpooling.maxpooling3d(x, pool_size=self.pool_size, strides=self.strides,
-                                                                      alpha=self.alpha, beta=self.beta,
-                                                                      mode=self.padding)
-
-                if self.argmax_index:
-                    return x_pool, x_pool_index
-                else:
-                    return x_pool
-            else:
-                if self.argmax_index:
-                    x_pool, x_pool_index = tf.nn.max_pool3d(x, ksize=self.pool_size, strides=self.strides,
-                                                            padding=self.padding)
-                    return x_pool, x_pool_index
-                else:
-                    x_pool = tf.nn.max_pool3d(x, ksize=self.pool_size, strides=self.strides, padding=self.padding)
-                    return x_pool
+            @tf.custom_gradient
+            def optox_pool(x):
+                def grad(dy):
+                    return self.grad(x, dy)
+                return self.op(x), grad
+            return optox_pool(x)
         else:
             if self.argmax_index or merlintf.iscomplextf(x):
                 xabs = merlintf.complex_abs(x)
@@ -127,31 +122,40 @@ class MagnitudeMaxPool3D(MagnitudeMaxPool):
 
 
 class MagnitudeMaxPool2Dt(MagnitudeMaxPool):
-    def __init__(self, pool_size, strides=None, padding='SAME', optox=True, argmax_index=False):
+    def __init__(self, pool_size, strides=None, padding='SAME', optox=True, argmax_index=True):
         super(MagnitudeMaxPool2Dt, self).__init__(pool_size, strides, padding, optox, argmax_index)
-
+        self.op = optotf.keras.maxpooling.Maxpooling2d(pool_size=self.pool_size, strides=self.strides,
+                                                       alpha=self.alpha, beta=self.beta,
+                                                       channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                       mode=self.padding, argmax=argmax_index)
+        self.grad = optotf.keras.maxpooling.Maxpooling2d_grad_backward(pool_size=self.pool_size, strides=self.strides,
+                                                                       alpha=self.alpha, beta=self.beta,
+                                                                       channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                                       mode=self.padding)
     def call(self, x, **kwargs):
         if self.optox:
-            orig_shape = x.shape
-            batched_shape = [x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4]]
-            x = tf.reshape(x, batched_shape)
+            @tf.custom_gradient
+            def optox_pool(x):
+                def grad(dy):
+                    return self.grad(x, dy)
 
-            if merlintf.iscomplextf(x):
-                x_pool, x_pool_index = optotf.maxpooling.maxpooling2d(x, pool_size=self.pool_size, strides=self.strides,
-                                                                      alpha=self.alpha, beta=self.beta,
-                                                                      mode=self.padding)
+                if tf.keras.backend.image_data_format() == 'channels_last':
+                    x = tf.transpose(x, [0, 4, 1, 2, 3])
+                orig_shape = x.shape
+                batched_shape = [x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4]]
+                x = tf.reshape(x, batched_shape)
+                x_pool, x_pool_index = self.op(x)
+                pooled_shape = [orig_shape[0], orig_shape[1], x_pool.shape[1], x_pool.shape[2], orig_shape[-1]]
+                x_pool = tf.reshape(x_pool, pooled_shape)
+                if tf.keras.backend.image_data_format() == 'channels_last':
+                    x_pool = tf.transpose(x_pool, [0, 2, 3, 4, 1])
+                return x_pool, grad
 
-            else:
-                x_pool, x_pool_index = tf.nn.max_pool_with_argmax(x, ksize=self.pool_size, strides=self.strides,
-                                                                  padding=self.padding)
+            return optox_pool(x)
 
-            pooled_shape = [orig_shape[0], orig_shape[1], x_pool.shape[1], x_pool.shape[2], orig_shape[-1]]
-            x_pool = tf.reshape(x_pool, pooled_shape)
-            if self.argmax_index:
-                return x_pool, x_pool_index
-            else:
-                return x_pool
         else:
+            if tf.keras.backend.image_data_format() == 'channels_last':
+                x = tf.transpose(x, [0, 4, 1, 2, 3])
             orig_shape = x.shape
             batched_shape = [x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4]]
             x = tf.reshape(x, batched_shape)
@@ -163,41 +167,48 @@ class MagnitudeMaxPool2Dt(MagnitudeMaxPool):
 
             pooled_shape = [orig_shape[0], orig_shape[1], x_pool.shape[1], x_pool.shape[2], orig_shape[-1]]
             x_pool = tf.reshape(x_pool, pooled_shape)
-            if self.argmax_index:
-                return x_pool, idx
-            else:
-                return x_pool
+            if tf.keras.backend.image_data_format() == 'channels_last':
+                x_pool = tf.transpose(x_pool, [0, 2, 3, 4, 1])
+
+            return x_pool
 
 
 class MagnitudeMaxPool3Dt(MagnitudeMaxPool):
-    def __init__(self, pool_size, strides=None, padding='SAME', optox=True, argmax_index=False):
+    def __init__(self, pool_size, strides=None, padding='SAME', optox=True, argmax_index=True):
         super(MagnitudeMaxPool3Dt, self).__init__(pool_size, strides, padding, optox, argmax_index)
+        self.op = optotf.keras.maxpooling.Maxpooling3d(pool_size=self.pool_size, strides=self.strides,
+                                                       alpha=self.alpha, beta=self.beta,
+                                                       channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                       mode=self.padding, argmax=self.argmax_index)
+        self.grad = optotf.keras.maxpooling.Maxpooling3d_grad_backward(pool_size=self.pool_size, strides=self.strides,
+                                                                       alpha=self.alpha, beta=self.beta,
+                                                                       channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                                       mode=self.padding)
 
     def call(self, x, **kwargs):  # only Optox supported
-        orig_shape = x.shape
-        rank = tf.rank(x)
-        batched_shape = 0
-        if rank == 6:
+        @tf.custom_gradient
+        def optox_pool(x):
+            def grad(dy):
+                return self.grad(x, dy)
+            if tf.keras.backend.image_data_format() == 'channels_last':
+                x = tf.transpose(x, [0, 5, 1, 2, 3, 4])
+            orig_shape = x.shape
             batched_shape = [x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4], x.shape[5]]
-        elif rank == 5:
-            batched_shape = [x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4]]
-        x = tf.reshape(x, batched_shape)
+            x = tf.reshape(x, batched_shape)
 
-        if merlintf.iscomplextf(x):
+            # same operation for real and complex-valued input
             x_pool, x_pool_index = optotf.maxpooling.maxpooling3d(x, pool_size=self.pool_size, strides=self.strides,
                                                                   alpha=self.alpha,
-                                                                  beta=self.beta, mode=self.padding)
-        else:
-            # same as above
-            x_pool, x_pool_index = optotf.maxpooling.maxpooling3d(x, pool_size=self.pool_size, strides=self.strides,
-                                                                  alpha=self.alpha,
-                                                                  beta=self.beta, mode=self.padding)
+                                                                  beta=self.beta, mode=self.padding, argmax=True)
 
-        pooled_shape = [orig_shape[0], orig_shape[1], x_pool.shape[1], x_pool.shape[2], orig_shape[-1]]
-        x_pool = tf.reshape(x_pool, pooled_shape)
+            pooled_shape = [orig_shape[0], orig_shape[1], x_pool.shape[1], x_pool.shape[2], orig_shape[-1]]
+            x_pool = tf.reshape(x_pool, pooled_shape)
+            if tf.keras.backend.image_data_format() == 'channels_last':
+                x_pool = tf.transpose(x_pool, [0, 2, 3, 4, 5, 1])
+            return x_pool, grad
 
-        if self.argmax_index:
-            return x_pool, x_pool_index
-        else:
-            return x_pool
+        return optox_pool(x)
 
+
+# Aliases
+MagnitudeMaxPool4D = MagnitudeMaxPool3Dt
