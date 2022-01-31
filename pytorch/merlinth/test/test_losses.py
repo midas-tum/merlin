@@ -97,10 +97,10 @@ class TestLosses(unittest.TestCase):
         ).item()
         err_numpy = 0
         for i in range(shape4d[0]):
-            err_curr = ssim_py(input_numpy[i], input2_numpy[i])
+            err_curr = ssim_py(input_numpy[i], input2_numpy[i], win_size=7)
             err_numpy += err_curr
         err_numpy /= shape4d[0]
-        self.assertTrue(abs(err - err_numpy) < 1e-4)
+        self.assertTrue(abs(err - err_numpy) < 1e-3)
 
     def test_mse(self):
         self._test_mse([10, 32, 32])
