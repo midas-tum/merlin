@@ -6,7 +6,8 @@ from merlintf.keras.layers.complex_maxpool import (
     MagnitudeMaxPool,
     MagnitudeMaxPool2D,
     MagnitudeMaxPool2Dt,
-    MagnitudeMaxPool3D
+    MagnitudeMaxPool3D,
+    MagnitudeMaxPool3Dt
 )
 
 class TestMagnitudePool(unittest.TestCase):
@@ -16,24 +17,42 @@ class TestMagnitudePool(unittest.TestCase):
         pool = MagnitudeMaxPool(pool_size, strides, optox=False)
         y = pool(x)
         magn = merlintf.complex_abs(y)
+        pool_size = pool_size if (isinstance(pool_size, list) or isinstance(pool_size, tuple)) else [pool_size] * 2
+        self.assertEqual(magn.shape.as_list(), [shape[0], shape[1] // pool_size[0], shape[2] // pool_size[1], shape[3]])
 
     def _test_2dt(self, shape, pool_size=2, strides=2):
         x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
         pool = MagnitudeMaxPool2Dt(pool_size, strides, optox=False)
         y = pool(x)
         magn = merlintf.complex_abs(y)
+        pool_size = pool_size if (isinstance(pool_size, list) or isinstance(pool_size, tuple)) else [pool_size] * 3
+        self.assertEqual(magn.shape.as_list(), [shape[0], shape[1] // pool_size[0], shape[2] // pool_size[1], shape[3] // pool_size[2], shape[4]])
 
     def _test_2d(self, shape, pool_size=(2, 2), strides=(2, 2)):
         x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
         pool = MagnitudeMaxPool2D(pool_size, strides, optox=True)
         y = pool(x)
         magn = merlintf.complex_abs(y)
+        pool_size = pool_size if (isinstance(pool_size, list) or isinstance(pool_size, tuple)) else [pool_size] * 2
+        self.assertEqual(magn.shape.as_list(), [shape[0], shape[1] // pool_size[0], shape[2] // pool_size[1], shape[3]])
 
     def _test_3d(self, shape, pool_size=(2, 2, 2), strides=(2, 2, 2)):
         x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
         pool = MagnitudeMaxPool3D(pool_size, strides, optox=True)
         y = pool(x)
         magn = merlintf.complex_abs(y)
+        pool_size = pool_size if (isinstance(pool_size, list) or isinstance(pool_size, tuple)) else [pool_size] * 3
+        self.assertEqual(magn.shape.as_list(), [
+        shape[0], shape[1] // pool_size[0], shape[2] // pool_size[1], shape[3] // pool_size[2], shape[4]])
+
+    def _test_3dt(self, shape, pool_size=(2, 2, 2, 2), strides=(2, 2, 2, 2)):
+        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
+        pool = MagnitudeMaxPool3Dt(pool_size, strides, optox=True)
+        y = pool(x)
+        magn = merlintf.complex_abs(y)
+        pool_size = pool_size if (isinstance(pool_size, list) or isinstance(pool_size, tuple)) else [pool_size] * 4
+        self.assertEqual(magn.shape.as_list(), [
+        shape[0], shape[1] // pool_size[0], shape[2] // pool_size[1], shape[3] // pool_size[2], shape[4] // pool_size[3], shape[5]])
 
     def _index_transfer(self, index_input, index_1, include_batch_in_index=False):
         # transfer from optox argmax index-> tensorflow argmax index
@@ -145,6 +164,7 @@ class TestMagnitudePool(unittest.TestCase):
     def test_2dt(self):
         # Maxpooling 2dt
         self._test_2dt([2, 4, 2, 2, 1])
+
     def test_3dt(self):
         # Maxpooling 2dt
         self._test_3dt([2, 4, 2, 2, 2, 1])
@@ -156,7 +176,7 @@ class TestMagnitudePool(unittest.TestCase):
         # input shape: [batch, height, width, channel]
         self._test_2d_accuracy([1, 8, 12, 3], pool_size=(3, 2))
 
-    def test_2(self):
+    def test_3d(self):
         # Maxpooling 3d
         self._test_3d([2, 16, 8, 4, 1])
         self._test_3d([2, 16, 8, 4, 1], (4, 2, 2))
