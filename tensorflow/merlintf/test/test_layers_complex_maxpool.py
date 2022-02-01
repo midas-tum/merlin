@@ -20,9 +20,9 @@ class TestMagnitudePool(unittest.TestCase):
         pool_size = pool_size if (isinstance(pool_size, list) or isinstance(pool_size, tuple)) else [pool_size] * 2
         self.assertEqual(magn.shape.as_list(), [shape[0], shape[1] // pool_size[0], shape[2] // pool_size[1], shape[3]])
 
-    def _test_2dt(self, shape, pool_size=2, strides=2):
+    def _test_2dt(self, shape, pool_size=(1, 2, 2), strides=2):
         x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        pool = MagnitudeMaxPool2Dt(pool_size, strides, optox=False)
+        pool = MagnitudeMaxPool2Dt(pool_size, strides, optox=True)
         y = pool(x)
         magn = merlintf.complex_abs(y)
         pool_size = pool_size if (isinstance(pool_size, list) or isinstance(pool_size, tuple)) else [pool_size] * 3
@@ -163,7 +163,7 @@ class TestMagnitudePool(unittest.TestCase):
 
     def test_2dt(self):
         # Maxpooling 2dt
-        self._test_2dt([2, 4, 2, 2, 1])
+        self._test_2dt([2, 4, 2, 2, 1], (1, 2, 2))
 
     def test_3dt(self):
         # Maxpooling 2dt
