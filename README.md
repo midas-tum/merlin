@@ -1,30 +1,72 @@
 # MERLIN - Machine Enhanced Reconstruction Learning and Interpretation Networks
 
-This repository contains machine learning (ML) tools for pytorch, tensorflow, python.
-Tensorflow `merlintf.keras` contains following folders
-- `layers` basic building blocks, focusing on complex valued operations
-    - Complex-valued convolutions
-    - Complex-valued activations
-    - FFT operations
-    - Data consistency
-    - ...
-- `models` several layers are put together into networks for complex-valued processing (2-channel-real networks, complex networks)
-    - Convolutional Neural Network
-    - Fields-of-Experts regularizer
-    - UNet
-- `optimizers` contains custom optimizers
+This repository contains machine learning (ML) tools for PyTorch, TensorFlow and Python in three modules:
+- `merlinth`: ML extensions to PyTorch
+- `merlintf`: ML extensions to TensorFlow
+- `merlinpy`: ML extensions to Python
 
-
-Pytorch `merlinth` contains following folders (not restructured yet):
-- `optim`: Custom optimizer such as BlockAdam
-- `layers`: Data-driven regularizer following [this repository](https://github.com/VLOGroup/tdv), extended to complex-valued layers and similar setup as layers in `merintf.keras`
+If you use this code, please cite
+```
+...
+```
 
 **!!! Attention !!!** This package is work in progress and still under construction.
-Major changes in structure will appear. Especially, tensorflow/keras
-building blocks are not fully tested yet! If you experience any issues, if you have any feature requests or if you found any bugs, please let us know and raise an issue and/or
-pull request in github :)
+Major changes in structure will appear. If you experience any issues, if you have any feature requests or if you found any bugs, please let us know and raise an issue and/or pull request in github :)
 
 Please watch the `Issues` space and look for the latest updates regularly! :)
+
+## Contents
+### merlinth
+```
+merlinth
+    |--- layers     # Data-driven regularizer following (https://github.com/VLOGroup/tdv), extended to complex-valued layers and similar setup as layers in `merlintf.keras`
+        |-- Complex-valued convolutions
+        |-- Complex-valued activations
+        |-- Complex-valued pooling
+        |-- Complex-valued normalization
+        |-- FFT operations
+        |-- Data consistency
+        |-- ...
+    |-- losses     # Common and custom loss functions
+    |-- models     # Model zoo
+        |-- Fields-of-Experts (FOE) regularizer
+        |-- Total deep variation (TDV) regularizer
+        |-- UNet
+    |-- optim      # Custom optimizers such as BlockAdam
+```
+
+### merlintf
+```
+merlintf
+    |-- keras
+        |-- layers      # basic building blocks, focusing on complex valued operations
+            |-- Complex-valued convolutions
+            |-- Complex-valued activations
+            |-- Complex-valued pooling
+            |-- Complex-valued normalization
+            |-- FFT operations
+            |-- Data consistency
+            |-- ...
+        |-- models      # several layers are put together into networks for complex-valued processing (2-channel-real networks, complex networks)
+            |-- Convolutional Neural Network
+            |-- Fields-of-Experts (FOE) regularizer
+            |-- Total deep variation (TDV) regularizer
+            |-- UNet
+        |-- optimizers       # custom optimizers    
+    |-- optim                # custom optimizers
+```
+
+### merlinpy
+```
+merlinpy
+    |-- datapipeline        # collection of datapipelines and transform functions
+        |-- sampling        # subsampling codes and sampling trajectories
+    |-- fastmri             # dataloader and processing related to fastMRI database
+    |-- losses              # losses/metrics
+    |-- recon               # conventional reconstructions
+    |-- wandb               # logging via wandb.ai
+```
+
 ## Requirements
 ```
 git clone https://github.com/midas-tum/optox.git
@@ -34,6 +76,7 @@ follow build instructions on the github.
 
 ## Installation
 ```
+git clone https://github.com/midas-tum/merlin.git
 chmod 700 install.sh
 ./install.sh
 ```
