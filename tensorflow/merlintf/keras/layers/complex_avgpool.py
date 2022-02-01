@@ -1,7 +1,7 @@
 import sys
 import tensorflow as tf
 try:
-    import optotf.averagepooling
+    import optotf.keras.averagepooling
 except:
     print('optotf could not be imported')
 import merlintf
@@ -38,16 +38,17 @@ def deserialize(op):
 
 
 class MagnitudeAveragePool(tf.keras.layers.Layer):
-    def __init__(self, pool_size, strides=None, padding='SAME', optox=True):
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=None, optox=True):
         super(MagnitudeAveragePool, self).__init__()
         self.pool_size = pool_size
         if strides is None:
             strides = pool_size
         self.strides = strides
         self.padding = padding
+        self.dilations_rate = dilations_rate
         self.alpha = 1  # magnitude ratio in real part
         self.beta = 1  # magnitude ratio in imag part
-        self.optox = optox and (True if 'optotf.averagepooling' in sys.modules else False)  # True: execute Optox pooling; False: use TF pooling (not supported for all cases)
+        self.optox = optox and (True if 'optotf.keras.averagepooling' in sys.modules else False)  # True: execute Optox pooling; False: use TF pooling (not supported for all cases)
 
     def call(self, x, **kwargs):  # default to TF
         xabs = merlintf.complex_abs(x)
@@ -57,102 +58,115 @@ class MagnitudeAveragePool(tf.keras.layers.Layer):
 
 
 class MagnitudeAveragePool1D(MagnitudeAveragePool):
-    def __init__(self, pool_size, strides=None, padding='SAME', optox=True):
-        super(MagnitudeAveragePool1D, self).__init__(pool_size, strides, padding, optox)
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=1, optox=True):
+        super(MagnitudeAveragePool1D, self).__init__(pool_size, strides, padding, dilations_rate, optox)
 
 
 class MagnitudeAveragePool2D(MagnitudeAveragePool):
-    def __init__(self, pool_size, strides=None, padding='SAME', optox=True):
-        super(MagnitudeAveragePool2D, self).__init__(pool_size, strides, padding, optox)
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1), optox=True):
+        super(MagnitudeAveragePool2D, self).__init__(pool_size, strides, padding, dilations_rate, optox)
+        self.op = optotf.keras.averagepooling.Averagepooling2d(pool_size=self.pool_size, strides=self.strides,
+                                                               alpha=self.alpha, beta=self.beta,
+                                                               channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                               dilations_rate=self.dilations_rate, mode=self.padding)
+        self.grad = optotf.keras.averagepooling.Averagepooling2d_grad_backward(pool_size=self.pool_size, strides=self.strides,
+                                                               alpha=self.alpha, beta=self.beta,
+                                                               channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                               dilations_rate=self.dilations_rate, mode=self.padding)
 
     def call(self, x, **kwargs):
         if self.optox:
-            if merlintf.iscomplextf(x):
-                x_pool = optotf.averagepooling.averagepooling2d(x, pool_size=self.pool_size, strides=self.strides,
-                                                                      alpha=self.alpha, beta=self.beta,
-                                                                      mode=self.padding)
-                return x_pool
-            else:
-                x_pool = tf.nn.avg_pool2d(x, self.pool_size, self.strides, self.padding)
-                return x_pool
+            @tf.custom_gradient
+            def optox_pool(x):
+                def grad(dy):
+                    return self.grad(x, dy)
+                return self.op(x), grad
+
+            return optox_pool(x)
         else:
             return super().call(x, **kwargs)
 
 
 class MagnitudeAveragePool3D(MagnitudeAveragePool):
-    def __init__(self, pool_size, strides=None, padding='SAME', optox=True):
-        super(MagnitudeAveragePool3D, self).__init__(pool_size, strides, padding, optox)
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1), optox=True):
+        super(MagnitudeAveragePool3D, self).__init__(pool_size, strides, padding, dilations_rate, optox)
+        self.op = optotf.keras.averagepooling.Averagepooling3d(pool_size=self.pool_size, strides=self.strides,
+                                                               alpha=self.alpha, beta=self.beta,
+                                                               channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                               dilations_rate=self.dilations_rate, mode=self.padding)
+        self.grad = optotf.keras.averagepooling.Averagepooling3d_grad_backward(pool_size=self.pool_size,
+                                                                               strides=self.strides,
+                                                                               alpha=self.alpha, beta=self.beta,
+                                                                               channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                                               dilations_rate=self.dilations_rate,
+                                                                               mode=self.padding)
 
     def call(self, x, **kwargs):
         if self.optox:
-            if merlintf.iscomplextf(x):
-                x_pool = optotf.averagepooling.averagepooling3d(x, pool_size=self.pool_size,
-                                                                    strides=self.strides,
-                                                                    alpha=self.alpha, beta=self.beta,
-                                                                    mode=self.padding)
+            @tf.custom_gradient
+            def optox_pool(x):
+                def grad(dy):
+                    return self.grad(x, dy)
 
-                return x_pool
-            else:
-                x_pool = tf.nn.avg_pool3d(x, ksize=self.pool_size, strides=self.strides, padding=self.padding)
-                return x_pool
+                return self.op(x), grad
+
+            return optox_pool(x)
         else:
             return super().call(x, **kwargs)
 
 
 class MagnitudeAveragePool2Dt(MagnitudeAveragePool):
-    def __init__(self, pool_size, strides=None, padding='SAME', optox=True):
-        super(MagnitudeAveragePool2Dt, self).__init__(pool_size, strides, padding, optox)
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1), optox=True):
+        super(MagnitudeAveragePool2Dt, self).__init__(pool_size, strides, padding, dilations_rate, optox)
+        self.op = optotf.keras.averagepooling.Averagepooling3d(pool_size=self.pool_size, strides=self.strides,
+                                                               alpha=self.alpha, beta=self.beta,
+                                                               channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                               dilations_rate=self.dilations_rate, mode=self.padding)
+        self.grad = optotf.keras.averagepooling.Averagepooling3d_grad_backward(pool_size=self.pool_size,
+                                                                               strides=self.strides,
+                                                                               alpha=self.alpha, beta=self.beta,
+                                                                               channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                                               dilations_rate=self.dilations_rate,
+                                                                               mode=self.padding)
 
     def call(self, x, **kwargs):
         if self.optox:
-            orig_shape = x.shape
-            batched_shape = [x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4]]
-            x = tf.reshape(x, batched_shape)
+            @tf.custom_gradient
+            def optox_pool(x):
+                def grad(dy):
+                    return self.grad(x, dy)
 
-            if merlintf.iscomplextf(x):
-                x_pool = optotf.averagepooling.averagepooling2d(x, pool_size=self.pool_size, strides=self.strides,
-                                                                      alpha=self.alpha, beta=self.beta,
-                                                                      mode=self.padding)
+                return self.op(x), grad
 
-            else:
-                x_pool = tf.nn.avg_pool2d(x, ksize=self.pool_size, strides=self.strides,
-                                                                  padding=self.padding)
-
-            pooled_shape = [orig_shape[0], orig_shape[1], x_pool.shape[1], x_pool.shape[2], orig_shape[-1]]
-            x_pool = tf.reshape(x_pool, pooled_shape)
-
-            return x_pool
+            return optox_pool(x)
         else:
             return super().call(x, **kwargs)
 
 
 class MagnitudeAveragePool3Dt(MagnitudeAveragePool):
-    def __init__(self, pool_size, strides=None, padding='SAME', optox=True):
-        super(MagnitudeAveragePool3Dt, self).__init__(pool_size, strides, padding, optox)
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1, 1), optox=True):
+        super(MagnitudeAveragePool3Dt, self).__init__(pool_size, strides, padding, dilations_rate, optox)
+        self.op = optotf.keras.averagepooling.Averagepooling4d(pool_size=self.pool_size, strides=self.strides,
+                                                               alpha=self.alpha, beta=self.beta,
+                                                               channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                               dilations_rate=self.dilations_rate, mode=self.padding)
+        self.grad = optotf.keras.averagepooling.Averagepooling4d_grad_backward(pool_size=self.pool_size,
+                                                                               strides=self.strides,
+                                                                               alpha=self.alpha, beta=self.beta,
+                                                                               channel_first=tf.keras.backend.image_data_format() == 'channels_first',
+                                                                               dilations_rate=self.dilations_rate,
+                                                                               mode=self.padding)
 
     def call(self, x, **kwargs):  # only Optox supported
-        orig_shape = x.shape
-        rank = tf.rank(x)
-        batched_shape = 0
-        if rank == 6:
-            batched_shape = [x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4], x.shape[5]]
-        elif rank == 5:
-            batched_shape = [x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4]]
-        x = tf.reshape(x, batched_shape)
+        @tf.custom_gradient
+        def optox_pool(x):
+            def grad(dy):
+                return self.grad(x, dy)
 
-        if merlintf.iscomplextf(x):
-            x_pool = optotf.averagepooling.averagepooling3d(x, pool_size=self.pool_size, strides=self.strides,
-                                                                  alpha=self.alpha,
-                                                                  beta=self.beta, mode=self.padding)
-        else:
-            # same as above
-            x_pool = optotf.averagepooling.averagepooling3d(x, pool_size=self.pool_size, strides=self.strides,
-                                                                  alpha=self.alpha,
-                                                                  beta=self.beta, mode=self.padding)
+            x_pool = self.op(x)
+            return x_pool, grad
 
-        pooled_shape = [orig_shape[0], orig_shape[1], x_pool.shape[1], x_pool.shape[2], orig_shape[-1]]
-        x_pool = tf.reshape(x_pool, pooled_shape)
-        return x_pool
+        return optox_pool(x)
 
 # Aliases
 MagnitudeAveragePool4D = MagnitudeAveragePool3Dt
