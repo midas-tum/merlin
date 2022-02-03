@@ -11,6 +11,7 @@ class ToKerasIO():
     def __init__(self, input_keys, output_keys):
         self.input_keys = input_keys
         self.output_keys = output_keys
+
     def __call__(self, sample):
         inputs = []
         outputs = []
@@ -19,6 +20,15 @@ class ToKerasIO():
         for key in self.output_keys:
             outputs.append(sample[key])
         return inputs, outputs
+
+class AddKerasChannelDim(object):
+    def __init__(self, keys):
+        self.keys = keys
+
+    def __call__(self, sample):
+        for key in self.keys:
+            sample[key] = sample[key][..., None]
+        return sample
 
 def get_ndim(dim):
     if dim == '2D':
