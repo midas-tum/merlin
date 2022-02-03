@@ -48,6 +48,15 @@ class ToTorchIO():
             outputs.append(torch.from_numpy(sample[key]))
         return inputs, outputs
 
+class AddTorchChannelDim(object):
+    def __init__(self, keys):
+        self.keys = keys
+
+    def __call__(self, sample):
+        for key in self.keys:
+            sample[key] = sample[key][:, None]
+        return sample
+
 class Transpose():
     def __init__(self, transpose_list):
         self.transpose_list = transpose_list
@@ -56,9 +65,10 @@ class Transpose():
         for key, axes in self.transpose_list:
             sample[key] = np.ascontiguousarray(np.transpose(sample[key], axes))
         return sample
-# class ToTorchCuda():
-#     def __call__(self, inputs):
-#         if isinstance(inputs, list):
-#             return [inp.cuda() for inp in inputs]
-#         else:
-#             return inputs.cuda()
+
+class ToTorchCuda():
+    def __call__(self, inputs):
+        if isinstance(inputs, list):
+            return [inp.cuda() for inp in inputs]
+        else:
+            return inputs.cuda()

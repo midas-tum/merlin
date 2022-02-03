@@ -66,10 +66,15 @@ def loadYaml(cfile, experiment):
         for var_key, var_val in var_list:
             del config[var_key]
             
-        for var_key, var_val in var_list:
+        def replace(config, var_key, var_val):
             for key in config.keys():
                 if isinstance(config[key], str):
                     config[key] = config[key].replace(var_key, f'{var_val}')
+                if isinstance(config[key], dict):
+                    replace(config[key], var_key, var_val)
+
+        for var_key, var_val in var_list:
+            replace(config, var_key, var_val)
 
     return config
 
