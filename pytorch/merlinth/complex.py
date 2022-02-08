@@ -37,6 +37,12 @@ def random_normal_complex(shape, dtype=torch.float32):
     return torch.complex(torch.randn(shape, dtype=dtype), 
                          torch.randn(shape, dtype=dtype))
 
+def iscomplex(x):
+    if x.dtype == torch.complex32 or x.dtype == torch.complex64 or x.dtype == torch.complex128:
+          return True
+    else:
+          return False
+
 # def complex_div(data1, data2, dim=-1):
 #     assert data1.size(dim) == 2
 #     assert data2.size(dim) == 2
