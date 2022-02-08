@@ -2510,7 +2510,7 @@ class ZeroPadding4D(Layer):
       x = tf.concat(x_list, axis=0)
       x = tf.squeeze(x, axis=axis)
       x = backend.spatial_3d_padding(
-        x, padding=self.padding[:3], data_format=self.data_format)
+        x, padding=self.padding[1:], data_format=self.data_format)
       x_list = tf.split(x, shape_in[axis], axis=0)
       x = tf.stack(x_list, axis=axis)
       # t padding
@@ -2520,7 +2520,7 @@ class ZeroPadding4D(Layer):
       x = tf.concat(x_list, axis=0)
       x = tf.squeeze(x, axis=axis)
       x = backend.spatial_3d_padding(
-          x, padding=self.padding[1:], data_format=self.data_format)
+          x, padding=(self.padding[0], (0, 0), (0, 0)), data_format=self.data_format)
       x_list = tf.split(x, shape_in[axis], axis=0)
       return tf.stack(x_list, axis=axis)
 
