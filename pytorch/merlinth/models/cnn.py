@@ -83,9 +83,13 @@ class Real2chCNN(torch.nn.Module):
                 module.bias.data.fill_(0)
 
     def forward(self, inputs):
-        x = merlinth.complex2real(inputs)
+        if merlinth.is_complex(inputs):
+            x = merlinth.complex2real(inputs)
         x = self.ops(x)
-        return merlinth.real2complex(x)
+        if merlinth.is_complex(inputs):
+            return merlinth.real2complex(x)
+        else:
+            return x  # data already in real2channel format
 
 class ComplexCNN(merlinth.layers.module.ComplexModule):
     def __init__(
