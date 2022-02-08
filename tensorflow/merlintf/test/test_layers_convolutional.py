@@ -28,12 +28,15 @@ from merlintf.keras.layers.convolutional.complex_convolutional import (
     UpSampling1D,
     UpSampling2D,
     UpSampling3D,
+    UpSampling4D,
     ZeroPadding1D,
     ZeroPadding2D,
     ZeroPadding3D,
+    ZeroPadding4D,
     Cropping1D,
     Cropping2D,
-    Cropping3D
+    Cropping3D,
+    Cropping4D
 )
 from merlintf.keras.layers.convolutional.conv2dt import (
     Conv2Dt,
@@ -449,6 +452,85 @@ class Conv3dtTest(unittest.TestCase):
 
         self.assertTrue(Kx.shape == expected_shape)
 
+class UpSampling4dTest(unittest.TestCase):
+    def test_UpSampling4d(self):
+        self._test_UpSampling4d()
+        self._test_UpSampling4d(channel_last=False)
+
+    def _test_UpSampling4d(self, dim_in=[8, 32, 32, 12], nBatch=2, nf_in=3, size=(2, 2, 2, 2), channel_last=True):
+        if channel_last:
+            shape = [nBatch] + dim_in + [nf_in]
+            expected_shape = [nBatch] + [d * size[i] for i, d in enumerate(dim_in)] + [nf_in]
+            data_format = 'channels_last'
+        else:
+            shape = [nBatch] + [nf_in] + dim_in
+            expected_shape = [nBatch] + [nf_in] + [d * size[i] for i, d in enumerate(dim_in)]
+            data_format = 'channels_first'
+
+        model = UpSampling4d(size=size, data_format=data_format)
+
+        x = tf.random.normal(shape, dtype=K.floatx())
+        Kx = model(x)
+
+        self.assertTrue(Kx.shape == expected_shape)
+
+class ZeroPadding4dTest(unittest.TestCase):
+    def test_ZeroPadding4d(self):
+        self._test_ZeroPadding4d()
+        self._test_ZeroPadding4d(padding=(3, 3, 3, 3))
+        self._test_ZeroPadding4d(padding=((1, 3), (1, 3), (1, 3), (1, 3)))
+        self._test_ZeroPadding4d(channel_last=False)
+
+    def _test_ZeroPadding4d(self, dim_in=[8, 32, 32, 12], nBatch=2, nf_in=3, padding=(2, 2, 2, 2), channel_last=True):
+        if isinstance(padding[0], int):
+            dim_out = [d + 2*padding[i] for i, d in enumerate(dim_in)]
+        else:
+            dim_out = [d + padding[i][0] + padding[i][1] for i, d in enumerate(dim_in)]
+
+        if channel_last:
+            shape = [nBatch] + dim_in + [nf_in]
+            expected_shape = [nBatch] + dim_out + [nf_in]
+            data_format = 'channels_last'
+        else:
+            shape = [nBatch] + [nf_in] + dim_in
+            expected_shape = [nBatch] + [nf_in] + dim_out
+            data_format = 'channels_first'
+
+        model = ZeroPadding4d(padding=padding, data_format=data_format)
+
+        x = tf.random.normal(shape, dtype=K.floatx())
+        Kx = model(x)
+
+        self.assertTrue(Kx.shape == expected_shape)
+
+class Cropping4dTest(unittest.TestCase):
+    def test_Cropping4d(self):
+        self._test_Cropping4d()
+        self._test_Cropping4d(cropping=(3, 3, 3, 3))
+        self._test_ZeroPadding4d(cropping=((1, 3), (1, 3), (1, 3), (1, 3)))
+        self._test_Cropping4d(channel_last=False)
+
+    def _test_Cropping4d(self, dim_in=[8, 32, 32, 12], nBatch=2, nf_in=3, cropping=(2, 2, 2, 2), channel_last=True):
+        if isinstance(cropping[0], int):
+            dim_out = [d - 2*cropping[i] for i, d in enumerate(dim_in)]
+        else:
+            dim_out = [d - cropping[i][0] - cropping[i][1] for i, d in enumerate(dim_in)]
+
+        if channel_last:
+            shape = [nBatch] + dim_in + [nf_in]
+            expected_shape = [nBatch] + dim_out + [nf_in]
+            data_format = 'channels_last'
+        else:
+            shape = [nBatch] + [nf_in] + dim_in
+            expected_shape = [nBatch] + [nf_in] + dim_out
+            data_format = 'channels_first'
+
+        model = Cropping4d(padding=padding, data_format=data_format)
+
+        x = tf.random.normal(shape, dtype=K.floatx())
+        Kx = model(x)
+
+        self.assertTrue(Kx.shape == expected_shape)
 
 if __name__ == "__main__":
     unittest.main()
