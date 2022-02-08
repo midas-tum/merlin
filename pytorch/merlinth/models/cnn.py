@@ -3,6 +3,8 @@ import merlinth
 from merlinth.layers import ComplexConv2d, ComplexConv3d
 from merlinth.layers.complex_act import cReLU
 
+__all__ = ['Real2chCNN', 'ComplexCNN']
+
 class Real2chCNN(torch.nn.Module):
     def __init__(
         self,
