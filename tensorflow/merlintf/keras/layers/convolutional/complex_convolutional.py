@@ -2064,10 +2064,10 @@ class UpSampling4D(Layer):
       elif self.data_format == 'channels_last':
           axis = 1
       # xyz upsampling
-      x = self.batch_concat_conv(inputs, self.size[:3], axis=axis)
+      x = self.batch_concat_conv(inputs, self.size[1:], axis=axis)
       axis += 1
       # t upsampling
-      return self.batch_concat_conv(x, self.size[1:], axis=axis)
+      return self.batch_concat_conv(x, (self.size[0], 1, 1), axis=axis)
 
   def get_config(self):
     config = {'size': self.size, 'data_format': self.data_format}
