@@ -32,13 +32,13 @@
 #     return pad_transpose(4, x, pad, mode)
 
 # def pad(rank, x, pad, mode):
-#     if merlintf.iscomplextf(x):
+#     if merlintf.iscomplex(x):
 #         return complex_pad(rank, x, pad, mode)
 #     else:
 #         return real_pad(rank, x, pad, mode)
 
 # def pad_transpose(rank, x, pad, mode):
-#     if merlintf.iscomplextf(x):
+#     if merlintf.iscomplex(x):
 #         return complex_pad_transpose(rank, x, pad, mode)
 #     else:
 #         return real_pad_transpose(rank, x, pad, mode)

@@ -109,7 +109,7 @@ class MagnitudeMaxPool3D(MagnitudeMaxPool):
                 return self.op(x), grad
             return optox_pool(x)
         else:
-            if self.argmax_index or merlintf.iscomplextf(x):
+            if self.argmax_index or merlintf.iscomplex(x):
                 xabs = merlintf.complex_abs(x)
                 xangle = merlintf.complex_angle(x)
                 x_pool = tf.nn.max_pool3d(xabs, ksize=self.pool_size, strides=self.strides,
