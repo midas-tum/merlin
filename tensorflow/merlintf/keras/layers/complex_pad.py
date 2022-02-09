@@ -18,7 +18,7 @@ def Padding(identifier):
     elif callable(identifier):
         return identifier
     else:
-        raise TypeError('Could not interpret zeropadding function identifier: {}'.format(identifier))
+        raise TypeError('Could not interpret padding function identifier: {}'.format(identifier))
 
 def PaddingTranspose(identifier):
     if isinstance(identifier, six.string_types):
@@ -27,24 +27,24 @@ def PaddingTranspose(identifier):
     elif callable(identifier):
         return identifier
     else:
-        raise TypeError('Could not interpret zeropadding function identifier: {}'.format(identifier))
+        raise TypeError('Could not interpret padding function identifier: {}'.format(identifier))
 
 def deserialize(op):
     if op == 'Padding1D':
         return Padding1D
     elif op == 'Padding2D':
         return Padding2D
-    elif op == 'Padding3D':
+    elif op == 'Padding3D' or op == 'Padding2Dt':
         return Padding3D
-    elif op == 'Padding4D':
+    elif op == 'Padding4D' or op == 'Padding3Dt':
         return Padding4D
     elif op == 'Padding1DTranspose':
         return Padding1DTranspose
     elif op == 'Padding2DTranspose':
         return Padding2DTranspose
-    elif op == 'Padding3DTranspose':
+    elif op == 'Padding3DTranspose' or op == 'Padding2DtTranspose':
         return Padding3DTranspose
-    elif op == 'Padding4DTranspose':
+    elif op == 'Padding4DTranspose' or op == 'Padding3DtTranspose':
         return Padding4DTranspose
     else:
         raise ValueError('Unknown padding operation: {}'.format(op))
