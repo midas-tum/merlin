@@ -261,28 +261,28 @@ class RealUNet(UNet):
             if self.padding.lower() == 'zero':
                 self.pad_layer = tf.keras.layers.ZeroPadding2D
             else:
-                self.pad_layer = merlintf.keras.layers.Pad2D
+                self.pad_layer = merlintf.keras.layers.Padding2D
             self.crop_layer = tf.keras.layers.Cropping2D
         elif dim == '2Dt':
             self.conv_layer = merlintf.keras.layers.Conv2Dt
             if self.padding.lower() == 'zero':
                 self.pad_layer = tf.keras.layers.ZeroPadding3D
             else:
-                self.pad_layer = merlintf.keras.layers.Pad3D
+                self.pad_layer = merlintf.keras.layers.Padding3D
             self.crop_layer = tf.keras.layers.Cropping3D
         elif dim == '3D':
             self.conv_layer = tf.keras.layers.Conv3D
             if self.padding.lower() == 'zero':
                 self.pad_layer = tf.keras.layers.ZeroPadding3D
             else:
-                self.pad_layer = merlintf.keras.layers.Pad3D
+                self.pad_layer = merlintf.keras.layers.Padding3D
             self.crop_layer = tf.keras.layers.Cropping3D
         elif dim == '3Dt':
             self.conv_layer = merlintf.keras.layers.Conv3Dt
             if self.padding.lower() == 'zero':
                 self.pad_layer = merlintf.keras.layers.ZeroPadding4D
             else:
-                self.pad_layer = merlintf.keras.layers.Pad4D
+                self.pad_layer = merlintf.keras.layers.Padding4D
             self.crop_layer = merlintf.keras.layers.Cropping4D
         else:
             raise RuntimeError(f"Convlutions for dim={dim} not implemented!")
@@ -418,13 +418,13 @@ class ComplexUNet(UNet):
             self.pad_layer = merlintf.keras.layers.ZeroPadding(dim)
         else:
             if self.dim == '2D':
-                self.pad_layer = merlintf.keras.layers.Pad2D
+                self.pad_layer = merlintf.keras.layers.Padding2D
             if self.dim == '2Dt':
-                self.pad_layer = merlintf.keras.layers.Pad3D
+                self.pad_layer = merlintf.keras.layers.Padding3D
             elif self.dim == '3D':
-                self.pad_layer = merlintf.keras.layers.Pad3D
+                self.pad_layer = merlintf.keras.layers.Padding3D
             if self.dim == '3Dt':
-                self.pad_layer = merlintf.keras.layers.Pad4D
+                self.pad_layer = merlintf.keras.layers.Padding4D
             else:
                 raise RuntimeError(f"Padding for {dim} and {self.padding} not implemented!")
 
