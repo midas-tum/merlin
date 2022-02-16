@@ -117,4 +117,4 @@ class Testpad3dFunction(unittest.TestCase):
         self._test_adjointness(torch.float64, 'reflect')
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()

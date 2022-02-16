@@ -557,5 +557,5 @@ class PseudoComplexPadConvScale2d(unittest.TestCase):
         self.assertTrue(np.max(np.abs(weight_norm-1)) < 1e-6)
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()
 

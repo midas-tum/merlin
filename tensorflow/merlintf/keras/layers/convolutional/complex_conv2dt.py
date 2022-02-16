@@ -3,21 +3,8 @@ from tensorflow.python.keras import constraints
 from tensorflow.python.keras import initializers
 from tensorflow.python.keras import regularizers
 from tensorflow.python.keras.utils import conv_utils
-from merlintf.keras.layers import complex_act as activations
-from tensorflow.keras.layers import Conv3D
-from tensorflow.keras.layers import Layer
 import numpy as np
-from tensorflow.python.keras.engine.input_spec import InputSpec
-from tensorflow.python.eager import context
-from tensorflow.python.framework import tensor_shape
-import unittest
-import six
-import functools
-from tensorflow.python.ops import array_ops
-from tensorflow.python.ops import nn
-from tensorflow.python.ops import nn_ops
-
-from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv, ComplexConv2DTranspose, ComplexConv2D, ComplexConv3DTranspose, ComplexConv3D
+from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv2DTranspose, ComplexConv2D, ComplexConv3DTranspose, ComplexConv3D
 from merlintf.keras.utils import validate_input_dimension
 
 def calculate_intermediate_filters_2D(filters, kernel_size, channel_in):
@@ -371,59 +358,3 @@ class ComplexConv2DtTranspose(tf.keras.layers.Layer):
 ComplexConvolution2Dt = ComplexConv2Dt
 ComplexConvolution2DtTranspose = ComplexConv2DtTranspose
 ComplexDeconvolution2Dt = ComplexDeconv2Dt = ComplexConv2DtTranspose
-
-
-class ComplexConv2dtTest(unittest.TestCase):
-    def test_ComplexConv2dt(self):
-        self._test_Conv2dt()
-        self._test_Conv2dt(stride=(2, 2, 2))
-        self._test_Conv2dt(channel_last=False)
-        self._test_Conv2dt(use_3D_convs=False)
-        self._test_Conv2dt(stride=(2, 2, 2), use_3D_convs=False)
-        self._test_Conv2dt(channel_last=False, use_3D_convs=False)
-
-    def test_ComplexConv2dtTranspose(self):
-        self._test_Conv2dt(is_transpose=True)
-        self._test_Conv2dt(is_transpose=True, stride=(2, 2, 2))
-        self._test_Conv2dt(is_transpose=True, channel_last=False)
-        self._test_Conv2dt(is_transpose=True, use_3D_convs=False)
-        self._test_Conv2dt(is_transpose=True, stride=(2, 2, 2), use_3D_convs=False)
-        self._test_Conv2dt(is_transpose=True, channel_last=False, use_3D_convs=False)
-
-    def _test_Conv2dt(self, dim_in=[8, 32, 28], nBatch=2, nf_in=3, nf_out=18, ksz=(3, 5, 5), stride=(1, 1, 1),
-                      channel_last=True, axis_conv_t=2, is_transpose=False, use_3D_convs=True):
-        if is_transpose:
-            dim_out = list((np.asarray(dim_in) * np.asarray(stride)).astype(int))
-        else:
-            dim_out = list((np.asarray(dim_in) / np.asarray(stride)).astype(int))
-
-        if channel_last:
-            shape = [nBatch] + dim_in + [nf_in]
-            expected_shape = [nBatch] + dim_out + [nf_out]
-            data_format = 'channels_last'
-        else:
-            shape = [nBatch] + [nf_in] + dim_in
-            expected_shape = [nBatch] + [nf_out] + dim_out
-            data_format = 'channels_first'
-
-        ksz = validate_input_dimension('2Dt', ksz)
-        nf_inter = calculate_intermediate_filters_2D(nf_out, ksz, nf_in)
-
-        if is_transpose:
-            model = ComplexConv2DtTranspose(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
-                                     strides=stride, data_format=data_format, use_3D_convs=use_3D_convs)
-        else:
-            model = ComplexConv2Dt(nf_out, kernel_size=ksz, shapes=shape, axis_conv_t=2, intermediate_filters=nf_inter,
-                            strides=stride, data_format=data_format, use_3D_convs=use_3D_convs)
-
-        x_real = tf.random.normal(shape)
-        x_imag = tf.random.normal(shape)
-        x = tf.complex(x_real, x_imag)
-        Kx = model(x)
-
-        self.assertTrue(Kx.shape == expected_shape)
-
-if __name__ == "__main__":
-    unittest.main()
-
-

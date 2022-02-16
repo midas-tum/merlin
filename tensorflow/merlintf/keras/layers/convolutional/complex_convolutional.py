@@ -2064,10 +2064,10 @@ class UpSampling4D(Layer):
       elif self.data_format == 'channels_last':
           axis = 1
       # xyz upsampling
-      x = self.batch_concat_conv(inputs, self.size[:3], axis=axis)
+      x = self.batch_concat_conv(inputs, self.size[1:], axis=axis)
       axis += 1
       # t upsampling
-      return self.batch_concat_conv(x, self.size[1:], axis=axis)
+      return self.batch_concat_conv(x, (self.size[0], 1, 1), axis=axis)
 
   def get_config(self):
     config = {'size': self.size, 'data_format': self.data_format}
@@ -2510,7 +2510,7 @@ class ZeroPadding4D(Layer):
       x = tf.concat(x_list, axis=0)
       x = tf.squeeze(x, axis=axis)
       x = backend.spatial_3d_padding(
-        x, padding=self.padding[:3], data_format=self.data_format)
+        x, padding=self.padding[1:], data_format=self.data_format)
       x_list = tf.split(x, shape_in[axis], axis=0)
       x = tf.stack(x_list, axis=axis)
       # t padding
@@ -2520,7 +2520,7 @@ class ZeroPadding4D(Layer):
       x = tf.concat(x_list, axis=0)
       x = tf.squeeze(x, axis=axis)
       x = backend.spatial_3d_padding(
-          x, padding=self.padding[1:], data_format=self.data_format)
+          x, padding=(self.padding[0], (0, 0), (0, 0)), data_format=self.data_format)
       x_list = tf.split(x, shape_in[axis], axis=0)
       return tf.stack(x_list, axis=axis)
 
@@ -3132,135 +3132,3 @@ UpSampling2Dt = UpSampling3D
 Cropping3Dt = Cropping4D
 ZeroPadding3Dt = ZeroPadding4D
 UpSampling3Dt = UpSampling4D
-
-class ComplexConv2DTest(unittest.TestCase):
-    def _test_fwd(self, conv_fun, kernel_size, strides, dilations, activation, padding):
-        nBatch = 5
-        M = 256
-        N = 256
-        nf_in = 10
-        nf_out = 32
-        shape = [nBatch, M, N, nf_in]
-
-        model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = merlintf.random_normal_complex(shape)
-        Kx = model(x)
-
-    def test1(self):
-        self._test_fwd(ComplexConvolution2D, 3, 2, 1, None, 'same')
-
-    def test2(self):
-        self._test_fwd(ComplexConvolution2D, 3, 1, 2, None, 'same')
-
-    def test1T(self):
-        self._test_fwd(ComplexDeconvolution2D, 3, 2, 1, None, 'same')
-
-    def test2T(self):
-        self._test_fwd(ComplexDeconvolution2D, 3, 1, 2, None, 'same')
-
-    def _test_other(self, op, size=2):
-        nBatch = 5
-        M = 64
-        N = 64
-        nf_in = 10
-        shape = [nBatch, M, N, nf_in]
-
-        model = op(size)
-        x = merlintf.random_normal_complex(shape)
-        Kx = model(x)
-
-    def test_pad(self):
-        self._test_other(ZeroPadding2D, 2)
-
-    def test_crop(self):
-        self._test_other(Cropping2D, 2)
-
-    def test_upsample(self):
-        self._test_other(UpSampling2D, 2)
-
-class ComplexConv3DTest(unittest.TestCase):
-    def _test_fwd(self, conv_fun, kernel_size, strides, dilations, activation, padding):
-        nBatch = 5
-        M = 64
-        N = 64
-        D = 8
-        nf_in = 10
-        nf_out = 32
-        shape = [nBatch, D, M, N, nf_in]
-
-        model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = merlintf.random_normal_complex(shape)
-        Kx = model(x)
-
-    def test1(self):
-        self._test_fwd(ComplexConvolution3D, 3, 2, 1, None, 'same')
-
-    def test2(self):
-        self._test_fwd(ComplexConvolution3D, 3, 1, 2, None, 'same')
-
-    def test1T(self):
-        self._test_fwd(ComplexDeconvolution3D, 3, 2, 1, None, 'same')
-
-    def test2T(self):
-        self._test_fwd(ComplexDeconvolution3D, 3, 1, 2, None, 'same')
-      
-    def _test_other(self, op, size=2):
-        nBatch = 5
-        M = 64
-        N = 64
-        D = 8
-        nf_in = 10
-        shape = [nBatch, D, M, N, nf_in]
-
-        model = op(size)
-        x = merlintf.random_normal_complex(shape)
-        Kx = model(x)
-
-    def test_pad(self):
-        self._test_other(ZeroPadding3D, 2)
-
-    def test_crop(self):
-        self._test_other(Cropping3D, 2)
-
-    def test_upsample(self):
-        self._test_other(UpSampling3D, 2)
-
-class ComplexConv1DTest(unittest.TestCase):
-    def _test_fwd(self, conv_fun, kernel_size, strides, dilations, activation, padding):
-        nBatch = 5
-        N = 256
-        nf_in = 10
-        nf_out = 32
-        shape = [nBatch, N, nf_in]
-
-        model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
-        x = merlintf.random_normal_complex(shape)
-        Kx = model(x)
-
-    def test1(self):
-        self._test_fwd(ComplexConvolution1D, 3, 2, 1, None, 'same')
-
-    def test2(self):
-        self._test_fwd(ComplexConvolution1D, 3, 1, 2, None, 'same')
-
-    def _test_other(self, op, size=2):
-        nBatch = 5
-        N = 256
-        nf_in = 10
-        shape = [nBatch, N, nf_in]
-
-        model = op(size)
-        x = merlintf.random_normal_complex(shape)
-        Kx = model(x)
-
-    def test_pad(self):
-        self._test_other(ZeroPadding1D, 2)
-
-    def test_crop(self):
-        self._test_other(Cropping1D, 2)
-
-    def test_upsample(self):
-        self._test_other(UpSampling1D, 2)
-
-if __name__ == "__main__":
-    unittest.test()

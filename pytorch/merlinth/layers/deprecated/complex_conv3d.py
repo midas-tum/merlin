@@ -440,5 +440,5 @@ class ComplexPadConv3DGradientTest(unittest.TestCase):
         self._test([1, 1, 3])
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()
 

@@ -35,3 +35,13 @@ def IFFTN(x, axes=(0,1)):
     for ax in axes:
         x = np.sqrt(x.shape[ax]) * np.fft.ifft(x, axis=ax)
     return x
+
+# aliases
+ifft2c = IFFT2c
+fft2c = FFT2c
+ifftnc = IFFTNc
+fftnc = FFTNc
+ifft2 = IFFT2
+fft2 = FFT2
+ifftn = IFFTN
+fftn = FFTN

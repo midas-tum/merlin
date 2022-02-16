@@ -20,6 +20,7 @@ setup(
               "merlinpy.datapipeline",
               "merlinpy.datapipeline.sampling",
               "merlinpy.datapipeline.sampling.VISTA",
+              "merlinpy.test"
               ],
     package_dir={"merlinpy": os.path.join('.', "merlinpy"),
                  "merlinpy.fastmri": os.path.join('.', "merlinpy/fastmri"),
@@ -29,6 +30,7 @@ setup(
                  "merlinpy.datapipeline": os.path.join('.', "merlinpy/datapipeline"),
                  "merlinpy.datapipeline.sampling": os.path.join('.', "merlinpy/datapipeline/sampling"),
                  "merlinpy.datapipeline.sampling.VISTA": os.path.join('.', "merlinpy/datapipeline/sampling/VISTA"),
+                 "merlinpy.test": os.path.join('.', "merlinpy/test"),
     },
     include_package_data=True,
     package_data={"merlinpy.datapipeline.sampling": ['*.so'],

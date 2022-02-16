@@ -33,7 +33,7 @@ def magpha2complex(z, channel_last=True):
     (mag, pha) = tf.split(z, 2, axis=stack_dim)
     return tf.complex(mag * tf.math.cos(pha), mag * tf.math.sin(pha))
 
-def iscomplextf(x):
+def iscomplex(x):
     if x.dtype == tf.complex64 or x.dtype == tf.complex128:
           return True
     else:

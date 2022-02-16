@@ -5,7 +5,6 @@ from tensorflow.python.keras import regularizers
 from tensorflow.python.keras.layers.convolutional import Conv
 
 import numpy as np
-import unittest
 
 import optotf.pad
 
@@ -107,31 +106,11 @@ class PadConv(Conv):
             pad += [w//2, w//2]
         return pad
 
-    def _pad(self, rank, inputs, pad, mode):
-        if rank == 1:
-            return optotf.pad.pad1d(inputs, pad, mode=mode)
-        elif rank == 2:
-            return optotf.pad.pad2d(inputs, pad, mode=mode)
-        elif rank == 3:
-            return optotf.pad.pad3d(inputs, pad, mode=mode)
-        else:
-            raise ValueError("pad does only exist for 1D, 2D and 3D")
-
-    def _pad_transpose(self, rank, inputs, pad, mode):
-        if rank == 1:
-            return optotf.pad.pad1d_transpose(inputs, pad, mode=mode)
-        elif rank == 2:
-            return optotf.pad.pad2d_transpose(inputs, pad, mode=mode)
-        elif rank == 3:
-            return optotf.pad.pad3d_transpose(inputs, pad, mode=mode)
-        else:
-            raise ValueError("pad does only exist for 1D, 2D and 3D")
-
     def call(self, inputs):
         # first pad
         pad = self._compute_optox_padding()
         if self.pad and any(pad):
-            inputs = self._pad(self.rank, inputs, pad, self.optox_padding)
+            inputs = optotf.pad._pad(self.rank, inputs, pad, self.optox_padding)
 
         outputs = self._convolution_op(inputs, self.true_kernel)
 
@@ -181,7 +160,7 @@ class PadConv(Conv):
 
         # transpose padding
         if self.pad and any(pad):
-            x = self._pad_transpose(self.rank, x, pad, mode=self.optox_padding)
+            x = optotf.pad._pad_transpose(self.rank, x, pad, self.optox_padding)
         return x
 
 class PadConv1D(PadConv):
@@ -361,7 +340,7 @@ class PadConvScale2D(PadConv2D):
             np_k = np_k @ np_k.T
             np_k /= np_k.sum()
             np_k = np.reshape(np_k, (5, 5, 1, 1))
-            self.blur = tf.Variable(initial_value=tf.convert_to_tensor(np_k), trainable=False)
+            self.blur = tf.Variable(initial_value=tf.convert_to_tensor(np_k, dtype=tf.keras.backend.floatx()), trainable=False)
    
     @property
     def true_kernel(self):
@@ -496,7 +475,7 @@ class PadConvScale3D(PadConv3D):
             np_k = np_k @ np_k.T
             np_k /= np_k.sum()
             np_k = np.reshape(np_k, (1, 5, 5, 1, 1))
-            self.blur = tf.Variable(initial_value=tf.convert_to_tensor(np_k), trainable=False)
+            self.blur = tf.Variable(initial_value=tf.convert_to_tensor(np_k, dtype=tf.keras.backend.floatx()), trainable=False)
 
     @property
     def true_kernel(self):
@@ -584,168 +563,3 @@ class PadConvScale3DTranspose(PadConvScale3D):
 
     def backward(self, x):
         return super().call(x)
-
-class PadConv1DTest(unittest.TestCase):
-    def test_constraints(self):
-        nf_in = 1
-        nf_out = 32
-        
-        model = PadConv1D(nf_out, kernel_size=3, zero_mean=True, bound_norm=True)
-        model.build((None, None, nf_in))
-        np_weight = model.weights[0].numpy()
-        reduction_dim = model.weights[0].reduction_dim
-
-        weight_mean = np.mean(np_weight, axis=reduction_dim)
-        self.assertTrue(np.max(np.abs(weight_mean)) < 1e-6)
-
-        weight_norm = np.sqrt(np.sum(np.conj(np_weight) * np_weight, axis=reduction_dim))
-        self.assertTrue(np.max(np.abs(weight_norm-1)) < 1e-6)
-
-    def _test_grad(self, conv_fun, kernel_size, strides, dilation_rate, padding):
-        nBatch = 5
-        N = 256
-        nf_in = 10
-        nf_out = 32
-        shape = [nBatch, N, nf_in]
-
-        model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=False)
-        x = tf.random.normal(shape)
-
-        with tf.GradientTape() as g:
-            g.watch(x)
-            Kx = model(x)
-            loss = 0.5 * tf.reduce_sum(tf.math.conj(Kx) * Kx)
-        grad_x = g.gradient(loss, x)
-        x_autograd = grad_x.numpy()
-
-        KHKx = model.backward(Kx, x.shape)
-        x_bwd = KHKx.numpy()
-        self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
-
-    def test1(self):
-        self._test_grad(PadConv1D, 5, 1, 1, 'symmetric')
-
-class PadConv2DTest(unittest.TestCase):
-    def test_constraints(self):
-        nf_in = 1
-        nf_out = 32
-        
-        model = PadConv2D(nf_out, kernel_size=3, zero_mean=True, bound_norm=True)
-        model.build((None, None, None, nf_in))
-        np_weight = model.weights[0].numpy()
-        reduction_dim = model.weights[0].reduction_dim
-
-        weight_mean = np.mean(np_weight, axis=reduction_dim)
-        self.assertTrue(np.max(np.abs(weight_mean)) < 1e-6)
-
-        weight_norm = np.sqrt(np.sum(np.conj(np_weight) * np_weight, axis=reduction_dim))
-        self.assertTrue(np.max(np.abs(weight_norm-1)) < 1e-6)
-
-    def _test_grad(self, conv_fun, kernel_size, strides, dilation_rate, padding):
-        nBatch = 5
-        M = 256
-        N = 256
-        nf_in = 10
-        nf_out = 32
-        shape = [nBatch, M, N, nf_in]
-
-        model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=False)
-        x = tf.random.normal(shape)
-
-        with tf.GradientTape() as g:
-            g.watch(x)
-            Kx = model(x)
-            loss = 0.5 * tf.reduce_sum(tf.math.conj(Kx) * Kx)
-        grad_x = g.gradient(loss, x)
-        x_autograd = grad_x.numpy()
-
-        KHKx = model.backward(Kx, x.shape)
-        x_bwd = KHKx.numpy()
-        self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
-
-    def test1(self):
-        self._test_grad(PadConv2D, 5, 1, 1, 'symmetric')
-
-    def test2(self):
-        self._test_grad(PadConvScale2D, 3, 2, 1, 'symmetric')
-    def test3(self):
-        self._test_grad(PadConv2D, 3, 1, 1, 'symmetric')
-
-class PadConv3DTest(unittest.TestCase):
-    def test_constraints(self):
-        nf_in = 1
-        nf_out = 32
-        
-        model = PadConv3D(nf_out, kernel_size=3, zero_mean=True, bound_norm=True)
-        model.build((None, None, None, None, nf_in))
-        np_weight = model.weights[0].numpy()
-        reduction_dim = model.weights[0].reduction_dim
-
-        weight_mean = np.mean(np_weight, axis=reduction_dim)
-        self.assertTrue(np.max(np.abs(weight_mean)) < 1e-6)
-
-        weight_norm = np.sqrt(np.sum(np.conj(np_weight) * np_weight, axis=reduction_dim))
-
-        self.assertTrue(np.max(np.abs(weight_norm-1)) < 1e-6)
-
-    def _test_grad(self, conv_fun, kernel_size, strides, dilation_rate, padding):
-        nBatch = 5
-        M = 256
-        N = 256
-        D = 10
-        nf_in = 2
-        nf_out = 16
-        shape = [nBatch, D, M, N, nf_in]
-
-        model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=False, bound_norm=False)
-        x = tf.random.normal(shape)
-
-        with tf.GradientTape() as g:
-            g.watch(x)
-            Kx = model(x)
-            loss = 0.5 * tf.reduce_sum(tf.math.conj(Kx) * Kx)
-        grad_x = g.gradient(loss, x)
-        x_autograd = grad_x.numpy()
-
-        KHKx = model.backward(Kx, x.shape)
-        x_bwd = KHKx.numpy()
-        self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
-
-    def test1(self):
-        self._test_grad(PadConv3D, 5, 1, 1, 'symmetric')
-
-    def test2(self):
-        self._test_grad(PadConvScale3D, 3, (1,2,2), 1, 'symmetric')
-
-    def test3(self):
-        self._test_grad(PadConv3D, 3, 1, 1, 'symmetric')
-
-class PadConvScaleTest(unittest.TestCase):
-    def test_grad(self):
-        nBatch = 5
-        M = 256
-        N = 256
-        nf_in = 10
-        nf_out = 32
-        shape = [nBatch, M, N, nf_in]
-
-        model = PadConvScale2D(nf_out, kernel_size=3, strides=2)
-        x = tf.random.normal(shape)
-        #model2 = PadConvScale2DTranspose(nf_out, kernel_size=3, strides=2)
-
-        with tf.GradientTape() as g:
-            g.watch(x)
-            Kx = model(x)
-            loss = 0.5 * tf.reduce_sum(tf.math.conj(Kx) * Kx)
-        grad_x = g.gradient(loss, x)
-        x_autograd = grad_x.numpy()
-
-        KHKx = model.backward(Kx, output_shape=x.shape)
-        x_bwd = KHKx.numpy()
-
-        #test = model2(Kx, output_shape=x.shape)
-
-        self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
-
-if __name__ == "__main__":
-    unittest.test()

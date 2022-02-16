@@ -62,4 +62,4 @@ class TestComplex(unittest.TestCase):
         self.assertTrue(np.allclose(y_th, y_tf))
 
 if __name__ == "__main__":
-    unittest.test()
+    unittest.main()

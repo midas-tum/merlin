@@ -4,7 +4,7 @@ from tensorflow.python.keras import initializers
 from tensorflow.python.keras import regularizers
 
 import numpy as np
-import unittest
+import optotf.pad
 
 from merlintf.keras.layers.complex_init import complex_initializer
 from merlintf.keras.layers.convolutional.complex_conv import (
@@ -12,11 +12,6 @@ from merlintf.keras.layers.convolutional.complex_conv import (
     complex_conv3d_real_weight_transpose,
     complex_conv2d_real_weight,
     complex_conv3d_real_weight,
-)
-
-from merlintf.keras.layers.complex_pad import (
-    complex_pad,
-    complex_pad_transpose,
 )
 
 from merlintf.keras.layers.convolutional.complex_convolutional_realkernel import ComplexConvRealWeight
@@ -118,7 +113,7 @@ class ComplexPadConvRealWeight(ComplexConvRealWeight):
         # first pad
         pad = self._compute_optox_padding()
         if self.pad and any(pad):
-            inputs = complex_pad(self.rank, inputs, pad, self.optox_padding)
+            inputs = optotf.pad._pad(self.rank, inputs, pad, self.optox_padding)
 
         outputs = self._complex_convolution_op(inputs, self.kernel)
 
@@ -166,7 +161,7 @@ class ComplexPadConvRealWeight(ComplexConvRealWeight):
 
         # transpose padding
         if self.pad and any(pad):
-            x = complex_pad_transpose(self.rank, x, pad, mode=self.optox_padding)
+            x = optotf.pad._pad_transpose(self.rank, x, pad, mode=self.optox_padding)
         return x
 
 class ComplexPadConvRealWeight2D(ComplexPadConvRealWeight):
@@ -255,95 +250,3 @@ class ComplexPadConvRealWeight3D(ComplexPadConvRealWeight):
         pad=pad,
         **kwargs)
 
-class ComplexPadConv2DTest(unittest.TestCase):
-    def test_constraints(self):
-        nf_in = 1
-        nf_out = 32
-        
-        model = ComplexPadConvRealWeight2D(nf_out, kernel_size=3)
-        model.build((None, None, None, nf_in))
-        np_weight = model.weights[0].numpy()
-        reduction_dim = model.weights[0].reduction_dim
-
-        weight_mean = np.mean(np_weight, axis=reduction_dim)
-        self.assertTrue(np.max(np.abs(weight_mean)) < 1e-6)
-
-        weight_norm = np.sqrt(np.sum(np.conj(np_weight) * np_weight, axis=reduction_dim))
-
-        self.assertTrue(np.max(np.abs(weight_norm-1)) < 1e-6)
-
-    def _test_grad(self, conv_fun, kernel_size, strides, dilation_rate, padding):
-        nBatch = 5
-        M = 256
-        N = 256
-        nf_in = 10
-        nf_out = 32
-        shape = [nBatch, M, N, nf_in]
-
-        model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=True, bound_norm=True)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-
-        with tf.GradientTape() as g:
-            g.watch(x)
-            Kx = model(x)
-            loss = 0.5 * tf.reduce_sum(tf.math.conj(Kx) * Kx)
-        grad_x = g.gradient(loss, x)
-        x_autograd = grad_x.numpy()
-
-        KHKx = model.backward(Kx, x.shape)
-        x_bwd = KHKx.numpy()
-        self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
-
-    def test1(self):
-        self._test_grad(ComplexPadConvRealWeight2D, 5, 1, 1, 'symmetric')
-    def test3(self):
-        self._test_grad(ComplexPadConvRealWeight2D, 3, 1, 1, 'symmetric')
-
-class ComplexPadConv3DTest(unittest.TestCase):
-    def test_constraints(self):
-        nf_in = 1
-        nf_out = 32
-        
-        model = ComplexPadConvRealWeight3D(nf_out, kernel_size=3)
-        model.build((None, None, None, None, nf_in))
-        np_weight = model.weights[0].numpy()
-        reduction_dim = model.weights[0].reduction_dim
-
-        weight_mean = np.mean(np_weight, axis=reduction_dim)
-        self.assertTrue(np.max(np.abs(weight_mean)) < 1e-6)
-
-        weight_norm = np.sqrt(np.sum(np.conj(np_weight) * np_weight, axis=reduction_dim))
-
-        self.assertTrue(np.max(np.abs(weight_norm-1)) < 1e-6)
-
-    def _test_grad(self, conv_fun, kernel_size, strides, dilation_rate, padding):
-        nBatch = 5
-        M = 256
-        N = 256
-        D = 10
-        nf_in = 2
-        nf_out = 16
-        shape = [nBatch, D, M, N, nf_in]
-
-        model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, padding=padding, zero_mean=True, bound_norm=True)
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-
-        with tf.GradientTape() as g:
-            g.watch(x)
-            Kx = model(x)
-            loss = 0.5 * tf.reduce_sum(tf.math.conj(Kx) * Kx)
-        grad_x = g.gradient(loss, x)
-        x_autograd = grad_x.numpy()
-
-        KHKx = model.backward(Kx, x.shape)
-        x_bwd = KHKx.numpy()
-        self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
-
-    def test1(self):
-        self._test_grad(ComplexPadConvRealWeight3D, 5, 1, 1, 'symmetric')
-
-    def test3(self):
-        self._test_grad(ComplexPadConvRealWeight3D, 3, 1, 1, 'symmetric')
-
-if __name__ == "__main__":
-    unittest.test()

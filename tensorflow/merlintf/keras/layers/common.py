@@ -28,7 +28,7 @@ class Scalar(tf.keras.layers.Layer):
         return self._weight * self.scale
         
     def call(self, inputs):
-        if merlintf.iscomplextf(inputs):
+        if merlintf.iscomplex(inputs):
             return merlintf.complex_scale(inputs, self.weight)
         else:
             return self.weight * inputs
