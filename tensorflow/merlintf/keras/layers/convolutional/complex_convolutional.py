@@ -105,21 +105,21 @@ def deserialize(op):
     elif op == 'ComplexConv2D' or op == 'ComplexConvolution2D':
         return ComplexConv2D
     elif op == 'ComplexConv2Dt' or op == 'ComplexConvolution2Dt':
-        return merlintf.keras.layers.complex_conv2dt.ComplexConv2Dt
+        return merlintf.keras.layers.convolutional.complex_conv2dt.ComplexConv2Dt
     elif op == 'ComplexConv3D' or op == 'ComplexConvolution3D':
         return ComplexConv3D
     elif op == 'ComplexConv3Dt' or op == 'ComplexConvolution3Dt':
-        return merlintf.keras.layers.complex_conv3dt.ComplexConv3Dt
+        return merlintf.keras.layers.convolutional.complex_conv3dt.ComplexConv3Dt
     elif op == 'ComplexConv1DTranspose' or op == 'ComplexConvolution1DTranspose':
         return ComplexConv1DTranspose
     elif op == 'ComplexConv2DTranspose' or op == 'ComplexConvolution2DTranspose':
         return ComplexConv2DTranspose
     elif op == 'ComplexConv2DtTranspose' or op == 'ComplexConvolution2DtTranspose':
-        return merlintf.keras.layers.complex_conv2dt.ComplexConv2DtTranspose
+        return merlintf.keras.layers.convolutional.complex_conv2dt.ComplexConv2DtTranspose
     elif op == 'ComplexConv3DTranspose' or op == 'ComplexConvolution3DTranspose':
         return ComplexConv3DTranspose
     elif op == 'ComplexConv3DtTranspose' or op == 'ComplexConvolution3DtTranspose':
-        return merlintf.keras.layers.complex_conv3dt.ComplexConv3DtTranspose
+        return merlintf.keras.layers.convolutional.complex_conv3dt.ComplexConv3DtTranspose
     elif op == 'UpSampling1D':
         return UpSampling1D
     elif op == 'UpSampling2D':
