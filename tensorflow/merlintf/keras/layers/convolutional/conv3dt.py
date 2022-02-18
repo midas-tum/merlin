@@ -51,7 +51,7 @@ class Conv3Dt(tf.keras.layers.Layer):
         self.dilation_rate = validate_input_dimension('3Dt', dilation_rate)
 
         self.conv_xyz = Conv3D(
-            filters=intermediate_filters,
+            filters=self.intermediate_filters,
             kernel_size=(self.kernel_size[1], self.kernel_size[2], self.kernel_size[3]),
             strides=(self.strides[1], self.strides[2], self.strides[3]),
             padding=self.padding,

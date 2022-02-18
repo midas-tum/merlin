@@ -55,7 +55,7 @@ class Conv2Dt(tf.keras.layers.Layer):
 
         if use_3D_convs:
             self.conv_xy = Conv3D(
-                filters=intermediate_filters,
+                filters=self.intermediate_filters,
                 kernel_size=(1, self.kernel_size[1], self.kernel_size[2]),
                 strides=(1, self.strides[1], self.strides[2]),
                 padding=padding,
@@ -91,7 +91,7 @@ class Conv2Dt(tf.keras.layers.Layer):
                 **kwargs)
         else:
             self.conv_xy = Conv2D(
-                filters=intermediate_filters,
+                filters=self.intermediate_filters,
                 kernel_size=(self.kernel_size[1], self.kernel_size[2]),
                 strides=(self.strides[1], self.strides[2]),
                 padding=padding,
@@ -257,7 +257,7 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
                 **kwargs)
 
             self.conv_t = Conv3DTranspose(
-                filters=intermediate_filters,
+                filters=self.intermediate_filters,
                 kernel_size=(self.kernel_size[0], 1, 1),
                 strides=(self.strides[0], 1, 1),
                 padding=padding,
