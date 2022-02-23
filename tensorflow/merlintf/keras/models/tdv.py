@@ -1,6 +1,4 @@
 import tensorflow as tf
-import numpy as np
-from merlintf import random_normal_complex
 
 from merlintf.keras.models.foe import Regularizer
 from merlintf.keras.layers.convolutional.padconv import (

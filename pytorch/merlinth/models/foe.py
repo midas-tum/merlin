@@ -4,6 +4,7 @@ from merlinth.layers import ComplexPadConv1d, ComplexPadConv2d, ComplexPadConv3d
 from merlinth.layers import ComplexPadConv2Dt
 from optoth.activations import TrainableActivation
 import merlinth
+from merlinth.layers.module import ComplexModule
 
 __all__ = ['Regularizer',
            'MagnitudeFoE',
@@ -13,7 +14,7 @@ __all__ = ['Regularizer',
            'Real2chFoE'
           ]
 
-class Regularizer(torch.nn.Module):
+class Regularizer(ComplexModule):
     """
     Basic regularization function
     """

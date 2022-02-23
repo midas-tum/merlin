@@ -17,9 +17,9 @@ class GradientTest(unittest.TestCase):
     def _test_tdv_gradient(self, dim):
         # setup the data
         if dim == '2D':
-            x = shape = (2,64,64,1)
+            shape = (2,64,64,1)
         elif dim == '3D':
-            x = shape = (2,10,64,64,1)
+            shape = (2,10,64,64,1)
         else:
             raise ValueError
         x = tf.random.normal(shape, dtype=K.floatx())
@@ -211,7 +211,7 @@ class TestEnergy(unittest.TestCase):
         self._test_gradient('3D')
 
 class TestTransformation(unittest.TestCase):
-    def _test_gradient(self, dim):
+    def _test_gradient(self, dim, is_complex):
         # setup the data
         if dim == '2D':
             shape = (2,64,64,1)
@@ -220,7 +220,10 @@ class TestTransformation(unittest.TestCase):
         else:
             raise ValueError
 
-        x = random_normal_complex(shape, dtype=K.floatx())
+        if is_complex:
+            x = random_normal_complex(shape, dtype=K.floatx())
+        else:
+            x = tf.random.normal(shape, dtype=K.floatx())
 
         # define the TDV regularizer
         config ={
@@ -229,7 +232,7 @@ class TestTransformation(unittest.TestCase):
             'num_scales': 2,
             'num_mb': 1,
             'multiplier': 2,
-            'is_complex': True,
+            'is_complex': is_complex,
             'dim' : dim,
         }
         R = TDV(config)
@@ -244,13 +247,21 @@ class TestTransformation(unittest.TestCase):
 
         KHKx = R._transformation_T(Kx)
         x_bwd = KHKx.numpy()
+
         self.assertTrue(np.sum(np.abs(x_autograd - x_bwd))/x_autograd.size < 1e-5)
 
     def test_2D(self):
-        self._test_gradient('2D')
+        self._test_gradient('2D', False)
 
     def test_3D(self):
-        self._test_gradient('3D')
+        self._test_gradient('3D', False)
+
+    def test_2D_complex(self):
+        self._test_gradient('2D', True)
+
+    def test_3D_complex(self):
+        self._test_gradient('3D', True)
+
 
 if __name__ == "__main__":
     unittest.test()
