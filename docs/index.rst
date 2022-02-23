@@ -7,10 +7,12 @@ Welcome to MERLIN's documentation!
 ==================================
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
    :caption: Contents:
 
    merlinth
+   merlintf
+   merlinpy
 
 
 Indices and tables

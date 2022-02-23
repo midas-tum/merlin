@@ -1,3 +1,5 @@
+from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv1D
+from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv1DTranspose
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv2D
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv2DTranspose
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv3D
