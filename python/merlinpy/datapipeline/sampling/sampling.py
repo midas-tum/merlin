@@ -48,7 +48,7 @@ class Sampling:  # abstract parent class
 
             for iRep in range(1, nRep + 1):
                 print('*** Repetition = %d ***' % (iRep))
-                print('#Samples repetition %d: %d' % (iRep, np.sum(mask_rep[:, :, iRep - 1], axis=(0, 1))))
+                print('#Samples repetition %d: %d' % (iRep, np.sum(self.mask[:, :, iRep - 1], axis=(0, 1))))
 
     def get_accel(self):
         # determine obtained acceleration factor of subsampling algorithm
