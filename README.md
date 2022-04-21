@@ -1,4 +1,11 @@
 # MERLIN - Machine Enhanced Reconstruction Learning and Interpretation Networks
+<!-- markdownlint-disable -->
+<p align="center">
+  <a href="http://merlin.rtfd.io/">
+    <img src="fig/MERLIN_logo.png" width="100" alt="MERLIN logo"> Machine Enhanced Reconstruction Learning and Interpretation Networks
+  </a>
+</p>
+<!-- markdownlint-restore -->
 
 This repository contains machine learning (ML) tools for PyTorch, TensorFlow and Python in three modules:
 - `merlinth`: ML extensions to PyTorch
@@ -7,7 +14,12 @@ This repository contains machine learning (ML) tools for PyTorch, TensorFlow and
 
 If you use this code, please cite
 ```
-...
+@inproceedings{HammernikKuestner2022,
+  title={Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN)},
+  author={Hammernik, K. and K{\"u}stner, T.},
+  booktitle={Proceedings of the International Society for Magnetic Resonance in Medicine (ISMRM)},
+  year={2022}
+}
 ```
 
 **!!! Attention !!!** This package is work in progress and still under construction.
