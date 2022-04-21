@@ -37,7 +37,7 @@ else:
 
 setup(
     name='merlintf',
-    version='0.2.2',
+    version='0.2.3',
     author="Kerstin Hammernik, Thomas Kuestner",
     author_email="k.hammernik@imperial.ac.uk, thomas.kuestner@med.uni-tuebingen.de",
     packages=["merlintf",

@@ -42,3 +42,17 @@ def iscomplex(x):
 def random_normal_complex(shape, dtype=tf.keras.backend.floatx()):
     return tf.complex(tf.random.normal(shape, dtype=dtype), 
                       tf.random.normal(shape, dtype=dtype))
+
+def numpy2tensor(x, add_batch_dim=False, add_channel_dim=False, channel_last=True, dtype=tf.dtypes.complex64):
+    x = tf.cast(tf.convert_to_tensor(x), dtype)
+    if add_batch_dim:
+        x = tf.expand_dims(x, 0)
+    if add_channel_dim:
+        if channel_last:
+            x = tf.expand_dims(x, -1)
+        else:
+            x = tf.expand_dims(x, 1)
+    return x
+
+def tensor2numpy(x):
+    return x.numpy()
