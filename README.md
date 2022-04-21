@@ -2,7 +2,7 @@
 <!-- markdownlint-disable -->
 <p align="center">
   <a href="http://merlin.rtfd.io/">
-    <img src="fig/MERLIN_logo.png" width="100" alt="MERLIN logo"> Machine Enhanced Reconstruction Learning and Interpretation Networks
+    <img src="https://github.com/midas-tum/merlin/blob/17726307ee9d850db79169afe527bb7c38395c6b/notebooks/fig/MERLIN_logo.png" width="150" alt="MERLIN logo"> 
   </a>
 </p>
 <!-- markdownlint-restore -->
