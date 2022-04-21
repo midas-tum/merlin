@@ -43,13 +43,13 @@ def iscomplex(x):
     else:
           return False
 
-def numpy2tensor(x, add_batch_dim=False, add_channel_dim=False):
+def numpy2tensor(x, add_batch_dim=False, add_channel_dim=False, dtype=torch.complex64):
     x = torch.from_numpy(x)
     if add_batch_dim:
         x = torch.unsqueeze(x, 0)
     if add_channel_dim:
         x = torch.unsqueeze(x, 1)
-    return x
+    return x.type(dtype)
 
 def tensor2numpy(x):
     return x.cpu().detach().numpy()
