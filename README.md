@@ -96,8 +96,9 @@ chmod 700 install.sh
 ## Verification
 Run unittests to ensure proper working of sub-modules
 ```
-cd tensorflow
-python3 -m unittest merlintf.keras.layers.complex_pool
+python3 -m unittest discover -s merlinpy.test
+python3 -m unittest discover -s merlinth.test
+python3 -m unittest discover -s merlintf.test
 ```
 
 ## Common mistakes and best practices in writing own keras modules and layers

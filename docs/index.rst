@@ -6,7 +6,8 @@
 Welcome to MERLIN's documentation!
 ==================================
 
-Lore ipsum - add some info about merlin and define abbreviation
+Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) contains machine learning (ML) tools for
+PyTorch, TensorFlow and Python in three modules: ``merlinpy``, ``merlinth``, ``merlintf``
 
 OVERVIEW
 --------
@@ -15,9 +16,24 @@ The source files are organized as follows:
 .. code-block::
 
     .
-    ├── python/merlinpy          : python wrappers 
-    ├── pytorch/merlinth         : pytorch wrappers
-    └── tensorflow/merlintf      : tensorflow wrappers
+    ├── python/merlinpy          : Python wrappers
+    ├── pytorch/merlinth         : Pytorch wrappers
+    └── tensorflow/merlintf      : Tensorflow wrappers
+
+
+
+ACKNOWLEDGEMENT
+---------------
+If you use this code, please cite
+
+.. parsed-literal::
+   @inproceedings{HammernikKuestner2022,
+     title={Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN)},
+     author={Hammernik, K. and K{\"u}stner, T.},
+     booktitle={Proceedings of the International Society for Magnetic Resonance in Medicine (ISMRM)},
+     year={2022}
+   }
+
 
 .. toctree::
    :caption: USE MERLIN

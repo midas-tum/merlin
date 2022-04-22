@@ -26,6 +26,7 @@
       ~ComplexConv1D.compute_output_shape
       ~ComplexConv1D.compute_output_signature
       ~ComplexConv1D.count_params
+      ~ComplexConv1D.finalize_state
       ~ComplexConv1D.from_config
       ~ComplexConv1D.get_config
       ~ComplexConv1D.get_input_at

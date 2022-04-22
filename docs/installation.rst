@@ -1,9 +1,9 @@
 Installation
 ============
 
-.. todo::
-    - test installation workflow
-    - test documentation workflow
+.. parsed-literal::
+    chmod 700 install.sh
+    ./install.sh
 
 
 Documentation
@@ -15,3 +15,13 @@ Documentation
 - Run ``make html``
 - Go to ``_build/html``
 - View the documentation: ``python -m http.server 8000``
+
+Verification
+============
+
+Run unittests to ensure proper working of sub-modules
+
+.. parsed-literal::
+    python3 -m unittest discover -s merlinpy.test
+    python3 -m unittest discover -s merlinth.test
+    python3 -m unittest discover -s merlintf.test

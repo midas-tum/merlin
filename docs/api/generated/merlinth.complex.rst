@@ -22,8 +22,10 @@
       complex_scale
       iscomplex
       magpha2complex
+      numpy2tensor
       random_normal_complex
       real2complex
+      tensor2numpy
    
    
 
