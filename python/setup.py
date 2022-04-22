@@ -44,7 +44,11 @@ setup(
         "scipy",
         "scikit-image",
         "matplotlib",
-        "joblib"
+        "joblib",
+        "sphinx",
+        "sphinxjp.themes.basicstrap",
+        "sphinx-rtd-theme",
+        "breathe",
     ],
     distclass=BinaryDistribution,
 )

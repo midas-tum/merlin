@@ -1,4 +1,0 @@
-sphinx
-sphinxjp.themes.basicstrap
-sphinx-rtd-theme
-breathe
