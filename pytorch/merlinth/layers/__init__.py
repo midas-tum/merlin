@@ -24,6 +24,14 @@ try:
 except:
     print('padconv layers could not be loaded. Optox might not be installed.')
 
+try:
+    from merlinth.layers.complex_maxpool import MagnitudeMaxPooling, MagnitudeMaxPool1D, \
+        MagnitudeMaxPool2D, MagnitudeMaxPool2Dt, MagnitudeMaxPool3D, MagnitudeMaxPool3Dt
+    from merlinth.layers.complex_avgpool import MagnitudeAveragePooling, MagnitudeAveragePool1D, \
+        MagnitudeAveragePool2D, MagnitudeAveragePool2Dt, MagnitudeAveragePool3D, MagnitudeAveragePool3Dt
+except:
+    print('pooling layers in merlinth.layers could not be loaded. Optox might not be installed.')
+
 from merlinth.layers.data_consistency import DCGD
 from merlinth.layers.data_consistency import DCPM
 from merlinth.layers.mri import MulticoilForwardOp
