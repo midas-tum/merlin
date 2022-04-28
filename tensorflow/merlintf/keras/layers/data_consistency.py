@@ -121,3 +121,40 @@ class DCPM(tf.keras.layers.Layer):
         constants = inputs[2:]
         lambdaa = 1.0 / tf.math.maximum(self.weight * scale, 1e-9)
         return self.prox(lambdaa, x, y, *constants)
+
+class itSENSE(tf.keras.layers.Layer):
+    """Iterative SENSE.
+
+    Args:
+        A (function handle): Forward operator
+        AH (function handle): Adjoint operator
+        weight (float, optional): Regularization weight. Defaults to 0.0.
+        name (str, optional): Name of the layer. Defaults to 'itSENSE'.
+    Kwargs:
+        parallel_iterations: Defines how many instances in a batch are processed
+            in parallel. Defaults to None equals Default in eager mode: 1 default in graph mode: 10
+    """
+    def __init__(self, A, AH, weight=0.0, name='itSENSE', 
+                **kwargs):
+        super().__init__()
+        self.A = A
+        self.AH = AH
+        self.max_iter = kwargs.get('max_iter', 10)
+        self.tol = kwargs.get('tol', 1e-10)
+        parallel_iterations = kwargs.get('parallel_iterations', None)
+        self.op = CGClass(A, AH, max_iter=self.max_iter, tol=self.tol, parallel_iterations=parallel_iterations)
+
+        self.weight_init = weight
+
+    def build(self, input_shape):
+        self.weight = self.add_weight(name='weight',
+                shape=(1,),
+                constraint=tf.keras.constraints.NonNeg(),
+                initializer=tf.keras.initializers.Constant(self.weight_init),
+                trainable=False)
+
+    def call(self, inputs):
+        y = inputs[0]
+        constants = inputs[1:]
+        x = tf.zeros_like(self.AH(y, *constants))
+        return self.op(self.weight, x, y, *constants)

@@ -26,6 +26,7 @@ except:
 
 from merlinth.layers.data_consistency import DCGD
 from merlinth.layers.data_consistency import DCPM
+from merlinth.layers.data_consistency import itSENSE
 from merlinth.layers.mri import MulticoilForwardOp
 from merlinth.layers.mri import MulticoilAdjointOp
 from merlinth.layers.mri import MulticoilMotionForwardOp

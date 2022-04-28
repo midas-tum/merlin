@@ -52,6 +52,7 @@ except:
     print('keras.layers.complex_pad could not be loaded. Optox might not be installed.')
 from merlintf.keras.layers.data_consistency import DCGD
 from merlintf.keras.layers.data_consistency import DCPM
+from merlintf.keras.layers.data_consistency import itSENSE
 from merlintf.keras.layers.common import Scalar
 from merlintf.keras.layers.mri import MulticoilForwardOp
 from merlintf.keras.layers.mri import MulticoilAdjointOp
