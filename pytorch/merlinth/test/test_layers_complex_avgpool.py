@@ -11,6 +11,8 @@ class TestMagnitudeAvgPool(unittest.TestCase):
     def test3d(self):
         shape = (1,1,4,4,4,)
         x = merlinth.random_normal_complex(shape, dtype=torch.get_default_dtype())
+        cuda1 = torch.device('cuda:0')
+        x = x.to(device=cuda1)
         pool = MagnitudeAveragePool3D()
 
         y = pool(x)
@@ -19,6 +21,8 @@ class TestMagnitudeAvgPool(unittest.TestCase):
     def test2d(self):
         shape = (1,1,4,4,)
         x = merlinth.random_normal_complex(shape, dtype=torch.get_default_dtype())
+        cuda1 = torch.device('cuda:0')
+        x = x.to(device=cuda1)
         pool = MagnitudeAveragePool2D()
 
         y = pool(x)
