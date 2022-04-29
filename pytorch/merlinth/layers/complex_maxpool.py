@@ -63,7 +63,7 @@ class MagnitudeMaxPool(torch.nn.Module):
     def forward(self, x):
         if self.optox and merlinth.iscomplex(x):
             return self.op.apply(x, self.kernel_size, self.padding, self.stride, self.dilation,  self.alpha, self.beta,
-                                 self.padding_mode, x.dtype, self.channel_first)
+                                 self.padding_mode, x.real.dtype, self.channel_first)
         else:
             magn = merlinth.complex_abs(x, eps=1e-9)
             _, indices = self.op(magn)
@@ -78,31 +78,31 @@ class MagnitudeMaxPool(torch.nn.Module):
 
 
 class MagnitudeMaxPool1D(MagnitudeMaxPool):
-    def __init__(self, kernel_size, stride=(2,), padding=(0,), dilation=(1,), return_indices=True, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool1D', alpha=1, beta=1, **kwargs):
+    def __init__(self, kernel_size=(2,), stride=(2,), padding=(0,), dilation=(1,), return_indices=True, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool1D', alpha=1, beta=1, **kwargs):
         super().__init__(kernel_size, stride, padding, dilation, return_indices, padding_mode, optox, layer_name, alpha, beta, **kwargs)
         self.op = optoth.maxpooling.Maxpooling1dFunction
 
 
 class MagnitudeMaxPool2D(MagnitudeMaxPool):
-    def __init__(self, kernel_size, stride=(2, 2), padding=(0, 0), dilation=(1, 1), return_indices=True, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool2D', alpha=1, beta=1, **kwargs):
+    def __init__(self, kernel_size=(2, 2), stride=(2, 2), padding=(0, 0), dilation=(1, 1), return_indices=True, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool2D', alpha=1, beta=1, **kwargs):
         super().__init__(kernel_size, stride, padding, dilation, return_indices, padding_mode, optox, layer_name, alpha, beta, **kwargs)
         self.op = optoth.maxpooling.Maxpooling2dFunction
 
 
 class MagnitudeMaxPool3D(MagnitudeMaxPool):
-    def __init__(self, kernel_size, stride=(2, 2, 2), padding=(0, 0, 0), dilation=(1, 1, 1), return_indices=True, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool2D', alpha=1, beta=1, **kwargs):
+    def __init__(self, kernel_size=(2, 2, 2), stride=(2, 2, 2), padding=(0, 0, 0), dilation=(1, 1, 1), return_indices=True, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool2D', alpha=1, beta=1, **kwargs):
         super().__init__(kernel_size, stride, padding, dilation, return_indices, padding_mode, optox, layer_name, alpha, beta, **kwargs)
         self.op = optoth.maxpooling.Maxpooling3dFunction
 
 
 class MagnitudeMaxPool2Dt(MagnitudeMaxPool):
-    def __init__(self, kernel_size, stride=(2, 2, 2), padding=(0, 0, 0), dilation=(1, 1, 1), return_indices=True, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool2Dt', alpha=1, beta=1, **kwargs):
+    def __init__(self, kernel_size=(2, 2, 2), stride=(2, 2, 2), padding=(0, 0, 0), dilation=(1, 1, 1), return_indices=True, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool2Dt', alpha=1, beta=1, **kwargs):
         super().__init__(kernel_size, stride, padding, dilation, return_indices, padding_mode, optox, layer_name, alpha, beta, **kwargs)
         self.op = optoth.maxpooling.Maxpooling3dFunction
 
 
 class MagnitudeMaxPool3Dt(MagnitudeMaxPool):
-    def __init__(self, kernel_size, stride=(2, 2, 2, 2), padding=(0, 0, 0, 0), dilation=(1, 1, 1, 1), return_indices=True, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool2Dt', alpha=1, beta=1, **kwargs):
+    def __init__(self, kernel_size=(2, 2, 2, 2), stride=(2, 2, 2, 2), padding=(0, 0, 0, 0), dilation=(1, 1, 1, 1), return_indices=True, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool2Dt', alpha=1, beta=1, **kwargs):
         super().__init__(kernel_size, stride, padding, dilation, return_indices, padding_mode, optox, layer_name, alpha, beta, **kwargs)
         self.op = optoth.maxpooling.Maxpooling4dFunction
 
