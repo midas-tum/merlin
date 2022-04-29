@@ -1,8 +1,5 @@
 name: merlin-build
-on: 
-  pull_request:
-    branches:
-      - master
+on: [push]
 jobs:
   run:
     runs-on: [self-hosted,Linux]
