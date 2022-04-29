@@ -1,5 +1,5 @@
 name: merlin-test
-on: []
+on: [push]
 jobs:
   run:
     runs-on: [self-hosted,Linux]
