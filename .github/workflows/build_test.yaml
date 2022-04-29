@@ -57,7 +57,7 @@ jobs:
         run: |
           source ~/actions-runner-merlin/_work/merlin/merlin/merlinenv/bin/activate
           pip list
-            - name: Run python unittests
+      - name: Run python unittests            
         run: |
           source ~/actions-runner-merlin/envs/merlintest/bin/activate
           python3 -m unittest discover -s merlinpy -p "*.py" >> results_py.txt
