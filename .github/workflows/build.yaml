@@ -33,7 +33,7 @@ jobs:
       - name: Clone optox
         uses: actions/checkout@v2
         with:
-          repository: midas-tum/optox
+          repository: midas-tum/optox_dev
           token: ${{ secrets.OPTOX_TOKEN }}
           path: optox
       - name: Build optox
