@@ -335,7 +335,6 @@ class ComplexConv1DTest(unittest.TestCase):
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
         x = merlintf.random_normal_complex(shape, dtype=K.floatx())
         Kx = model(x)
-        print(x.dtype, len(model.weights), model.weights[0].dtype)
 
     def test1(self):
         self._test_fwd(ComplexConvolution1D, 3, 2, 1, None, 'same')

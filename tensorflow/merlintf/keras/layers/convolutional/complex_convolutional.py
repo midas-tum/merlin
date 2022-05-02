@@ -346,8 +346,6 @@ class ComplexConv(Layer):
     wre = tf.math.real(weight)
     wim = tf.math.imag(weight)
 
-    print(xre.dtype, x.dtype, wre.dtype, weight.dtype)
-
     conv_rr = self._convolution_op(xre, wre)
     conv_ii = self._convolution_op(xim, wim)
     conv_ri = self._convolution_op(xre, wim)
