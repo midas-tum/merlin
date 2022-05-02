@@ -59,3 +59,26 @@ class DCPM(torch.nn.Module):
 
     def __repr__(self):
         return f'DCPD(lambda_init={self.weight_init:.4g}, weight_scale={self.weight_scale}, requires_grad={self._weight.requires_grad})'
+
+class itSENSE(torch.nn.Module):
+    def __init__(self, A, AH, weight=0.0, **kwargs):
+        super().__init__()
+
+        self.A = A
+        self.AH = AH
+
+        self.weight = torch.nn.Parameter(torch.tensor(1, dtype=torch.float32)*weight)
+        self.weight.requires_grad_(False)
+
+        self.max_iter = kwargs.get('max_iter', 10)
+        self.tol = kwargs.get('tol', 1e-10)
+        self.op = CGClass(A, AH, max_iter=self.max_iter, tol=self.tol)
+
+    def forward(self, inputs):
+        y = inputs[0]
+        constants = inputs[1:]
+        x = torch.zeros_like(self.AH(y, *constants))
+        return self.op(self.weight, x, y, *constants)
+
+    def __repr__(self):
+        return f'itSENSE(lambda={self.weight:.4g}, max_iter={self.max_iter}, tol={self.tol})'
