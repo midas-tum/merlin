@@ -36,6 +36,7 @@ jobs:
           repository: midas-tum/optox
           token: ${{ secrets.OPTOX_TOKEN }}
           path: optox
+          ref: dev_pooling
       - name: Build optox
         env:
           CUDA_ROOT_DIR: /usr/local/cuda

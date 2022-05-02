@@ -161,7 +161,7 @@ class TestMagnitudePool(unittest.TestCase):
         x_abs = tf.math.abs(x)
         x_abs = tf.nn.max_pool3d(x_abs, pool_size, strides, padding='SAME')
 
-        print('tf.math.abs(y) - x_abs',tf.math.abs(y) - x_abs)
+        print('tf.math.abs(y) - x_abs', tf.math.abs(y) - x_abs)
         shape = x_abs.shape
         test_id = [np.random.randint(0, shape[0]), np.random.randint(0, shape[1]), np.random.randint(0, shape[2]),
                    np.random.randint(0, shape[3]), np.random.randint(0, shape[4])]
