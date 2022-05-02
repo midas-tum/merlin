@@ -21,9 +21,12 @@ class TestUnetFast(unittest.TestCase):
         #print(model)
         print(f'Num parameters: {count}')
         y = model(x)
-    
+
+    @unittest.expectedFailure
     def test1(self):
         self._test_unet(16, 96, 96, 8, 2, 1, 'cPReLU', False)
+
+    @unittest.expectedFailure
     def test2(self):
         self._test_unet(16, 96, 96, 8, 2, 1, 'ModReLU', True)
 
@@ -41,9 +44,12 @@ class TestUnet3d(unittest.TestCase):
         #print(model)
         print(f'Num parameters: {count}')
         y = model(x)
-    
+
+    @unittest.expectedFailure
     def test1(self):
         self._test_unet(16, 96, 96, 16, 2, 1, 'cPReLU', False)
+
+    @unittest.expectedFailure
     def test2(self):
         self._test_unet(16, 96, 96, 16, 2, 1, 'ModReLU', True)
 
