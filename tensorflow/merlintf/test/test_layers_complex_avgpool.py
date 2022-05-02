@@ -3,7 +3,7 @@ import tensorflow as tf
 import numpy as np
 import merlintf
 from merlintf.keras.layers.complex_avgpool import (
-    MagnitudeAveragePool,
+    MagnitudeAveragePool1D,
     MagnitudeAveragePool2D,
     MagnitudeAveragePool2Dt,
     MagnitudeAveragePool3D,
@@ -11,98 +11,57 @@ from merlintf.keras.layers.complex_avgpool import (
 )
 
 class TestMagnitudePool(unittest.TestCase):
-    def _test(self, shape, pool_size=2, strides=2):
+    def test4d(self):
+        self._test((1, 4, 6, 6, 6, 2), (2, 2, 2, 2), 'valid', (1, 1, 1, 1))
+        self._test((1, 5, 7, 7, 7, 2), (2, 2, 2, 2), 'valid', (1, 1, 1, 1))
+
+    def test3d(self):
+        self._test((1, 4, 6, 6, 2), (2, 2, 2), 'valid', (1, 1, 1))
+        self._test((1, 5, 7, 7, 2), (2, 2, 2), 'valid', (1, 1, 1))
+
+    def test2d(self):
+        self._test((1, 4, 6, 2), (2, 2), 'valid', (1, 1))
+        self._test((1, 5, 7, 2), (2, 2), 'valid', (1, 1))
+
+    def test1d(self):
+        self._test((1, 4, 2), (2,), 'valid', (1,))
+        self._test((1, 5, 2), (2,), 'valid', (1,))
+
+    def _padding_shape(self, input_spatial_shape, spatial_filter_shape, strides, dilations_rate, padding_mode):
+        if padding_mode.lower() == 'valid':
+            return np.ceil((input_spatial_shape - (spatial_filter_shape - 1) * dilations_rate) / strides)
+        elif padding_mode.lower() == 'same':
+            return np.ceil(input_spatial_shape / strides)
+        else:
+            raise Exception('padding_mode can be only valid or same!')
+
+    def _test(self, shape, pool_size, strides, padding_mode, dilations_rate):
         # test tf.nn.average_pool_with_argaverage
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        pool = MagnitudeAveragePool(pool_size, strides, optox=False)
-        y = pool(x)
-        magn = merlintf.complex_abs(y)
+        x = merlintf.random_normal_complex(shape)
 
-    def _test_2dt(self, shape, pool_size=(2, 2, 2), strides=(2, 2, 2)):
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        pool = MagnitudeAveragePool2Dt(pool_size, strides)
-        y = pool(x)
-        magn = merlintf.complex_abs(y)
+        if len(shape) == 3:  # 1d
+            op = MagnitudeAveragePool1D(pool_size, strides, padding_mode)
+        elif len(shape) == 4:  # 2d
+            op = MagnitudeAveragePool2D(pool_size, strides, padding_mode)
+        elif len(shape) == 5:  # 3d
+            op = MagnitudeAveragePool3D(pool_size, strides, padding_mode)
+        elif len(shape) == 6:  # 4d
+            op = MagnitudeAveragePool3Dt(pool_size, strides, padding_mode)
 
-    def _test_2d(self, shape, pool_size=(2, 2), strides=(2, 2)):
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        pool = MagnitudeAveragePool2D(pool_size, strides, optox=True)
-        y = pool(x)
-        magn = merlintf.complex_abs(y)
+        with tf.GradientTape(persistent=True) as tape:
+            tape.watch(x)
+            out_complex = op(x)
+            gradients = tape.gradient(tf.math.reduce_sum(out_complex), x)
 
-    def _test_3d(self, shape, pool_size=(2, 2, 2), strides=(2, 2, 2)):
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        pool = MagnitudeAveragePool3D(pool_size, strides, optox=True)
-        y = pool(x)
-        magn = merlintf.complex_abs(y)
+        # (N, T, H, W, D, C)
+        expected_shape = [shape[0]]
+        for i in len(shape) - 2:
+            expected_shape.append(
+                self.padding_shape(shape[i + 1], pool_size[i], strides[i], dilations_rate[i], padding_mode))
+        expected_shape.append(shape[-1])
 
-    def _test_3dt(self, shape, pool_size=(2, 2, 2, 2), strides=(2, 2, 2, 2)):
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        pool = MagnitudeAveragePool3Dt(pool_size, strides, optox=True)
-        y = pool(x)
-        magn = merlintf.complex_abs(y)
-
-    def _test_2d_accuracy(self, shape, pool_size=(2, 2), strides=(2, 2)):
-        print('_______')
-        print('test_2d_accuracy')
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        # averagepooling 2D in optotf
-        pool = MagnitudeAveragePool2D(pool_size, strides, optox=True)
-        y = pool(x)
-        # averagepooling 2D in tf.nn.avg_pool2d
-        x_abs = tf.math.abs(x)
-        x_abs = tf.nn.avg_pool2d(x_abs, pool_size, strides, padding='SAME')
-
-        print('tf.math.abs(y) - x_abs:', tf.math.abs(y) - x_abs)
-        shape = x_abs.shape
-        test_id = [np.random.randint(0, shape[0]), np.random.randint(0, shape[1]), np.random.randint(0, shape[2]),
-                   np.random.randint(0, shape[3])]
-        self.assertTrue((tf.math.abs(y)[test_id[0], test_id[1], test_id[2], test_id[3]] - x_abs[
-            test_id[0], test_id[1], test_id[2], test_id[3]]) == 0.0)
-
-    def _test_3d_accuracy(self, shape, pool_size=(2, 2, 2), strides=(2, 2, 2)):
-        print('_______')
-        print('test_3d_accuracy...')
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        # averagepooling 3D  in optotf
-        pool = MagnitudeAveragePool3D(pool_size, strides, optox=True)
-        y = pool(x)
-
-        x_abs = tf.math.abs(x)
-        x_abs = tf.nn.avg_pool3d(x_abs, pool_size, strides, padding='SAME')
-
-        print('tf.math.abs(y) - x_abs', tf.math.abs(y) - x_abs)
-        shape = x_abs.shape
-        test_id = [np.random.randint(0, shape[0]), np.random.randint(0, shape[1]), np.random.randint(0, shape[2]),
-                   np.random.randint(0, shape[3]), np.random.randint(0, shape[4])]
-        self.assertTrue((tf.math.abs(y)[test_id[0], test_id[1], test_id[2], test_id[3], test_id[4]] - x_abs[
-            test_id[0], test_id[1], test_id[2], test_id[3], test_id[4]]) == 0.0)
-
-    def test_average_pool(self):
-        self._test([2, 2, 2, 1])
-        self._test([2, 2, 2, 1], (2, 2))
-
-    def test_2dt(self):
-        # Averagepooling 2dt
-        self._test_2dt([2, 4, 2, 2, 1])
-
-    def test_3dt(self):
-        # Averagepooling 2dt
-        self._test_3dt([2, 4, 2, 2, 2, 1])
-
-    def test_2d(self):
-        # Averagepooling 2d
-        self._test_2d([2, 2, 2, 1])
-        self._test_2d([2, 2, 2, 1], (2, 2))
-        # input shape: [batch, height, width, channel]
-        self._test_2d_accuracy([1, 8, 12, 3], pool_size=(3, 2))
-
-    def test_2(self):
-        # Averagepooling 3d
-        self._test_3d([2, 16, 8, 4, 1])
-        self._test_3d([2, 16, 8, 4, 1], (4, 2, 2))
-        # input shape: [batch, height, width, depth, channel]
-        self._test_3d_accuracy([2, 8, 6, 8, 2], pool_size=(3, 2, 2))
+        self.assertTrue(np.abs(np.array(expected_shape) - np.array(out_complex.shape)).all() < 1e-8)
+        self.assertTrue(np.abs(np.array(x.shape) - np.array(gradients.shape)).all() < 1e-8)
 
 
 if __name__ == "__main__":
