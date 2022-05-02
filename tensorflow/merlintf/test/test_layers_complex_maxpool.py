@@ -12,22 +12,24 @@ from merlintf.keras.layers.complex_maxpool import (
 
 class TestMagnitudePool(unittest.TestCase):
     def test4d(self):
-        self._test((1, 4, 6, 6, 6, 2), (2, 2, 2, 2), 'valid', (1, 1, 1, 1))
-        self._test((1, 5, 7, 7, 7, 2), (2, 2, 2, 2), 'valid', (1, 1, 1, 1))
+        self._test((1, 4, 6, 6, 6, 2), (2, 2, 2, 2), (2, 2, 2, 2), 'valid')
+        self._test((1, 4, 6, 6, 6, 2), (2, 2, 2, 2), (2, 2, 2, 2), 'same')
+        self._test((1, 5, 7, 7, 7, 2), (2, 2, 2, 2), (2, 2, 2, 2), 'valid')
 
     def test3d(self):
-        self._test((1, 4, 6, 6, 2), (2, 2, 2), 'valid', (1, 1, 1))
-        self._test((1, 5, 7, 7, 2), (2, 2, 2), 'valid', (1, 1, 1))
-        self._test_3d_accuracy([2, 8, 6, 8, 2], pool_size=(3, 2, 2))
+        self._test((1, 4, 6, 6, 2), (2, 2, 2), (2, 2, 2), 'valid')
+        self._test((1, 4, 6, 6, 2), (2, 2, 2), (2, 2, 2), 'same')
+        self._test((1, 5, 7, 7, 2), (2, 2, 2), (2, 2, 2), 'valid')
 
     def test2d(self):
-        self._test((1, 4, 6, 2), (2, 2), 'valid', (1, 1))
-        self._test((1, 5, 7, 2), (2, 2), 'valid', (1, 1))
-        self._test_2d_accuracy([1, 8, 12, 3], pool_size=(3, 2))
+        self._test((1, 4, 6, 2), (2, 2), (2, 2), 'valid')
+        self._test((1, 4, 6, 2), (2, 2), (2, 2), 'same')
+        self._test((1, 5, 7, 2), (2, 2), (2, 2), 'valid')
 
     def test1d(self):
-        self._test((1, 4, 2), (2,), 'valid', (1,))
-        self._test((1, 5, 2), (2,), 'valid', (1,))
+        self._test((1, 4, 2), (2,), (2,), 'valid')
+        self._test((1, 4, 2), (2,), (2,), 'same')
+        self._test((1, 5, 2), (2,), (2,), 'valid')
 
     def _padding_shape(self, input_spatial_shape, spatial_filter_shape, strides, dilations_rate, padding_mode):
         if padding_mode.lower() == 'valid':
@@ -37,7 +39,7 @@ class TestMagnitudePool(unittest.TestCase):
         else:
             raise Exception('padding_mode can be only valid or same!')
 
-    def _test(self, shape, pool_size, strides, padding_mode, dilations_rate):
+    def _test(self, shape, pool_size, strides, padding_mode):
         # test tf.nn.average_pool_with_argaverage
         x = merlintf.random_normal_complex(shape)
 
