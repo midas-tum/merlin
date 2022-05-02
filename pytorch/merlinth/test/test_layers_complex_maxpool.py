@@ -39,25 +39,25 @@ class TestMagnitudePool(unittest.TestCase):
         x = merlinth.random_normal_complex(shape, dtype=torch.get_default_dtype())
         cuda1 = torch.device('cuda:0')
         x = x.to(device=cuda1)
-        x = x.requires_grad_()
+        x.requires_grad_(True)
 
         if len(shape) == 3:  # 1d
-            op = MagnitudeMaxPool1D(pool_size, strides, padding, dilations_rate)
+            op = MagnitudeMaxPool1D(pool_size, strides, padding, dilations_rate).cuda()
         elif len(shape) == 4:  # 2d
-            op = MagnitudeMaxPool2D(pool_size, strides, padding, dilations_rate)
+            op = MagnitudeMaxPool2D(pool_size, strides, padding, dilations_rate).cuda()
         elif len(shape) == 5:  # 3d
-            op = MagnitudeMaxPool3D(pool_size, strides, padding, dilations_rate)
+            op = MagnitudeMaxPool3D(pool_size, strides, padding, dilations_rate).cuda()
         elif len(shape) == 6:  # 4d
-            op = MagnitudeMaxPool4D(pool_size, strides, padding, dilations_rate)
+            op = MagnitudeMaxPool4D(pool_size, strides, padding, dilations_rate).cuda()
 
         out_complex = op(x)
         out_complex.sum().backward()
 
         # (N, T, H, W, D, C)
         expected_shape = [shape[0]]
-        for i in len(shape) - 2:
+        for i in range(len(shape) - 2):
             expected_shape.append(
-                self.padding_shape(shape[i + 1], pool_size[i], strides[i], dilations_rate[i], padding_mode))
+                self._padding_shape(shape[i + 1], pool_size[i], strides[i], dilations_rate[i], padding_mode))
         expected_shape.append(shape[-1])
 
         self.assertTrue(np.abs(np.array(expected_shape) - np.array(out_complex.shape)).all() < 1e-8)
