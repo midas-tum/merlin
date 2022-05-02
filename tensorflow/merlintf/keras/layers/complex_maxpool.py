@@ -37,7 +37,7 @@ def deserialize(op):
 
 
 class MagnitudeMaxPool(tf.keras.layers.Layer):
-    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=None, optox=True, argmax_index=False, layer_name='MagnitudeMaxPool', mode='VALID', alpha=1, beta=1, **kwargs):
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=None, optox=True, argmax_index=False, layer_name='MagnitudeMaxPool', alpha=1, beta=1, **kwargs):
         super(MagnitudeMaxPool, self).__init__()
         self.pool_size = pool_size
         if strides is None:
@@ -47,7 +47,7 @@ class MagnitudeMaxPool(tf.keras.layers.Layer):
         self.dilations_rate = dilations_rate
         self.alpha = alpha  # magnitude ratio in real part
         self.beta = beta  # magnitude ratio in imag part
-        self.mode = mode
+        self.ceil_mode = True  # TF default
         self.optox = optox and (True if 'optotf.maxpooling' in sys.modules else False)  # True: execute Optox pooling; False: use TF pooling (not supported for all cases)
         self.argmax_index = argmax_index
         self.layer_name = layer_name
@@ -59,7 +59,7 @@ class MagnitudeMaxPool(tf.keras.layers.Layer):
                           alpha=self.alpha, beta=self.beta, name=self.layer_name,
                           dilations_rate=self.dilations_rate,
                           channel_first=tf.keras.backend.image_data_format() == 'channels_first',
-                          mode=self.mode)
+                          mode=self.padding, ceil_mode=self.ceil_mode)
             if x is not list:
                 return out
             else:
@@ -95,26 +95,26 @@ class MagnitudeMaxPool1D(MagnitudeMaxPool):
 
 
 class MagnitudeMaxPool2D(MagnitudeMaxPool):
-    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1), optox=True, argmax_index=False, layer_name='MagnitudeMaxPool2D', mode='VALID', alpha=1, beta=1, **kwargs):
-        super(MagnitudeMaxPool2D, self).__init__(pool_size, strides, padding, dilations_rate, optox, argmax_index, layer_name, mode, alpha, beta, **kwargs)
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1), optox=True, argmax_index=False, layer_name='MagnitudeMaxPool2D', alpha=1, beta=1, **kwargs):
+        super(MagnitudeMaxPool2D, self).__init__(pool_size, strides, padding, dilations_rate, optox, argmax_index, layer_name, alpha, beta, **kwargs)
         self.op = optotf.maxpooling.maxpooling2d
 
 
 class MagnitudeMaxPool3D(MagnitudeMaxPool):
-    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1), optox=True, argmax_index=False, layer_name='MagnitudeMaxPool3D', mode='VALID', alpha=1, beta=1, **kwargs):
-        super(MagnitudeMaxPool3D, self).__init__(pool_size, strides, padding, dilations_rate, optox, argmax_index, layer_name, mode, alpha, beta, **kwargs)
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1), optox=True, argmax_index=False, layer_name='MagnitudeMaxPool3D', alpha=1, beta=1, **kwargs):
+        super(MagnitudeMaxPool3D, self).__init__(pool_size, strides, padding, dilations_rate, optox, argmax_index, layer_name, alpha, beta, **kwargs)
         self.op = optotf.maxpooling.maxpooling3d
 
 
 class MagnitudeMaxPool2Dt(MagnitudeMaxPool):
-    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1), optox=True, argmax_index=False, layer_name='MagnitudeMaxPool2Dt', mode='VALID', alpha=1, beta=1, **kwargs):
-        super(MagnitudeMaxPool2Dt, self).__init__(pool_size, strides, padding, dilations_rate, optox, argmax_index, layer_name, mode, alpha, beta, **kwargs)
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1), optox=True, argmax_index=False, layer_name='MagnitudeMaxPool2Dt', alpha=1, beta=1, **kwargs):
+        super(MagnitudeMaxPool2Dt, self).__init__(pool_size, strides, padding, dilations_rate, optox, argmax_index, layer_name, alpha, beta, **kwargs)
         self.op = optotf.maxpooling.maxpooling3d
 
 
 class MagnitudeMaxPool3Dt(MagnitudeMaxPool):
-    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1, 1), optox=True, argmax_index=True, layer_name='MagnitudeMaxPool3Dt', mode='VALID', alpha=1, beta=1, **kwargs):
-        super(MagnitudeMaxPool3Dt, self).__init__(pool_size, strides, padding, dilations_rate, optox, argmax_index, layer_name, mode, alpha, beta, **kwargs)
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1, 1), optox=True, argmax_index=True, layer_name='MagnitudeMaxPool3Dt', alpha=1, beta=1, **kwargs):
+        super(MagnitudeMaxPool3Dt, self).__init__(pool_size, strides, padding, dilations_rate, optox, argmax_index, layer_name, alpha, beta, **kwargs)
         self.op = optotf.maxpooling.maxpooling4d
 
 

@@ -38,7 +38,7 @@ def deserialize(op):
 
 
 class MagnitudeAveragePool(tf.keras.layers.Layer):
-    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=None, optox=True, layer_name='MagnitudeAvgPool', mode='VALID', alpha=1, beta=1, **kwargs):
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=None, optox=True, layer_name='MagnitudeAvgPool', alpha=1, beta=1, **kwargs):
         super(MagnitudeAveragePool, self).__init__()
         self.pool_size = pool_size
         if strides is None:
@@ -49,7 +49,7 @@ class MagnitudeAveragePool(tf.keras.layers.Layer):
         self.alpha = alpha  # magnitude ratio in real part
         self.beta = beta  # magnitude ratio in imag part
         self.layer_name = layer_name
-        self.mode = mode
+        self.ceil_mode = True  # TF default
         self.optox = optox and (True if 'optotf.averagepooling' in sys.modules else False)  # True: execute Optox pooling; False: use TF pooling (not supported for all cases)
 
     def call(self, x, **kwargs):  # default to TF
@@ -59,7 +59,7 @@ class MagnitudeAveragePool(tf.keras.layers.Layer):
                           alpha=self.alpha, beta=self.beta, name=self.layer_name,
                           dilations_rate=self.dilations_rate,
                           channel_first=tf.keras.backend.image_data_format() == 'channels_first',
-                          mode=self.mode)
+                          mode=self.padding, ceil_mode=self.ceil_mode)
             if x is not list:
                 return out
             else:
@@ -72,31 +72,31 @@ class MagnitudeAveragePool(tf.keras.layers.Layer):
 
 
 class MagnitudeAveragePool1D(MagnitudeAveragePool):
-    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=1, optox=True, layer_name='MagnitudeAvgPool2D', mode='VALID', alpha=1, beta=1, **kwargs):
-        super(MagnitudeAveragePool1D, self).__init__(pool_size, strides, padding, dilations_rate, optox, layer_name, mode, alpha, beta, **kwargs)
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=1, optox=True, layer_name='MagnitudeAvgPool2D', alpha=1, beta=1, **kwargs):
+        super(MagnitudeAveragePool1D, self).__init__(pool_size, strides, padding, dilations_rate, optox, layer_name, alpha, beta, **kwargs)
 
 
 class MagnitudeAveragePool2D(MagnitudeAveragePool):
-    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1), optox=True, layer_name='MagnitudeAvgPool2D', mode='VALID', alpha=1, beta=1, **kwargs):
-        super(MagnitudeAveragePool2D, self).__init__(pool_size, strides, padding, dilations_rate, optox, layer_name, mode, alpha, beta, **kwargs)
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1), optox=True, layer_name='MagnitudeAvgPool2D', alpha=1, beta=1, **kwargs):
+        super(MagnitudeAveragePool2D, self).__init__(pool_size, strides, padding, dilations_rate, optox, layer_name, alpha, beta, **kwargs)
         self.op = optotf.averagepooling.averagepooling2d
 
 
 class MagnitudeAveragePool3D(MagnitudeAveragePool):
-    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1), optox=True, layer_name='MagnitudeAvgPool3D', mode='VALID', alpha=1, beta=1, **kwargs):
-        super(MagnitudeAveragePool3D, self).__init__(pool_size, strides, padding, dilations_rate, optox, layer_name, mode, alpha, beta, **kwargs)
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1), optox=True, layer_name='MagnitudeAvgPool3D', alpha=1, beta=1, **kwargs):
+        super(MagnitudeAveragePool3D, self).__init__(pool_size, strides, padding, dilations_rate, optox, layer_name, alpha, beta, **kwargs)
         self.op = optotf.averagepooling.averagepooling3d
 
 
 class MagnitudeAveragePool2Dt(MagnitudeAveragePool):
-    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1), optox=True, layer_name='MagnitudeAvgPool2Dt', mode='VALID', alpha=1, beta=1, **kwargs):
-        super(MagnitudeAveragePool2Dt, self).__init__(pool_size, strides, padding, dilations_rate, optox, layer_name, mode, alpha, beta, **kwargs)
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1), optox=True, layer_name='MagnitudeAvgPool2Dt', alpha=1, beta=1, **kwargs):
+        super(MagnitudeAveragePool2Dt, self).__init__(pool_size, strides, padding, dilations_rate, optox, layer_name, alpha, beta, **kwargs)
         self.op = optotf.averagepooling.averagepooling3d
 
 
 class MagnitudeAveragePool3Dt(MagnitudeAveragePool):
-    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1, 1), optox=True, layer_name='MagnitudeAvgPool3Dt', mode='VALID', alpha=1, beta=1, **kwargs):
-        super(MagnitudeAveragePool3Dt, self).__init__(pool_size, strides, padding, dilations_rate, optox, layer_name, mode, alpha, beta, **kwargs)
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1, 1), optox=True, layer_name='MagnitudeAvgPool3Dt', alpha=1, beta=1, **kwargs):
+        super(MagnitudeAveragePool3Dt, self).__init__(pool_size, strides, padding, dilations_rate, optox, layer_name, alpha, beta, **kwargs)
         self.op = optotf.averagepooling.averagepooling4d
 
 
