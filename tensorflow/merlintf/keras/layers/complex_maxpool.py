@@ -59,7 +59,7 @@ class MagnitudeMaxPool(tf.keras.layers.Layer):
                           alpha=self.alpha, beta=self.beta, name=self.layer_name,
                           dilations_rate=self.dilations_rate,
                           channel_first=tf.keras.backend.image_data_format() == 'channels_first',
-                          mode=self.padding, ceil_mode=self.ceil_mode)
+                          mode=str.upper(self.padding), ceil_mode=self.ceil_mode)
             if x is not list:
                 return out
             else:
