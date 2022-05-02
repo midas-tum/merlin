@@ -38,7 +38,7 @@ def deserialize(op):
 
 
 class MagnitudeAveragePool(torch.nn.Module):
-    def __init__(self, kernel_size, stride=None, padding=0, dilation=1, return_indices=True, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool', alpha=1, beta=1, **kwargs):
+    def __init__(self, kernel_size, stride=None, padding=0, dilation=1, return_indices=True, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool', alpha=1, beta=1, **kwargs):
         super(MagnitudeAveragePool, self).__init__()
         self.kernel_size = kernel_size
         self.stride = stride
@@ -46,6 +46,7 @@ class MagnitudeAveragePool(torch.nn.Module):
         self.dilation = dilation
         self.alpha = alpha
         self.beta = beta
+        self.ceil_mode = ceil_mode
         self.layer_name = layer_name
         self.padding_mode = padding_mode
         self.return_indices = return_indices
@@ -63,7 +64,7 @@ class MagnitudeAveragePool(torch.nn.Module):
     def forward(self, x):
         if self.optox and merlinth.iscomplex(x):
             return self.op.apply(x, self.kernel_size, self.padding, self.stride, self.dilation,  self.alpha, self.beta,
-                                 self.padding_mode, x.real.dtype, self.channel_first)
+                                 self.padding_mode, x.real.dtype, self.channel_first, self.ceil_mode)
         else:
             magn = merlinth.complex_abs(x, eps=1e-9)
             _, indices = self.pool(magn)
@@ -78,32 +79,32 @@ class MagnitudeAveragePool(torch.nn.Module):
 
 
 class MagnitudeAveragePool1D(MagnitudeAveragePool):
-    def __init__(self, kernel_size= (1, ), stride=(2, ), padding=(0, ), dilation=(1, ), return_indices=False, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool1D', alpha=1, beta=1, **kwargs):
-        super().__init__(kernel_size, stride, padding, dilation, return_indices, padding_mode, optox, layer_name, alpha, beta, **kwargs)
+    def __init__(self, kernel_size= (1, ), stride=(2, ), padding=(0, ), dilation=(1, ), return_indices=False, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool1D', alpha=1, beta=1, **kwargs):
+        super().__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode, padding_mode, optox, layer_name, alpha, beta, **kwargs)
         self.op = optoth.averagepooling.Averagepooling1dFunction
 
 
 class MagnitudeAveragePool2D(MagnitudeAveragePool):
-    def __init__(self, kernel_size= (2, 2), stride=(2, 2), padding=(0, 0), dilation=(1, 1), return_indices=False, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool2D', alpha=1, beta=1, **kwargs):
-        super().__init__(kernel_size, stride, padding, dilation, return_indices, padding_mode, optox, layer_name, alpha, beta, **kwargs)
+    def __init__(self, kernel_size= (2, 2), stride=(2, 2), padding=(0, 0), dilation=(1, 1), return_indices=False, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool2D', alpha=1, beta=1, **kwargs):
+        super().__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode, padding_mode, optox, layer_name, alpha, beta, **kwargs)
         self.op = optoth.averagepooling.Averagepooling2dFunction
 
 
 class MagnitudeAveragePool3D(MagnitudeAveragePool):
-    def __init__(self, kernel_size=(2, 2, 2), stride=(2, 2, 2), padding=(0, 0, 0), dilation=(1, 1, 1), return_indices=False, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool3D', alpha=1, beta=1, **kwargs):
-        super().__init__(kernel_size, stride, padding, dilation, return_indices, padding_mode, optox, layer_name, alpha, beta, **kwargs)
+    def __init__(self, kernel_size=(2, 2, 2), stride=(2, 2, 2), padding=(0, 0, 0), dilation=(1, 1, 1), return_indices=False, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool3D', alpha=1, beta=1, **kwargs):
+        super().__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode, padding_mode, optox, layer_name, alpha, beta, **kwargs)
         self.op = optoth.averagepooling.Averagepooling3dFunction
 
 
 class MagnitudeAveragePool2Dt(MagnitudeAveragePool):
-    def __init__(self, kernel_size=(2,2,2), stride=(2, 2, 2), padding=(0, 0, 0), dilation=(1, 1, 1), return_indices=False, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool2Dt', alpha=1, beta=1, **kwargs):
-        super().__init__(kernel_size, stride, padding, dilation, return_indices, padding_mode, optox, layer_name, alpha, beta, **kwargs)
+    def __init__(self, kernel_size=(2,2,2), stride=(2, 2, 2), padding=(0, 0, 0), dilation=(1, 1, 1), return_indices=False, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool2Dt', alpha=1, beta=1, **kwargs):
+        super().__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode, padding_mode, optox, layer_name, alpha, beta, **kwargs)
         self.op = optoth.averagepooling.Averagepooling3dFunction
 
 
 class MagnitudeAveragePool3Dt(MagnitudeAveragePool):
-    def __init__(self, kernel_size=(2,2,2,2), stride=(2, 2, 2, 2), padding=(0, 0, 0, 0), dilation=(1, 1, 1, 1), return_indices=False, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool3Dt', alpha=1, beta=1, **kwargs):
-        super().__init__(kernel_size, stride, padding, dilation, return_indices, padding_mode, optox, layer_name, alpha, beta, **kwargs)
+    def __init__(self, kernel_size=(2,2,2,2), stride=(2, 2, 2, 2), padding=(0, 0, 0, 0), dilation=(1, 1, 1, 1), return_indices=False, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool3Dt', alpha=1, beta=1, **kwargs):
+        super().__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode, padding_mode, optox, layer_name, alpha, beta, **kwargs)
         self.op = optoth.averagepooling.Averagepooling4dFunction
 
 
