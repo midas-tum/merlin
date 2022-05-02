@@ -1,6 +1,9 @@
 import torch
 from merlinth.layers.fft import fft2, fft2c, ifft2, ifft2c
-from merlinth.layers.warp import WarpForward, WarpAdjoint
+try:
+    from merlinth.layers.warp import WarpForward, WarpAdjoint
+except:
+    pass
 
 #TODO add SoftSenseOps
 
