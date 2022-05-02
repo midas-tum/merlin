@@ -62,6 +62,8 @@ class MagnitudeAveragePool(torch.nn.Module):
     
     def forward(self, x):
         if self.optox and merlinth.iscomplex(x):
+            print('forward:',x.shape, self.kernel_size, self.padding, self.stride, self.dilation,  self.alpha, self.beta,
+                                 self.padding_mode, x.real.dtype, self.channel_first)
             return self.op.apply(x, self.kernel_size, self.padding, self.stride, self.dilation,  self.alpha, self.beta,
                                  self.padding_mode, x.real.dtype, self.channel_first)
         else:
