@@ -1,32 +1,67 @@
 import unittest
 import torch
 import merlinth
+import numpy as np
 
 from merlinth.layers.complex_avgpool import (
+    MagnitudeAveragePool1D,
     MagnitudeAveragePool2D,
-    MagnitudeAveragePool3D
+    MagnitudeAveragePool3D,
+    MagnitudeAveragePool4D
 )
 
 class TestMagnitudeAvgPool(unittest.TestCase):
-    def test3d(self):
-        shape = (1,1,4,4,4,)
-        x = merlinth.random_normal_complex(shape, dtype=torch.get_default_dtype())
-        cuda1 = torch.device('cuda:0')
-        x = x.to(device=cuda1)
-        pool = MagnitudeAveragePool3D()
+    def test4d(self):
+        self._test((1, 4, 6, 6, 6, 2), (2, 2, 2, 2), (2, 2, 2, 2), (0, 0, 0, 0), (1, 1, 1, 1), 'valid')
+        self._test((1, 5, 7, 7, 7, 2), (2, 2, 2, 2), (2, 2, 2, 2), (0, 0, 0, 0), (1, 1, 1, 1), 'valid')
 
-        y = pool(x)
-        self.assertTrue(y.is_complex())
+    def test3d(self):
+        self._test((1, 4, 6, 6, 2), (2, 2, 2), (2, 2, 2), (0, 0, 0), (1, 1, 1), 'valid')
+        self._test((1, 5, 7, 7, 2), (2, 2, 2), (2, 2, 2), (0, 0, 0), (1, 1, 1), 'valid')
 
     def test2d(self):
-        shape = (1,1,4,4,)
+        self._test((1, 4, 6, 2), (2, 2), (2, 2), (0, 0), (1, 1), 'valid')
+        self._test((1, 5, 7, 2), (2, 2), (2, 2), (0, 0), (1, 1), 'valid')
+
+    def test1d(self):
+        self._test((1, 4, 2), (2, ), (2, ), (0, ), (1, ), 'valid')
+        self._test((1, 5, 2), (2, ), (2, ), (0, ), (1, ), 'valid')
+
+    def _padding_shape(self, input_spatial_shape, spatial_filter_shape, strides, dilations_rate, padding_mode):
+        if padding_mode.lower() == 'valid':
+            return np.ceil((input_spatial_shape - (spatial_filter_shape - 1) * dilations_rate) / strides)
+        elif padding_mode.lower() == 'same':
+            return np.ceil(input_spatial_shape / strides)
+        else:
+            raise Exception('padding_mode can be only valid or same!')
+
+    def _test(self, shape, pool_size, strides, padding, dilations_rate, padding_mode='same'):
         x = merlinth.random_normal_complex(shape, dtype=torch.get_default_dtype())
         cuda1 = torch.device('cuda:0')
         x = x.to(device=cuda1)
-        pool = MagnitudeAveragePool2D()
+        x = x.requires_grad_()
 
-        y = pool(x)
-        self.assertTrue(y.is_complex())
+        if len(shape) == 3:  # 1d
+            op = MagnitudeAveragePool1D(pool_size, strides, padding, dilations_rate)
+        elif len(shape) == 4:  # 2d
+            op = MagnitudeAveragePool2D(pool_size, strides, padding, dilations_rate)
+        elif len(shape) == 5:  # 3d
+            op = MagnitudeAveragePool3D(pool_size, strides, padding, dilations_rate)
+        elif len(shape) == 6:  # 4d
+            op = MagnitudeAveragePool4D(pool_size, strides, padding, dilations_rate)
+
+        out_complex = op(x)
+        out_complex.sum().backward()
+
+        # (N, T, H, W, D, C)
+        expected_shape = [shape[0]]
+        for i in len(shape)-2:
+            expected_shape.append(self.padding_shape(shape[i+1], pool_size[i], strides[i], dilations_rate[i], padding_mode))
+        expected_shape.append(shape[-1])
+
+        self.assertTrue(np.abs(np.array(expected_shape) - np.array(out_complex.shape)).all() < 1e-8)
+        self.assertTrue(np.abs(np.array(expected_shape) - np.array(x.grad.shape)).all() < 1e-8)
+
 
 if __name__ == "__main__":
     unittest.main()
