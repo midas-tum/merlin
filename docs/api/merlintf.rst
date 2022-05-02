@@ -215,3 +215,11 @@ Losses
     merlintf.keras.losses.loss_abs_mae_3D
     merlintf.keras.losses.loss_abs_mae_2Dt
     merlintf.keras.losses.loss_abs_mae_3Dt
+
+
+Utils
+----------------------------------
+
+.. autosummary::
+    :toctree: generated
+    :nosignatures:
