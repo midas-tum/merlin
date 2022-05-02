@@ -21,7 +21,9 @@ class Scalar(tf.keras.layers.Layer):
                 name=self.weight_name,
                 constraint=self.weight_constraint,
                 initializer=self.weight_initializer,
-                trainable=self.weight_trainable)
+                trainable=self.weight_trainable,
+                dtype=self.dtype
+                )
 
     @property
     def weight(self):
