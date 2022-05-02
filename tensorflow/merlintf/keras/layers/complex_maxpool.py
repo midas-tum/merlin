@@ -90,8 +90,9 @@ class MagnitudeMaxPool(tf.keras.layers.Layer):
 
 
 class MagnitudeMaxPool1D(MagnitudeMaxPool):
-    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=1, optox=True):
-        super(MagnitudeMaxPool1D, self).__init__(pool_size, strides, padding, dilations_rate, optox)
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=1, optox=True, argmax_index=False, layer_name='MagnitudeMaxPool1D', alpha=1, beta=1, **kwargs):
+        super(MagnitudeMaxPool1D, self).__init__(pool_size, strides, padding, dilations_rate, optox, argmax_index, layer_name, alpha, beta, **kwargs)
+        self.op = optotf.maxpooling.maxpooling1d
 
 
 class MagnitudeMaxPool2D(MagnitudeMaxPool):
