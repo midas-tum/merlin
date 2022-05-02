@@ -1,3 +1,6 @@
+import tensorflow.keras.backend as K
+K.set_floatx('float64')
+
 import unittest
 import numpy as np
 import tensorflow as tf
@@ -46,8 +49,6 @@ from merlintf.keras.layers.convolutional.conv3dt import (
     Conv3Dt,
     Conv3DtTranspose
 )
-import tensorflow.keras.backend as K
-K.set_floatx('float64')
 
 # complex_conv2dt.py
 class ComplexConv2dtTest(unittest.TestCase):
@@ -334,6 +335,7 @@ class ComplexConv1DTest(unittest.TestCase):
         model = conv_fun(nf_out, kernel_size=kernel_size, strides=strides, activation=activation, padding=padding)
         x = merlintf.random_normal_complex(shape, dtype=K.floatx())
         Kx = model(x)
+        print(x.dtype, len(model.weights), model.weights[0].dtype)
 
     def test1(self):
         self._test_fwd(ComplexConvolution1D, 3, 2, 1, None, 'same')
@@ -467,7 +469,7 @@ class UpSampling4dTest(unittest.TestCase):
             expected_shape = [nBatch] + [nf_in] + [d * size[i] for i, d in enumerate(dim_in)]
             data_format = 'channels_first'
 
-        model = UpSampling4d(size=size, data_format=data_format)
+        model = UpSampling4D(size=size, data_format=data_format)
 
         x = tf.random.normal(shape, dtype=K.floatx())
         Kx = model(x)
@@ -496,7 +498,7 @@ class ZeroPadding4dTest(unittest.TestCase):
             expected_shape = [nBatch] + [nf_in] + dim_out
             data_format = 'channels_first'
 
-        model = ZeroPadding4d(padding=padding, data_format=data_format)
+        model = ZeroPadding4D(padding=padding, data_format=data_format)
 
         x = tf.random.normal(shape, dtype=K.floatx())
         Kx = model(x)
@@ -507,7 +509,7 @@ class Cropping4dTest(unittest.TestCase):
     def test_Cropping4d(self):
         self._test_Cropping4d()
         self._test_Cropping4d(cropping=(3, 3, 3, 3))
-        self._test_ZeroPadding4d(cropping=((1, 3), (1, 3), (1, 3), (1, 3)))
+        self._test_Cropping4d(cropping=((1, 3), (1, 3), (1, 3), (1, 3)))
         self._test_Cropping4d(channel_last=False)
 
     def _test_Cropping4d(self, dim_in=[8, 32, 32, 12], nBatch=2, nf_in=3, cropping=(2, 2, 2, 2), channel_last=True):
@@ -525,7 +527,7 @@ class Cropping4dTest(unittest.TestCase):
             expected_shape = [nBatch] + [nf_in] + dim_out
             data_format = 'channels_first'
 
-        model = Cropping4d(padding=padding, data_format=data_format)
+        model = Cropping4D(cropping=cropping, data_format=data_format)
 
         x = tf.random.normal(shape, dtype=K.floatx())
         Kx = model(x)
