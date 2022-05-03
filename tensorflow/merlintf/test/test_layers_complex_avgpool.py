@@ -39,7 +39,7 @@ class TestMagnitudePool(unittest.TestCase):
         else:
             raise Exception('padding_mode can be only valid or same!')
 
-    def _test(self, shape, pool_size, strides, padding_mode):
+    def _test(self, shape, pool_size, strides, padding_mode, dilations_rate=(1, 1, 1, 1)):
         # test tf.nn.average_pool_with_argaverage
         x = merlintf.random_normal_complex(shape)
 
@@ -59,9 +59,8 @@ class TestMagnitudePool(unittest.TestCase):
 
         # (N, T, H, W, D, C)
         expected_shape = [shape[0]]
-        for i in len(shape) - 2:
-            expected_shape.append(
-                self.padding_shape(shape[i + 1], pool_size[i], strides[i], dilations_rate[i], padding_mode))
+        for i in range(len(shape) - 2):
+            expected_shape.append(self._padding_shape(shape[i + 1], pool_size[i], strides[i], dilations_rate[i], padding_mode))
         expected_shape.append(shape[-1])
 
         self.assertTrue(np.abs(np.array(expected_shape) - np.array(out_complex.shape)).all() < 1e-8)
