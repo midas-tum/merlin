@@ -300,7 +300,7 @@ class ComplexConv(Layer):
         regularizer=self.kernel_regularizer,
         constraint=self.kernel_constraint,
         trainable=True,
-        dtype=self.dtype)
+        dtype=tf.keras.backend.floatx())
     if self.use_bias:
       self._bias = self.add_weight(
           name='bias',
@@ -309,7 +309,7 @@ class ComplexConv(Layer):
           regularizer=self.bias_regularizer,
           constraint=self.bias_constraint,
           trainable=True,
-          dtype=self.dtype)
+          dtype=tf.keras.backend.floatx())
     else:
       self._bias = None
     channel_axis = self._get_channel_axis()
@@ -973,7 +973,7 @@ class ComplexConv1DTranspose(ComplexConv1D):
         regularizer=self.kernel_regularizer,
         constraint=self.kernel_constraint,
         trainable=True,
-        dtype=self.dtype)
+        dtype=tf.keras.backend.floatx())
     if self.use_bias:
       self._bias = self.add_weight(
           name='bias',
@@ -982,7 +982,7 @@ class ComplexConv1DTranspose(ComplexConv1D):
           regularizer=self.bias_regularizer,
           constraint=self.bias_constraint,
           trainable=True,
-          dtype=self.dtype)
+          dtype=tf.keras.backend.floatx())
     else:
       self._bias = None
     self.built = True
@@ -1236,7 +1236,7 @@ class ComplexConv2DTranspose(ComplexConv2D):
         regularizer=self.kernel_regularizer,
         constraint=self.kernel_constraint,
         trainable=True,
-        dtype=self.dtype)
+        dtype=tf.keras.backend.floatx())
     if self.use_bias:
       self._bias = self.add_weight(
           name='bias',
@@ -1245,7 +1245,7 @@ class ComplexConv2DTranspose(ComplexConv2D):
           regularizer=self.bias_regularizer,
           constraint=self.bias_constraint,
           trainable=True,
-          dtype=self.dtype)
+          dtype=tf.keras.backend.floatx())
     else:
       self._bias = None
     self.built = True
@@ -1536,7 +1536,7 @@ class ComplexConv3DTranspose(ComplexConv3D):
         regularizer=self.kernel_regularizer,
         constraint=self.kernel_constraint,
         trainable=True,
-        dtype=self.dtype)
+        dtype=tf.keras.backend.floatx())
     if self.use_bias:
       self._bias = self.add_weight(
           'bias',
@@ -1545,7 +1545,7 @@ class ComplexConv3DTranspose(ComplexConv3D):
           regularizer=self.bias_regularizer,
           constraint=self.bias_constraint,
           trainable=True,
-          dtype=self.dtype)
+          dtype=tf.keras.backend.floatx())
     else:
       self._bias = None
     self.built = True

@@ -409,7 +409,7 @@ class PadConvScale2DTranspose(PadConvScale2D):
             regularizer=self.kernel_regularizer,
             constraint=self.kernel_constraint,
             trainable=True,
-            dtype=self.dtype)
+            dtype=tf.keras.backend.floatx())
 
         if self.use_bias:
             self.bias = self.add_weight(
@@ -419,7 +419,7 @@ class PadConvScale2DTranspose(PadConvScale2D):
                 regularizer=self.bias_regularizer,
                 constraint=self.bias_constraint,
                 trainable=True,
-                dtype=self.dtype)
+                dtype=tf.keras.backend.floatx())
 
     def call(self, x, output_shape=None):
         return super().backward(x, output_shape)
@@ -546,7 +546,7 @@ class PadConvScale3DTranspose(PadConvScale3D):
             regularizer=self.kernel_regularizer,
             constraint=self.kernel_constraint,
             trainable=True,
-            dtype=self.dtype)
+            dtype=tf.keras.backend.floatx())
 
         if self.use_bias:
             self.bias = self.add_weight(
@@ -556,7 +556,7 @@ class PadConvScale3DTranspose(PadConvScale3D):
                 regularizer=self.bias_regularizer,
                 constraint=self.bias_constraint,
                 trainable=True,
-                dtype=self.dtype)
+                dtype=tf.keras.backend.floatx())
 
     def call(self, x, output_shape=None):
         return super().backward(x, output_shape)
