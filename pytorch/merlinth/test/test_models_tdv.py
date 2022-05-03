@@ -253,11 +253,11 @@ class TestTransformation(unittest.TestCase):
     def test_3D(self):
         self._test_gradient('3D', False)
 
-    @unittest.expectedFailure
+    #@unittest.expectedFailure
     def test_2D_complex(self):
         self._test_gradient('2D', True)
 
-    @unittest.expectedFailure
+    #@unittest.expectedFailure
     def test_3D_complex(self):
         self._test_gradient('3D', True)
 
