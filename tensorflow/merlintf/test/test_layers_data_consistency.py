@@ -9,7 +9,7 @@ from merlintf.keras.layers.mri import (
 )
 
 import tensorflow.keras.backend as K
-K.set_floatx('float32')
+K.set_floatx('float64')
 
 class CgTest(unittest.TestCase):
     def testcg(self):

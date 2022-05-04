@@ -450,7 +450,7 @@ class PadConv2DTest(unittest.TestCase):
     def test1(self):
         self._test_grad(PadConv2D, 5, 1, 1, 'symmetric')
 
-    @unittest.expectedFailure
+    #@unittest.expectedFailure
     def test2(self):
         self._test_grad(PadConvScale2D, 3, 2, 1, 'symmetric')
 
@@ -500,7 +500,7 @@ class PadConv3DTest(unittest.TestCase):
     def test1(self):
         self._test_grad(PadConv3D, 5, 1, 1, 'symmetric')
 
-    @unittest.expectedFailure
+    #@unittest.expectedFailure
     def test2(self):
         self._test_grad(PadConvScale3D, 3, (1,2,2), 1, 'symmetric')
 
@@ -508,7 +508,7 @@ class PadConv3DTest(unittest.TestCase):
         self._test_grad(PadConv3D, 3, 1, 1, 'symmetric')
 
 class PadConvScaleTest(unittest.TestCase):
-    @unittest.expectedFailure
+    #@unittest.expectedFailure
     def test_grad(self):
         nBatch = 5
         M = 256
