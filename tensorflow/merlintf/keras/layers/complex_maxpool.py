@@ -83,10 +83,15 @@ class MagnitudeMaxPool(tf.keras.layers.Layer):
                     x_pool = tf.transpose(x_pool, [0, 2, 3, 4, 1])
                 return x_pool
             else:
-                xabs = merlintf.complex_abs(x)
-                _, idx = tf.nn.max_pool_with_argmax(
-                    xabs, self.pool_size, self.strides, self.padding, include_batch_in_index=True)
-                return tf.reshape(tf.gather(tf.reshape(x, shape=[-1, ]), idx), shape=idx.shape)
+                if len(x.shape) == 4:
+                    xabs = merlintf.complex_abs(x)
+                    _, idx = tf.nn.max_pool_with_argmax(
+                        xabs, self.pool_size, self.strides, self.padding, include_batch_in_index=True)
+                    return tf.reshape(tf.gather(tf.reshape(x, shape=[-1, ]), idx), shape=idx.shape)
+                else:
+                    xabs = merlintf.complex_abs(x)
+                    return tf.nn.max_pool(xabs, self.pool_size, self.strides, self.padding)
+
 
 
 class MagnitudeMaxPool1D(MagnitudeMaxPool):

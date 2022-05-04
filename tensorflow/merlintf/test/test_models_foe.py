@@ -12,7 +12,7 @@ from merlintf.keras.models.foe import (
 )
 
 import tensorflow.keras.backend as K
-K.set_floatx('float64')
+K.set_floatx('float32')
 
 class PolarFoETest(unittest.TestCase):
     def test_FoE_polar_2d(self):
@@ -58,7 +58,7 @@ class PolarFoETest(unittest.TestCase):
             },
         }
         if dim == '2Dt':
-            config['K1'].update({'intermediate_filters' : nf_in})
+            config['K1'].update({'intermediate_filters': nf_in})
 
         model = PolarFoE(config)
 
@@ -205,7 +205,7 @@ class Real2chFoETest(unittest.TestCase):
             },
         }
         if dim == '2Dt':
-            config['K1'].update({'intermediate_filters' : nf_in})
+            config['K1'].update({'intermediate_filters': nf_in})
 
         model = Real2chFoE(config)
 
