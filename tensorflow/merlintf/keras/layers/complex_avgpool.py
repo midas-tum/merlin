@@ -72,7 +72,7 @@ class MagnitudeAveragePool(tf.keras.layers.Layer):
 
 
 class MagnitudeAveragePool1D(MagnitudeAveragePool):
-    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=1, optox=True, layer_name='MagnitudeAvgPool1D', alpha=1, beta=1, **kwargs):
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, ), optox=True, layer_name='MagnitudeAvgPool1D', alpha=1, beta=1, **kwargs):
         super(MagnitudeAveragePool1D, self).__init__(pool_size, strides, padding, dilations_rate, optox, layer_name, alpha, beta, **kwargs)
         self.op = optotf.averagepooling.averagepooling1d
 
