@@ -1,7 +1,7 @@
 import unittest
 import numpy as np
 import tensorflow as tf
-tf.keras.backend.set_floatx('float64')
+tf.keras.backend.set_floatx('float32')
 
 from merlintf.keras.layers.warp import (
     WarpForward,
