@@ -24,15 +24,27 @@ try:
 except:
     print('padconv layers could not be loaded. Optox might not be installed.')
 
+try:
+    from merlinth.layers.complex_maxpool import MagnitudeMaxPooling, MagnitudeMaxPool1D, \
+        MagnitudeMaxPool2D, MagnitudeMaxPool2Dt, MagnitudeMaxPool3D, MagnitudeMaxPool3Dt
+    from merlinth.layers.complex_avgpool import MagnitudeAveragePooling, MagnitudeAveragePool1D, \
+        MagnitudeAveragePool2D, MagnitudeAveragePool2Dt, MagnitudeAveragePool3D, MagnitudeAveragePool3Dt
+except:
+    print('pooling layers in merlinth.layers could not be loaded. Optox might not be installed.')
+
 from merlinth.layers.data_consistency import DCGD
 from merlinth.layers.data_consistency import DCPM
 from merlinth.layers.data_consistency import itSENSE
 from merlinth.layers.mri import MulticoilForwardOp
 from merlinth.layers.mri import MulticoilAdjointOp
-from merlinth.layers.mri import MulticoilMotionForwardOp
-from merlinth.layers.mri import MulticoilMotionAdjointOp
-from merlinth.layers.warp import WarpForward
-from merlinth.layers.warp import WarpAdjoint
+
+try:
+    from merlinth.layers.mri import MulticoilMotionForwardOp
+    from merlinth.layers.mri import MulticoilMotionAdjointOp
+    from merlinth.layers.warp import WarpForward
+    from merlinth.layers.warp import WarpAdjoint
+except:
+    print('warp and MulticoilMotion operator layers could not be loaded. Optox might not be installed.')
 from merlinth.layers.fft import fft2
 from merlinth.layers.fft import fft2c
 from merlinth.layers.fft import ifft2

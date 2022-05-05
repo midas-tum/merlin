@@ -3,56 +3,109 @@ import numpy as np
 import tensorflow as tf
 import merlintf
 from merlintf.keras.layers.complex_maxpool import (
-    MagnitudeMaxPool,
+    MagnitudeMaxPool1D,
     MagnitudeMaxPool2D,
     MagnitudeMaxPool2Dt,
     MagnitudeMaxPool3D,
     MagnitudeMaxPool3Dt
 )
+import tensorflow.keras.backend as K
+#K.set_floatx('float32')
 
 class TestMagnitudePool(unittest.TestCase):
-    def _test(self, shape, pool_size=2, strides=2):
-        # test tf.nn.max_pool_with_argmax
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        pool = MagnitudeMaxPool(pool_size, strides, optox=False)
-        y = pool(x)
-        magn = merlintf.complex_abs(y)
-        pool_size = pool_size if (isinstance(pool_size, list) or isinstance(pool_size, tuple)) else [pool_size] * 2
-        self.assertEqual(magn.shape.as_list(), [shape[0], shape[1] // pool_size[0], shape[2] // pool_size[1], shape[3]])
+    def test4d(self):
+        self._test((1, 4, 6, 6, 6, 2), (2, 2, 2, 2), (2, 2, 2, 2), 'valid')
+        self._test((1, 4, 6, 6, 6, 2), (2, 2, 2, 2), (2, 2, 2, 2), 'same')
+        self._test((1, 5, 7, 7, 7, 2), (2, 2, 2, 2), (2, 2, 2, 2), 'valid')
+        self._test((1, 5, 7, 7, 7, 2), (2, 2, 2, 2), (2, 2, 2, 2), 'same')
 
-    def _test_2dt(self, shape, pool_size=(1, 2, 2), strides=2):
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        pool = MagnitudeMaxPool2Dt(pool_size, strides, optox=True)
-        y = pool(x)
-        magn = merlintf.complex_abs(y)
-        pool_size = pool_size if (isinstance(pool_size, list) or isinstance(pool_size, tuple)) else [pool_size] * 3
-        self.assertEqual(magn.shape.as_list(), [shape[0], shape[1] // pool_size[0], shape[2] // pool_size[1], shape[3] // pool_size[2], shape[4]])
+    def test3d(self):
+        self._test((1, 4, 6, 6, 2), (2, 2, 2), (2, 2, 2), 'valid')
+        self._test((1, 4, 6, 6, 2), (2, 2, 2), (2, 2, 2), 'same')
+        self._test((1, 5, 7, 7, 2), (2, 2, 2), (2, 2, 2), 'valid')
+        self._test((1, 5, 7, 7, 2), (2, 2, 2), (2, 2, 2), 'same')
 
-    def _test_2d(self, shape, pool_size=(2, 2), strides=(2, 2)):
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        pool = MagnitudeMaxPool2D(pool_size, strides, optox=True)
-        y = pool(x)
-        magn = merlintf.complex_abs(y)
-        pool_size = pool_size if (isinstance(pool_size, list) or isinstance(pool_size, tuple)) else [pool_size] * 2
-        self.assertEqual(magn.shape.as_list(), [shape[0], shape[1] // pool_size[0], shape[2] // pool_size[1], shape[3]])
+        self._verify_shape((1, 4, 6, 6, 2), (2, 2, 2), (2, 2, 2), 'valid')
+        self._verify_shape((1, 4, 6, 6, 2), (2, 2, 2), (2, 2, 2), 'same')
+        self._verify_shape((1, 5, 7, 7, 2), (2, 2, 2), (2, 2, 2), 'valid')
+        self._verify_shape((1, 5, 7, 7, 2), (2, 2, 2), (2, 2, 2), 'same')
 
-    def _test_3d(self, shape, pool_size=(2, 2, 2), strides=(2, 2, 2)):
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        pool = MagnitudeMaxPool3D(pool_size, strides, optox=True)
-        y = pool(x)
-        magn = merlintf.complex_abs(y)
-        pool_size = pool_size if (isinstance(pool_size, list) or isinstance(pool_size, tuple)) else [pool_size] * 3
-        self.assertEqual(magn.shape.as_list(), [
-        shape[0], shape[1] // pool_size[0], shape[2] // pool_size[1], shape[3] // pool_size[2], shape[4]])
+    def test2d(self):
+        self._test((1, 4, 6, 2), (2, 2), (2, 2), 'valid')
+        self._test((1, 4, 6, 2), (2, 2), (2, 2), 'same')
+        self._test((1, 5, 7, 2), (2, 2), (2, 2), 'valid')
+        self._test((1, 5, 7, 2), (2, 2), (2, 2), 'same')
 
-    def _test_3dt(self, shape, pool_size=(2, 2, 2, 2), strides=(2, 2, 2, 2)):
-        x = tf.complex(tf.random.normal(shape), tf.random.normal(shape))
-        pool = MagnitudeMaxPool3Dt(pool_size, strides, optox=True)
-        y = pool(x)
-        magn = merlintf.complex_abs(y)
-        pool_size = pool_size if (isinstance(pool_size, list) or isinstance(pool_size, tuple)) else [pool_size] * 4
-        self.assertEqual(magn.shape.as_list(), [
-        shape[0], shape[1] // pool_size[0], shape[2] // pool_size[1], shape[3] // pool_size[2], shape[4] // pool_size[3], shape[5]])
+        self._verify_shape((1, 4, 6, 2), (2, 2), (2, 2), 'valid')
+        self._verify_shape((1, 4, 6, 2), (2, 2), (2, 2), 'same')
+        self._verify_shape((1, 5, 7, 2), (2, 2), (2, 2), 'valid')
+        self._verify_shape((1, 5, 7, 2), (2, 2), (2, 2), 'same')
+
+    def test1d(self):
+        self._test((1, 4, 2), (2,), (2,), 'valid')
+        self._test((1, 4, 2), (2,), (2,), 'same')
+        self._test((1, 5, 2), (2,), (2,), 'valid')
+        self._test((1, 5, 2), (2,), (2,), 'same')
+
+        self._verify_shape((1, 4, 2), (2,), (2,), 'valid')
+        self._verify_shape((1, 4, 2), (2,), (2,), 'same')
+        self._verify_shape((1, 5, 2), (2,), (2,), 'valid')
+        self._verify_shape((1, 5, 2), (2,), (2,), 'same')
+
+    def _padding_shape(self, input_spatial_shape, spatial_filter_shape, strides, dilations_rate, padding_mode):
+        if padding_mode.lower() == 'valid':
+            return np.ceil((input_spatial_shape - (spatial_filter_shape - 1) * dilations_rate) / strides)
+        elif padding_mode.lower() == 'same':
+            return np.ceil(input_spatial_shape / strides)
+        else:
+            raise Exception('padding_mode can be only valid or same!')
+
+    def _verify_shape(self, shape, pool_size, strides, padding_mode):
+        x = merlintf.random_normal_complex(shape, dtype=tf.float32)
+
+        if len(shape) == 3:  # 1d
+            op = MagnitudeMaxPool1D(pool_size, strides, padding_mode)
+            op_backend = tf.keras.layers.MaxPooling1D(pool_size, strides, padding_mode)
+        elif len(shape) == 4:  # 2d
+            op = MagnitudeMaxPool2D(pool_size, strides, padding_mode)
+            op_backend = tf.keras.layers.MaxPooling2D(pool_size, strides, padding_mode)
+        elif len(shape) == 5:  # 3d
+            op = MagnitudeMaxPool3D(pool_size, strides, padding_mode)
+            op_backend = tf.keras.layers.MaxPooling3D(pool_size, strides, padding_mode)
+        elif len(shape) == 6:  # 4d
+            op = MagnitudeMaxPool3Dt(pool_size, strides, padding_mode)
+
+        out = op(x)
+        out_backend = op_backend(merlintf.complex_abs(x))
+
+        self.assertTrue(np.sum(np.abs(np.array(out.shape) - np.array(out_backend.shape))) == 0)
+
+    def _test(self, shape, pool_size, strides, padding_mode, dilations_rate=(1, 1, 1, 1)):
+        # test tf.nn.average_pool_with_argaverage
+        x = merlintf.random_normal_complex(shape, dtype=tf.float32)
+
+        if len(shape) == 3:  # 1d
+            op = MagnitudeMaxPool1D(pool_size, strides, padding_mode)
+        elif len(shape) == 4:  # 2d
+            op = MagnitudeMaxPool2D(pool_size, strides, padding_mode)
+        elif len(shape) == 5:  # 3d
+            op = MagnitudeMaxPool3D(pool_size, strides, padding_mode)
+        elif len(shape) == 6:  # 4d
+            op = MagnitudeMaxPool3Dt(pool_size, strides, padding_mode)
+
+        with tf.GradientTape(persistent=True) as tape:
+            tape.watch(x)
+            out_complex = op(x)
+            gradients = tape.gradient(tf.math.reduce_sum(out_complex), x)
+
+        # (N, T, H, W, D, C)
+        expected_shape = [shape[0]]
+        for i in range(len(shape) - 2):
+            expected_shape.append(self._padding_shape(shape[i + 1], pool_size[i], strides[i], dilations_rate[i], padding_mode))
+        expected_shape.append(shape[-1])
+
+        self.assertTrue(np.abs(np.array(expected_shape) - np.array(out_complex.shape)).all() < 1e-8)
+        self.assertTrue(np.abs(np.array(x.shape) - np.array(gradients.shape)).all() < 1e-8)
 
     def _index_transfer(self, index_input, index_1, include_batch_in_index=False):
         # transfer from optox argmax index-> tensorflow argmax index
@@ -150,38 +203,12 @@ class TestMagnitudePool(unittest.TestCase):
         x_abs = tf.math.abs(x)
         x_abs = tf.nn.max_pool3d(x_abs, pool_size, strides, padding='SAME')
 
-        print('tf.math.abs(y) - x_abs',tf.math.abs(y) - x_abs)
+        print('tf.math.abs(y) - x_abs', tf.math.abs(y) - x_abs)
         shape = x_abs.shape
         test_id = [np.random.randint(0, shape[0]), np.random.randint(0, shape[1]), np.random.randint(0, shape[2]),
                    np.random.randint(0, shape[3]), np.random.randint(0, shape[4])]
         self.assertTrue((tf.math.abs(y)[test_id[0], test_id[1], test_id[2], test_id[3], test_id[4]] - x_abs[
             test_id[0], test_id[1], test_id[2], test_id[3], test_id[4]]) == 0.0)
-
-    def test_max_pool_with_argmax(self):
-        self._test([2, 2, 2, 1])
-        self._test([2, 2, 2, 1], (2, 2))
-
-    def test_2dt(self):
-        # Maxpooling 2dt
-        self._test_2dt([2, 4, 2, 2, 1], (1, 2, 2))
-
-    def test_3dt(self):
-        # Maxpooling 2dt
-        self._test_3dt([2, 4, 2, 2, 2, 1])
-
-    def test_2d(self):
-        # Maxpooling 2d
-        self._test_2d([2, 2, 2, 1])
-        self._test_2d([2, 2, 2, 1], (2, 2))
-        # input shape: [batch, height, width, channel]
-        self._test_2d_accuracy([1, 8, 12, 3], pool_size=(3, 2))
-
-    def test_3d(self):
-        # Maxpooling 3d
-        self._test_3d([2, 16, 8, 4, 1])
-        self._test_3d([2, 16, 8, 4, 1], (4, 2, 2))
-        # input shape: [batch, height, width, depth, channel]
-        self._test_3d_accuracy([2, 8, 6, 8, 2], pool_size=(3, 2, 2))
 
 
 if __name__ == "__main__":

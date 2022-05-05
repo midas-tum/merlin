@@ -15,7 +15,7 @@ from merlintf.keras.layers.complex_act import (
     Cardioid2,
 )
 import tensorflow.keras.backend as K
-K.set_floatx('float64')
+#K.set_floatx('float64')
 
 class TestActivation(unittest.TestCase):   
     def _test(self, act, args, shape):

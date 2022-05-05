@@ -300,7 +300,7 @@ class ComplexConv(Layer):
         regularizer=self.kernel_regularizer,
         constraint=self.kernel_constraint,
         trainable=True,
-        dtype=self.dtype)
+        dtype=tf.keras.backend.floatx())
     if self.use_bias:
       self._bias = self.add_weight(
           name='bias',
@@ -309,7 +309,7 @@ class ComplexConv(Layer):
           regularizer=self.bias_regularizer,
           constraint=self.bias_constraint,
           trainable=True,
-          dtype=self.dtype)
+          dtype=tf.keras.backend.floatx())
     else:
       self._bias = None
     channel_axis = self._get_channel_axis()
@@ -499,96 +499,7 @@ class ComplexConv(Layer):
 
 #@keras_export('keras.layers.ComplexConv1D', 'keras.layers.ComplexConvolution1D')
 class ComplexConv1D(ComplexConv):
-  """1D convolution layer (e.g. temporal convolution).
-  This layer creates a convolution kernel that is convolved
-  with the layer input over a single spatial (or temporal) dimension
-  to produce a tensor of outputs.
-  If `use_bias` is True, a bias vector is created and added to the outputs.
-  Finally, if `activation` is not `None`,
-  it is applied to the outputs as well.
-  When using this layer as the first layer in a model,
-  provide an `input_shape` argument
-  (tuple of integers or `None`, e.g.
-  `(10, 128)` for sequences of 10 vectors of 128-dimensional vectors,
-  or `(None, 128)` for variable-length sequences of 128-dimensional vectors.
-  Examples:
-  >>> # The inputs are 128-length vectors with 10 timesteps, and the batch size
-  >>> # is 4.
-  >>> input_shape = (4, 10, 128)
-  >>> x = tf.random.normal(input_shape)
-  >>> y = tf.keras.layers.ComplexConv1D(
-  ... 32, 3, activation='relu',input_shape=input_shape[1:])(x)
-  >>> print(y.shape)
-  (4, 8, 32)
-  >>> # With extended batch shape [4, 7] (e.g. weather data where batch
-  >>> # dimensions correspond to spatial location and the third dimension
-  >>> # corresponds to time.)
-  >>> input_shape = (4, 7, 10, 128)
-  >>> x = tf.random.normal(input_shape)
-  >>> y = tf.keras.layers.ComplexConv1D(
-  ... 32, 3, activation='relu', input_shape=input_shape[2:])(x)
-  >>> print(y.shape)
-  (4, 7, 8, 32)
-  Arguments:
-    filters: Integer, the dimensionality of the output space
-      (i.e. the number of output filters in the convolution).
-    kernel_size: An integer or tuple/list of a single integer,
-      specifying the length of the 1D convolution window.
-    strides: An integer or tuple/list of a single integer,
-      specifying the stride length of the convolution.
-      Specifying any stride value != 1 is incompatible with specifying
-      any `dilation_rate` value != 1.
-    padding: One of `"valid"`, `"same"` or `"causal"` (case-insensitive).
-      `"valid"` means no padding. `"same"` results in padding evenly to
-      the left/right or up/down of the input such that output has the same
-      height/width dimension as the input.
-      `"causal"` results in causal (dilated) convolutions, e.g. `output[t]`
-      does not depend on `input[t+1:]`. Useful when modeling temporal data
-      where the model should not violate the temporal order.
-      See [WaveNet: A Generative Model for Raw Audio, section
-        2.1](https://arxiv.org/abs/1609.03499).
-    data_format: A string,
-      one of `channels_last` (default) or `channels_first`.
-    dilation_rate: an integer or tuple/list of a single integer, specifying
-      the dilation rate to use for dilated convolution.
-      Currently, specifying any `dilation_rate` value != 1 is
-      incompatible with specifying any `strides` value != 1.
-    groups: A positive integer specifying the number of groups in which the
-      input is split along the channel axis. Each group is convolved
-      separately with `filters / groups` filters. The output is the
-      concatenation of all the `groups` results along the channel axis.
-      Input channels and `filters` must both be divisible by `groups`.
-    activation: Activation function to use.
-      If you don't specify anything, no activation is applied (
-      see `keras.activations`).
-    use_bias: Boolean, whether the layer uses a bias vector.
-    kernel_initializer: Initializer for the `kernel` weights matrix (
-      see `keras.initializers`).
-    bias_initializer: Initializer for the bias vector (
-      see `keras.initializers`).
-    kernel_regularizer: Regularizer function applied to
-      the `kernel` weights matrix (see `keras.regularizers`).
-    bias_regularizer: Regularizer function applied to the bias vector (
-      see `keras.regularizers`).
-    activity_regularizer: Regularizer function applied to
-      the output of the layer (its "activation") (
-      see `keras.regularizers`).
-    kernel_constraint: Constraint function applied to the kernel matrix (
-      see `keras.constraints`).
-    bias_constraint: Constraint function applied to the bias vector (
-      see `keras.constraints`).
-  Input shape:
-    3+D tensor with shape: `batch_shape + (steps, input_dim)`
-  Output shape:
-    3+D tensor with shape: `batch_shape + (new_steps, filters)`
-      `steps` value might have changed due to padding or strides.
-  Returns:
-    A tensor of rank 3 representing
-    `activation(conv1d(inputs, kernel) + bias)`.
-  Raises:
-    ValueError: when both `strides > 1` and `dilation_rate > 1`.
-  """
-
+  __doc__ = r"""Applies a complex-valued 1D convolution over an input signal composed of several input planes."""
   def __init__(self,
                filters,
                kernel_size,
@@ -630,7 +541,7 @@ class ComplexConv1D(ComplexConv):
 
 #@keras_export('keras.layers.ComplexConv2D', 'keras.layers.ComplexConvolution2D')
 class ComplexConv2D(ComplexConv):
-  """2D convolution layer (e.g. spatial convolution over images).
+  __doc__ = r"""2D convolution layer (e.g. spatial convolution over images).
   This layer creates a convolution kernel that is convolved
   with the layer input to produce a tensor of
   outputs. If `use_bias` is True,
@@ -778,7 +689,7 @@ class ComplexConv2D(ComplexConv):
 
 #@keras_export('keras.layers.ComplexConv3D', 'keras.layers.ComplexConvolution3D')
 class ComplexConv3D(ComplexConv):
-  """3D convolution layer (e.g. spatial convolution over volumes).
+  __doc__ = r"""3D convolution layer (e.g. spatial convolution over volumes).
   This layer creates a convolution kernel that is convolved
   with the layer input to produce a tensor of
   outputs. If `use_bias` is True,
@@ -1062,7 +973,7 @@ class ComplexConv1DTranspose(ComplexConv1D):
         regularizer=self.kernel_regularizer,
         constraint=self.kernel_constraint,
         trainable=True,
-        dtype=self.dtype)
+        dtype=tf.keras.backend.floatx())
     if self.use_bias:
       self._bias = self.add_weight(
           name='bias',
@@ -1071,7 +982,7 @@ class ComplexConv1DTranspose(ComplexConv1D):
           regularizer=self.bias_regularizer,
           constraint=self.bias_constraint,
           trainable=True,
-          dtype=self.dtype)
+          dtype=tf.keras.backend.floatx())
     else:
       self._bias = None
     self.built = True
@@ -1325,7 +1236,7 @@ class ComplexConv2DTranspose(ComplexConv2D):
         regularizer=self.kernel_regularizer,
         constraint=self.kernel_constraint,
         trainable=True,
-        dtype=self.dtype)
+        dtype=tf.keras.backend.floatx())
     if self.use_bias:
       self._bias = self.add_weight(
           name='bias',
@@ -1334,7 +1245,7 @@ class ComplexConv2DTranspose(ComplexConv2D):
           regularizer=self.bias_regularizer,
           constraint=self.bias_constraint,
           trainable=True,
-          dtype=self.dtype)
+          dtype=tf.keras.backend.floatx())
     else:
       self._bias = None
     self.built = True
@@ -1625,7 +1536,7 @@ class ComplexConv3DTranspose(ComplexConv3D):
         regularizer=self.kernel_regularizer,
         constraint=self.kernel_constraint,
         trainable=True,
-        dtype=self.dtype)
+        dtype=tf.keras.backend.floatx())
     if self.use_bias:
       self._bias = self.add_weight(
           'bias',
@@ -1634,7 +1545,7 @@ class ComplexConv3DTranspose(ComplexConv3D):
           regularizer=self.bias_regularizer,
           constraint=self.bias_constraint,
           trainable=True,
-          dtype=self.dtype)
+          dtype=tf.keras.backend.floatx())
     else:
       self._bias = None
     self.built = True

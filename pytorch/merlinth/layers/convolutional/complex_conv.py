@@ -36,8 +36,6 @@ convolution_notes = \
         :math:`(C_\text{in}=C_\text{in}, C_\text{out}=C_\text{in} \times \text{K}, ..., \text{groups}=C_\text{in})`."""}  # noqa: B950
 
 
-
-
 def complex_conv(conv_fun, input, weight, bias, stride, padding, dilation, groups):
     x_re = torch.real(input)
     x_im = torch.imag(input)
@@ -502,6 +500,7 @@ class ComplexConv2d(_ComplexConvNd):
 
     def forward(self, input: Tensor) -> Tensor:
         return self._conv_forward(input, self.weight, self.bias)
+
 
 class ComplexConv3d(_ComplexConvNd):
     __doc__ = r"""Applies a 3D convolution over an input signal composed of several input

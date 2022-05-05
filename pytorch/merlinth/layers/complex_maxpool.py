@@ -1,9 +1,12 @@
+import sys
 import torch
 import merlinth
 try:
     import optoth.maxpooling
 except:
     print('optoth could not be imported')
+import six
+
 
 def get(identifier):
     return MagnitudeMaxPooling(identifier)
@@ -36,33 +39,40 @@ def deserialize(op):
 
 
 class MagnitudeMaxPool(torch.nn.Module):
-    def __init__(self, kernel_size, stride=None, padding=0, dilation=1, padding_mode='SAME', return_indices=False, rank=2):
+    def __init__(self, kernel_size, stride=None, padding=0, dilation=1, return_indices=True, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool', alpha=1, beta=1, **kwargs):
         super(MagnitudeMaxPool, self).__init__()
         self.kernel_size = kernel_size
         self.stride = stride
         self.padding = padding
         self.dilation = dilation
-        self.alpha = 1
-        self.beta = 1
+        self.alpha = alpha
+        self.beta = beta
+        self.ceil_mode = ceil_mode
         self.padding_mode = padding_mode
-        self.return_indices = return_indices
+        self.layer_name = layer_name
         self.channel_first = True  # default PyTorch order: [N, C, H, W, ....]
         self.optox = optox and (True if 'optoth.maxpooling' in sys.modules else False)
 
         if not self.optox:
-            if rank == 3:
-                self.pool = torch.nn.MaxPool3d(kernel_size, stride, return_indices=True)
-            elif rank == 2:
-                self.pool = torch.nn.MaxPool2d(kernel_size, stride, return_indices=True)
-            else:
-                raise ValueError(f"pooling for dim={rank} not defined")
+            if self.layer_name == 'MagnitudeMaxPool3D':
+                self.op = torch.nn.MaxPool3d(kernel_size, stride, padding, dilation, return_indices)
+            elif self.layer_name == 'MagnitudeMaxPool2D':
+                self.op = torch.nn.MaxPool2d(kernel_size, stride, padding, dilation, return_indices)
+            elif self.layer_name == 'MagnitudeMaxPool1D':
+                self.op = torch.nn.MaxPool1d(kernel_size, stride, padding, dilation, return_indices)
     
     def forward(self, x):
-        magn = merlinth.complex_abs(x, eps=1e-9)
-        _, indices = self.pool(magn)
-        pool_re = self.retrieve_elements_from_indices(torch.real(x), indices)
-        pool_im = self.retrieve_elements_from_indices(torch.imag(x), indices)
-        return torch.complex(pool_re, pool_im)
+        if self.optox and merlinth.iscomplex(x):
+            print('forward:', x.shape, self.kernel_size, self.padding, self.stride, self.dilation, self.alpha,
+                  self.beta, self.padding_mode, x.real.dtype, self.channel_first, self.ceil_mode)
+            return self.op.apply(x, self.kernel_size, self.padding, self.stride, self.dilation,  self.alpha, self.beta,
+                                 self.padding_mode, x.real.dtype, self.channel_first)
+        else:
+            magn = merlinth.complex_abs(x, eps=1e-9)
+            _, indices = self.op(magn)
+            pool_re = self.retrieve_elements_from_indices(torch.real(x), indices)
+            pool_im = self.retrieve_elements_from_indices(torch.imag(x), indices)
+            return torch.complex(pool_re, pool_im)
 
     def retrieve_elements_from_indices(self, tensor, indices):
         flattened_tensor = tensor.flatten(start_dim=2)
@@ -70,59 +80,35 @@ class MagnitudeMaxPool(torch.nn.Module):
         return output
 
 
+class MagnitudeMaxPool1D(MagnitudeMaxPool):
+    def __init__(self, kernel_size=(2,), stride=(2,), padding=(0,), dilation=(1,), return_indices=True, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool1D', alpha=1, beta=1, **kwargs):
+        super().__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode, padding_mode, optox, layer_name, alpha, beta, **kwargs)
+        self.op = optoth.maxpooling.Maxpooling1dFunction
+
+
 class MagnitudeMaxPool2D(MagnitudeMaxPool):
-    def __init__(self, kernel_size, stride=(2, 2), padding=(0, 0), dilation=(1, 1), padding_mode='SAME', return_indices=False):
-        super().__init__(kernel_size, stride, padding, dilation, return_indices, rank=2)
+    def __init__(self, kernel_size=(2, 2), stride=(2, 2), padding=(0, 0), dilation=(1, 1), return_indices=True, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool2D', alpha=1, beta=1, **kwargs):
+        super().__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode, padding_mode, optox, layer_name, alpha, beta, **kwargs)
+        self.op = optoth.maxpooling.Maxpooling2dFunction
 
-    def forward(self, x):
-        return optoth.maxpooling.maxpooling2d(x, self.kernel_size, self.padding, self.stride, self.dilation,
-                                              self.alpha, self.beta, self.padding_mode, x.dtype, self.channel_first)
-
-    def backward(self, grad_output):
-        return optoth.maxpooling.maxpooling2d_backward(TODO, TODO, TODO, self.kernel_size, self.padding, self.stride, self.dilation,
-                                                       self.alpha, self.beta, self.padding_mode, x.dtype, self.channel_first)
 
 class MagnitudeMaxPool3D(MagnitudeMaxPool):
-    def __init__(self, kernel_size, stride=(2, 2, 2), padding=(0, 0, 0), dilation=(1, 1, 1), padding_mode='SAME', return_indices=False):
-        super().__init__(kernel_size, stride, padding, dilation, return_indices, rank=3)
+    def __init__(self, kernel_size=(2, 2, 2), stride=(2, 2, 2), padding=(0, 0, 0), dilation=(1, 1, 1), return_indices=True, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool2D', alpha=1, beta=1, **kwargs):
+        super().__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode, padding_mode, optox, layer_name, alpha, beta, **kwargs)
+        self.op = optoth.maxpooling.Maxpooling3dFunction
 
-    def forward(self, x):
-        return optoth.maxpooling.maxpooling3d(x, self.kernel_size, self.padding, self.stride, self.dilation,
-                                              self.alpha, self.beta, self.padding_mode, x.dtype, self.channel_first)
-
-    def backward(self, grad_output):
-        return optoth.maxpooling.maxpooling3d_backward(TODO, TODO, TODO, self.kernel_size, self.padding, self.stride,
-                                                       self.dilation,
-                                                       self.alpha, self.beta, self.padding_mode, x.dtype,
-                                                       self.channel_first)
 
 class MagnitudeMaxPool2Dt(MagnitudeMaxPool):
-    def __init__(self, kernel_size, stride=(2, 2, 2), padding=(0, 0, 0), dilation=(1, 1, 1), padding_mode='SAME', return_indices=False):
-        super().__init__(kernel_size, stride, padding, dilation, return_indices, rank=3)
+    def __init__(self, kernel_size=(2, 2, 2), stride=(2, 2, 2), padding=(0, 0, 0), dilation=(1, 1, 1), return_indices=True, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool2Dt', alpha=1, beta=1, **kwargs):
+        super().__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode, padding_mode, optox, layer_name, alpha, beta, **kwargs)
+        self.op = optoth.maxpooling.Maxpooling3dFunction
 
-    def forward(self, x):
-        return optoth.maxpooling.maxpooling3d(x, self.kernel_size, self.padding, self.stride, self.dilation,
-                                              self.alpha, self.beta, self.padding_mode, x.dtype, self.channel_first)
-
-    def backward(self, grad_output):
-        return optoth.maxpooling.maxpooling3d_backward(TODO, TODO, TODO, self.kernel_size, self.padding, self.stride,
-                                                       self.dilation,
-                                                       self.alpha, self.beta, self.padding_mode, x.dtype,
-                                                       self.channel_first)
 
 class MagnitudeMaxPool3Dt(MagnitudeMaxPool):
-    def __init__(self, kernel_size, stride=(2, 2, 2, 2), padding=(0, 0, 0, 0), dilation=(1, 1, 1, 1), padding_mode='SAME', return_indices=False):
-        super().__init__(kernel_size, stride, padding, dilation, return_indices, rank=4)
+    def __init__(self, kernel_size=(2, 2, 2, 2), stride=(2, 2, 2, 2), padding=(0, 0, 0, 0), dilation=(1, 1, 1, 1), return_indices=True, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeMaxPool2Dt', alpha=1, beta=1, **kwargs):
+        super().__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode, padding_mode, optox, layer_name, alpha, beta, **kwargs)
+        self.op = optoth.maxpooling.Maxpooling4dFunction
 
-    def forward(self, x):
-        return optoth.maxpooling.maxpooling4d(x, self.kernel_size, self.padding, self.stride, self.dilation,
-                                              self.alpha, self.beta, self.padding_mode, x.dtype, self.channel_first)
-
-    def backward(self, grad_output):
-        return optoth.maxpooling.maxpooling4d_backward(TODO, TODO, TODO, self.kernel_size, self.padding, self.stride,
-                                                       self.dilation,
-                                                       self.alpha, self.beta, self.padding_mode, x.dtype,
-                                                       self.channel_first)
 
 # Aliases
 MagnitudeMaxPool4D = MagnitudeMaxPool3Dt

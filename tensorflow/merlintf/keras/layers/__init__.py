@@ -1,3 +1,5 @@
+from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv1D
+from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv1DTranspose
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv2D
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv2DTranspose
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv3D
@@ -47,7 +49,7 @@ from merlintf.keras.layers.complex_act import Activation
 from merlintf.keras.layers.complex_bn import ComplexBatchNormalization
 from merlintf.keras.layers.complex_norm import ComplexInstanceNormalization
 try:
-    from merlintf.keras.layers.complex_pad import Pad1D, Pad2D, Pad3D, Pad4D, Pad1DTranspose, Pad2DTranspose, Pad3DTranspose, Pad4DTranspose
+    from merlintf.keras.layers.complex_pad import Padding1D, Padding2D, Padding3D, Padding4D, Padding1DTranspose, Padding2DTranspose, Padding3DTranspose, Padding4DTranspose
 except:
     print('keras.layers.complex_pad could not be loaded. Optox might not be installed.')
 from merlintf.keras.layers.data_consistency import DCGD
