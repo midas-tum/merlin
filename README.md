@@ -1,8 +1,8 @@
 # MERLIN - Machine Enhanced Reconstruction Learning and Interpretation Networks
 <!-- markdownlint-disable -->
 <p align="center">
-  <a href="http://merlin.rtfd.io/">
-    <img src="https://github.com/midas-tum/merlin/blob/17726307ee9d850db79169afe527bb7c38395c6b/notebooks/fig/MERLIN_logo.png" width="150" alt="MERLIN logo"> 
+  <a href="https://github.com/midas-tum/merlin">
+    <img src="https://github.com/midas-tum/merlin/blob/cdc85e0e7912f9cf9a1d69e9a23391a31287e84e/notebooks/fig/MERLIN_logo.png" width="150" alt="MERLIN logo"> 
   </a>
 </p>
 <!-- markdownlint-restore -->
