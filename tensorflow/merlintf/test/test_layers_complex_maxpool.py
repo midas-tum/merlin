@@ -9,6 +9,8 @@ from merlintf.keras.layers.complex_maxpool import (
     MagnitudeMaxPool3D,
     MagnitudeMaxPool3Dt
 )
+import tensorflow.keras.backend as K
+#K.set_floatx('float32')
 
 class TestMagnitudePool(unittest.TestCase):
     def test4d(self):
@@ -59,7 +61,7 @@ class TestMagnitudePool(unittest.TestCase):
             raise Exception('padding_mode can be only valid or same!')
 
     def _verify_shape(self, shape, pool_size, strides, padding_mode):
-        x = merlintf.random_normal_complex(shape)
+        x = merlintf.random_normal_complex(shape, dtype=tf.float32)
 
         if len(shape) == 3:  # 1d
             op = MagnitudeMaxPool1D(pool_size, strides, padding_mode)
@@ -80,7 +82,7 @@ class TestMagnitudePool(unittest.TestCase):
 
     def _test(self, shape, pool_size, strides, padding_mode, dilations_rate=(1, 1, 1, 1)):
         # test tf.nn.average_pool_with_argaverage
-        x = merlintf.random_normal_complex(shape)
+        x = merlintf.random_normal_complex(shape, dtype=tf.float32)
 
         if len(shape) == 3:  # 1d
             op = MagnitudeMaxPool1D(pool_size, strides, padding_mode)

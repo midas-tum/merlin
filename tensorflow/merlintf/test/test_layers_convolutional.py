@@ -1,5 +1,5 @@
 import tensorflow.keras.backend as K
-K.set_floatx('float64')
+#K.set_floatx('float64')
 
 import unittest
 import numpy as np

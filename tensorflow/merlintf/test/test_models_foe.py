@@ -12,7 +12,7 @@ from merlintf.keras.models.foe import (
 )
 
 import tensorflow.keras.backend as K
-K.set_floatx('float64')
+#K.set_floatx('float64')
 
 class PolarFoETest(unittest.TestCase):
     def test_FoE_polar_2d(self):
@@ -209,10 +209,11 @@ class Real2chFoETest(unittest.TestCase):
 
         model = Real2chFoE(config)
 
+        dtype = tf.float32  #K.floatx()
         if dim == '2D':
-            x = merlintf.random_normal_complex((nBatch, M, N, 1), dtype=K.floatx())
+            x = merlintf.random_normal_complex((nBatch, M, N, 1), dtype=dtype)
         elif dim == '3D' or dim == '2Dt':
-            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), dtype=K.floatx())
+            x = merlintf.random_normal_complex((nBatch, D, M, N, 1), dtype=dtype)
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
         
@@ -259,12 +260,13 @@ class RealFoETest(unittest.TestCase):
 
         model = FoE(config)
 
+        dtype = tf.float32  #K.floatx()
         if dim == '1D':
-            x = tf.random.normal((nBatch, N, 1), dtype=K.floatx())
+            x = tf.random.normal((nBatch, N, 1), dtype=dtype)
         elif dim == '2D':
-            x = tf.random.normal((nBatch, M, N, 1), dtype=K.floatx())
+            x = tf.random.normal((nBatch, M, N, 1), dtype=dtype)
         elif dim == '3D' or dim == '2Dt':
-            x = tf.random.normal((nBatch, D, M, N, 1), dtype=K.floatx())
+            x = tf.random.normal((nBatch, D, M, N, 1), dtype=dtype)
         else:
             raise RuntimeError(f'No implementation for dim {dim} available!')
         

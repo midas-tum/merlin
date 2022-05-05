@@ -4,7 +4,7 @@ import tensorflow as tf
 from merlintf.keras.layers.complex_bn import ComplexBatchNormalization
 import numpy as np
 import tensorflow.keras.backend as K
-K.set_floatx('float64')
+#K.set_floatx('float64')
 
 class ComplexNormTest(unittest.TestCase):
     def _test_norm(self, shape, channel_last=True):
