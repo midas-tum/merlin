@@ -26,7 +26,7 @@ class DataGenerator(tf.keras.utils.Sequence):
         self.list_IDs = list_IDs
 
         self.accelerations = accelerations  # acceleration ranges [list]
-        self.sampling_trajectory = sampling_trajectory  # subsampling trajectory 'PI', 'VDCASPR', 'radial'
+        self.sampling_trajectory = sampling_trajectory  # subsampling trajectory 'PI', 'radial'
 
         self.dim_in = dim_in  # input dimensions
         self.axes_in = (0,1)  # axes along which to operate fft/ifft

@@ -1,7 +1,6 @@
 import unittest
 import numpy as np
 from merlinpy.datapipeline.sampling import (
-    CASPR,
     PoissonDisc,
     Gaussian,
     VISTA,
@@ -10,11 +9,6 @@ from merlinpy.datapipeline.sampling import (
 )
 
 class SamplingTest(unittest.TestCase):
-    def test_samplingCASPR2D(self, acc=4):
-        self._test_sampling(CASPR([128, 64, 1], acc))  # non-interleaved and triggered/gated single-phase Cartesian with spiral ordering sampling
-
-    def test_samplingCASPR2Dt(self, acc=4):
-        self._test_sampling(CASPR([128, 64, 16], acc))  # non-interleaved and triggered/gated multi-phase Cartesian with spiral ordering sampling
 
     def test_samplingVDPD1D(self, acc=4):
         self._test_sampling(PoissonDisc([128, 1, 1], acc))  # 1D Poisson-Disc subsampling

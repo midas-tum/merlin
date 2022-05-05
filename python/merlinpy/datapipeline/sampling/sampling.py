@@ -3,7 +3,6 @@ import math
 
 from merlinpy.datapipeline.sampling.VISTA.main import sampling2dt
 import matplotlib.pyplot as plt
-from merlinpy.datapipeline.sampling import VD_CASPR_CINE as VD_CASPR_CINE
 from merlinpy.datapipeline.sampling import VDPDGauss as VDPDGauss
 
 class Sampling:  # abstract parent class
@@ -11,7 +10,7 @@ class Sampling:  # abstract parent class
     def __init__(self, dim, acc, trajectory, is_elliptical):
         self.dim = dim  # y - z - t
         self.acc = acc  # acceleration factor
-        self.trajectory = trajectory  # CASPR, Poisson-Disc, Gaussian, GoldenRadial, TinyGoldenRadial,
+        self.trajectory = trajectory  #  Poisson-Disc, Gaussian, GoldenRadial, TinyGoldenRadial,
         self.is_elliptical = is_elliptical
         self.mask = []
 
@@ -66,53 +65,6 @@ class Sampling:  # abstract parent class
         # subsample k-space, i.e. apply subsampling mask
         return np.multiply(kspace, self.mask)
 
-class CASPR(Sampling):
-    # variable-density CASPR subsampling (2D / 2D+time)
-    def __init__(self, dim, acc, mode='interleaved', nSegments=10, nCenter=15, isVariable=1, isGolden=2, isInOut=1, isCenter=0, isSamePattern=0, iVerbose=0):
-        super().__init__(dim=dim, acc=acc, trajectory='CASPR', is_elliptical=True)
-        self.mode = mode  # 'interleaved' (CINE), 'noninterleaved' (free-running, CMRA, T2Mapping, ...)
-        self.nSegments = nSegments  # #segments = #rings in sampling pattern
-        self.nCenter = nCenter  # percentage of fully sampled center region
-        self.isVariable = isVariable  # VDCASPR (=1) or CASPR (=0)
-        self.isGolden = isGolden  # golden angle increment between spirals (=1), 0 = linear-linear, 1=golden-golden, 2=tinyGolden-golden, 3=linear-golden, 4=noIncr-golden
-        self.isInOut = isInOut  # spiral in/out sampling => for isGolden=1 & isInOut=1: use tinyGolden-Golden-tinyGolden-Golden-... increments
-        self.isCenter = isCenter  # sample center point
-        self.isSamePattern = isSamePattern  # same sampling pattern per phase/contrast, i.e. no golden/tiny-golden angle increment between them (but still inside the pattern if isGolden==1)
-        self.iVerbose = iVerbose  # 0=silent, 1=normal output, 2=all output
-
-    def generate_mask(self):
-        numLin = self.dim[0]  # ky points (store it the other way round, for right dim)
-        numPar = self.dim[1]  # kz points
-        nRep = self.dim[2]  # time points
-
-        lMask = np.zeros((numPar, numLin))
-        kSpacePolar_LinInd = np.zeros((nRep * numLin * numPar, 1))
-        kSpacePolar_ParInd = np.zeros((nRep * numLin * numPar, 1))
-        out_parameter = np.zeros((3, 1), dtype='float32')
-        parameter_list = np.asarray(
-            [numLin, numPar, self.acc, self.nCenter, self.nSegments, nRep, self.isGolden, self.isVariable, self.isInOut, self.isCenter, self.isSamePattern,
-             self.iVerbose], dtype='float32')
-        res = VD_CASPR_CINE.run(parameter_list, lMask, kSpacePolar_LinInd, kSpacePolar_ParInd, out_parameter)
-        n_SamplesInSpace = np.asscalar(out_parameter[0].astype(int))
-        nSampled = np.asscalar(out_parameter[1].astype(int))
-        nb_spiral = np.asscalar(out_parameter[2].astype(int))
-        mask_rep = np.zeros((numPar, numLin, nRep))
-        for iRep in range(1, nRep + 1):
-            iVec = list()
-            for iInner in range(self.nSegments):
-                iVecTmp = [idx - 1 for idx in
-                           range((iRep - 1) * self.nSegments + 1 + iInner, nSampled - self.nSegments + 1 + iInner + 1,
-                                 self.nSegments * nRep)]
-                iVec.extend(iVecTmp)
-            # iVec = np.asarray(iVec)
-
-            for iI in iVec:
-                if (kSpacePolar_LinInd[iI] > 0) and (kSpacePolar_ParInd[iI] > 0):
-                    mask_rep[np.asscalar(kSpacePolar_ParInd[iI].astype(int)), np.asscalar(
-                        kSpacePolar_LinInd[iI].astype(int)), iRep - 1] += 1
-
-        self.mask = mask_rep
-        return mask_rep  # Z x Y x Time
     
 class PoissonDisc(Sampling):
     # variable-density Poisson-Disc subsampling (1D / 2D / 2D+time)
