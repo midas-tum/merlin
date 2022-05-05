@@ -33,10 +33,9 @@ jobs:
       - name: Clone optox
         uses: actions/checkout@v2
         with:
-          repository: midas-tum/optox
+          repository: midas-tum/optox_dev
           token: ${{ secrets.OPTOX_TOKEN }}
           path: optox
-          ref: dev_pooling
       - name: Build optox
         env:
           CUDA_ROOT_DIR: /usr/local/cuda

@@ -3,7 +3,7 @@ import merlintf
 from merlintf.keras.models.cnn import ComplexCNN, Real2chCNN
 
 import tensorflow.keras.backend as K
-K.set_floatx('float64')
+#K.set_floatx('float64')
 
 class Real2chCNNTest(unittest.TestCase):
     def test_cnn_real2ch_2d(self):

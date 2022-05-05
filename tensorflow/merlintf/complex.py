@@ -15,9 +15,9 @@ def complex_scale(x, scale):
 def complex_dot(x, y, axis=None):
     return tf.reduce_sum(tf.math.conj(x) * y, axis=axis)
 
-def complex2real(z, channel_last=True):
+def complex2real(z, channel_last=True, dtype=tf.keras.backend.floatx()):
     stack_dim = -1 if channel_last else 1
-    return tf.concat([tf.math.real(z), tf.math.imag(z)], stack_dim)
+    return tf.cast(tf.concat([tf.math.real(z), tf.math.imag(z)], stack_dim), dtype)
 
 def real2complex(z, channel_last=True):
     stack_dim = -1 if channel_last else 1

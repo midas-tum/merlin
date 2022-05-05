@@ -81,13 +81,13 @@ class MagnitudeAveragePool(torch.nn.Module):
 
 
 class MagnitudeAveragePool1D(MagnitudeAveragePool):
-    def __init__(self, kernel_size= (1, ), stride=(2, ), padding=(0, ), dilation=(1, ), return_indices=False, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool1D', alpha=1, beta=1, **kwargs):
+    def __init__(self, kernel_size=(1, ), stride=(2, ), padding=(0, ), dilation=(1, ), return_indices=False, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool1D', alpha=1, beta=1, **kwargs):
         super().__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode, padding_mode, optox, layer_name, alpha, beta, **kwargs)
         self.op = optoth.averagepooling.Averagepooling1dFunction
 
 
 class MagnitudeAveragePool2D(MagnitudeAveragePool):
-    def __init__(self, kernel_size= (2, 2), stride=(2, 2), padding=(0, 0), dilation=(1, 1), return_indices=False, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool2D', alpha=1, beta=1, **kwargs):
+    def __init__(self, kernel_size=(2, 2), stride=(2, 2), padding=(0, 0), dilation=(1, 1), return_indices=False, ceil_mode=False, padding_mode='SAME', optox=True, layer_name='MagnitudeAvgPool2D', alpha=1, beta=1, **kwargs):
         super().__init__(kernel_size, stride, padding, dilation, return_indices, ceil_mode, padding_mode, optox, layer_name, alpha, beta, **kwargs)
         self.op = optoth.averagepooling.Averagepooling2dFunction
 

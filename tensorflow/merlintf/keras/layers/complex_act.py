@@ -73,6 +73,7 @@ class HardSigmoid(tf.keras.layers.Layer):
         self.bias = self.add_weight('bias',
                                       shape=(input_shape[-1]),
                                       initializer=initializer,
+                                      dtype=self.dtype
                                       )
     def call(self, z):
         return tf.cast(tf.keras.activations.hard_sigmoid(merlintf.complex_abs(z) + self.bias), z.dtype)
@@ -108,6 +109,7 @@ class ModReLU(tf.keras.layers.Layer):
         self.bias = self.add_weight('bias',
                                       shape=(input_shape[-1]),
                                       initializer=initializer,
+                                      dtype=self.dtype
                                       )
     def call(self, z):
         return tf.cast(tf.keras.activations.relu(merlintf.complex_abs(z) + self.bias), z.dtype) * merlintf.complex_norm(z)
@@ -137,6 +139,7 @@ class cPReLU(tf.keras.layers.Layer):
         self.alpha_real = self.add_weight('alpha_real',
                                       shape=(input_shape[-1]),
                                       initializer=initializer,
+                                      dtype=self.dtype
                                       )
         # self.alpha_imag = self.add_weight('alpha_imag',
         #                               shape=(input_shape[-1]),
@@ -178,11 +181,13 @@ class ModPReLU(tf.keras.layers.Layer):
         self.bias = self.add_weight('bias',
                                       shape=(input_shape[-1]),
                                       initializer=initializer,
+                                      dtype=self.dtype
                                       )
         initializer_alpha = tf.keras.initializers.Constant(self.alpha_init)
         self.alpha = self.add_weight('alpha',
                                       shape=(input_shape[-1]),
                                       initializer=initializer_alpha,
+                                      dtype=self.dtype
                                       )
     def call(self, z):
         act = tf.maximum(0.0, merlintf.complex_abs(z) + self.bias) + self.alpha * tf.minimum(0.0, merlintf.complex_abs(z) + self.bias)
@@ -215,6 +220,7 @@ class Cardioid(tf.keras.layers.Layer):
                                       shape=(input_shape[-1]),
                                       initializer=initializer_bias,
                                       trainable=self.trainable,
+                                      dtype=self.dtype
                                       )
     def call(self, z):
         phase = merlintf.complex_angle(z) + self.bias
@@ -248,6 +254,7 @@ class Cardioid2(tf.keras.layers.Layer):
                                       shape=(input_shape[-1]),
                                       initializer=initializer_bias,
                                       trainable=self.trainable,
+                                      dtype=self.dtype
                                       )
     def call(self, z):
         phase = merlintf.complex_angle(z) + self.bias
@@ -285,6 +292,7 @@ class cStudentT(tf.keras.layers.Layer):
                                       shape=(input_shape[-1]),
                                       initializer=initializer_alpha,
                                       trainable=self.trainable,
+                                      dtype=self.dtype
                                       )
     def _calc(self, x):
         d = 1 + self.alpha * x**2
@@ -319,7 +327,8 @@ class cStudentT2(tf.keras.layers.Layer):
         self.alpha = self.add_weight('alpha',
                                       shape=(input_shape[-1]),
                                       initializer=initializer_alpha,
-                                      trainable=self.trainable
+                                      trainable=self.trainable,
+                                      dtype=self.dtype
                                       )
     def call(self, z):
         zre = tf.math.real(z)
@@ -362,13 +371,15 @@ class ModStudentT(tf.keras.layers.Layer):
         self.beta = self.add_weight(name='beta',
                                       shape=(input_shape[-1]),
                                       initializer=initializer_beta,
-                                      trainable=self.trainable
+                                      trainable=self.trainable,
+                                      dtype=self.dtype
                                       )
         initializer_alpha = tf.keras.initializers.Constant(self.alpha_init)
         self.alpha = self.add_weight(name='alpha',
                                       shape=(input_shape[-1]),
                                       initializer=initializer_alpha,
-                                      trainable=self.trainable
+                                      trainable=self.trainable,
+                                      dtype=self.dtype,
                                       )
     def _calc(self, x):
         d = 1 + self.alpha * x**2
@@ -400,14 +411,16 @@ class ModStudentT2(tf.keras.layers.Layer):
         self._beta = self.add_weight('beta',
                                       shape=(input_shape[-1]),
                                       initializer=initializer_beta,
-                                      trainable=self.trainable
+                                      trainable=self.trainable,
+                                      dtype=self.dtype
                                       )
 
         initializer_alpha = tf.keras.initializers.Constant(self.alpha_init)
         self._alpha = self.add_weight('alpha',
                                       shape=(input_shape[-1]),
                                       initializer=initializer_alpha,
-                                      trainable=self.trainable
+                                      trainable=self.trainable,
+                                      dtype=self.dtype
                                       )
 
     def call(self, z):
