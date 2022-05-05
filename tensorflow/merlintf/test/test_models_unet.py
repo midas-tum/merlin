@@ -8,7 +8,7 @@ from merlintf.keras.models.unet import (
     Real2chUNet
 )
 import tensorflow.keras.backend as K
-K.set_floatx('float32')
+K.set_floatx('float64')
 
 class UNetTest(unittest.TestCase):
     #TODO split unittests

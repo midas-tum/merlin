@@ -12,7 +12,7 @@ from merlintf.keras.models.foe import (
 )
 
 import tensorflow.keras.backend as K
-K.set_floatx('float32')
+K.set_floatx('float64')
 
 class PolarFoETest(unittest.TestCase):
     def test_FoE_polar_2d(self):
