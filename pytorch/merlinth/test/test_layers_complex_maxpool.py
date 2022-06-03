@@ -64,16 +64,16 @@ class TestMagnitudePool(unittest.TestCase):
         x = x.to(device=cuda1)
 
         if len(shape) == 3:  # 1d
-            op = MagnitudeMaxPool1D(pool_size, strides, padding)
+            op = MagnitudeMaxPool1D(pool_size, strides, padding, padding_mode=padding_mode)
             op_backend = torch.nn.MaxPool1d(pool_size, strides, padding)
         elif len(shape) == 4:  # 2d
-            op = MagnitudeMaxPool2D(pool_size, strides, padding)
+            op = MagnitudeMaxPool2D(pool_size, strides, padding, padding_mode=padding_mode)
             op_backend = torch.nn.MaxPool2d(pool_size, strides, padding)
         elif len(shape) == 5:  # 3d
-            op = MagnitudeMaxPool3D(pool_size, strides, padding)
+            op = MagnitudeMaxPool3D(pool_size, strides, padding, padding_mode=padding_mode)
             op_backend = torch.nn.MaxPool3d(pool_size, strides, padding)
         elif len(shape) == 6:  # 4d
-            op = MagnitudeMaxPool4D(pool_size, strides, padding)
+            op = MagnitudeMaxPool4D(pool_size, strides, padding, padding_mode=padding_mode)
 
         out = op(x)
         out_backend = op_backend(merlinth.complex_abs(x))
@@ -87,13 +87,13 @@ class TestMagnitudePool(unittest.TestCase):
         x.requires_grad_(True)
 
         if len(shape) == 3:  # 1d
-            op = MagnitudeMaxPool1D(pool_size, strides, padding, dilations_rate).cuda()
+            op = MagnitudeMaxPool1D(pool_size, strides, padding, dilations_rate, padding_mode=padding_mode).cuda()
         elif len(shape) == 4:  # 2d
-            op = MagnitudeMaxPool2D(pool_size, strides, padding, dilations_rate).cuda()
+            op = MagnitudeMaxPool2D(pool_size, strides, padding, dilations_rate, padding_mode=padding_mode).cuda()
         elif len(shape) == 5:  # 3d
-            op = MagnitudeMaxPool3D(pool_size, strides, padding, dilations_rate).cuda()
+            op = MagnitudeMaxPool3D(pool_size, strides, padding, dilations_rate, padding_mode=padding_mode).cuda()
         elif len(shape) == 6:  # 4d
-            op = MagnitudeMaxPool4D(pool_size, strides, padding, dilations_rate).cuda()
+            op = MagnitudeMaxPool4D(pool_size, strides, padding, dilations_rate, padding_mode=padding_mode).cuda()
 
         out_complex = op(x)
         out_complex.sum().backward()
