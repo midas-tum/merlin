@@ -65,13 +65,23 @@ class TestMagnitudePool(unittest.TestCase):
 
         if len(shape) == 3:  # 1d
             op = MagnitudeMaxPool1D(pool_size, strides, padding, padding_mode=padding_mode)
-            op_backend = torch.nn.MaxPool1d(pool_size, strides, padding)
+            if padding_mode.lower() == 'valid':
+                op_backend = torch.nn.MaxPool1d(pool_size, strides, padding, ceil_mode=False)
+            else:
+                op_backend = torch.nn.MaxPool1d(pool_size, strides, padding, ceil_mode=True)
         elif len(shape) == 4:  # 2d
             op = MagnitudeMaxPool2D(pool_size, strides, padding, padding_mode=padding_mode)
-            op_backend = torch.nn.MaxPool2d(pool_size, strides, padding)
+            if padding_mode.lower() == 'valid':
+                op_backend = torch.nn.MaxPool2d(pool_size, strides, padding, ceil_mode=False)
+            if padding_mode.lower() == 'same':
+                op_backend = torch.nn.MaxPool2d(pool_size, strides, padding, ceil_mode=True)
+
         elif len(shape) == 5:  # 3d
             op = MagnitudeMaxPool3D(pool_size, strides, padding, padding_mode=padding_mode)
-            op_backend = torch.nn.MaxPool3d(pool_size, strides, padding)
+            if padding_mode.lower() == 'valid':
+                op_backend = torch.nn.MaxPool3d(pool_size, strides, padding, ceil_mode=False)
+            if padding_mode.lower() == 'same':
+                op_backend = torch.nn.MaxPool3d(pool_size, strides, padding, ceil_mode=True)
         elif len(shape) == 6:  # 4d
             op = MagnitudeMaxPool4D(pool_size, strides, padding, padding_mode=padding_mode)
 
