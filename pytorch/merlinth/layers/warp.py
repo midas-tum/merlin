@@ -1,4 +1,8 @@
-import optoth.warp
+try:
+    import optoth.warp
+except:
+    print('optoth could not be imported')
+
 import torch
 
 class WarpForward(torch.nn.Module):
