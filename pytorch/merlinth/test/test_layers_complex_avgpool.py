@@ -47,16 +47,28 @@ class TestMagnitudeAvgPool(unittest.TestCase):
         x = merlinth.random_normal_complex(shape, dtype=torch.get_default_dtype())
         cuda1 = torch.device('cuda:0')
         x = x.to(device=cuda1)
-
+            
         if len(shape) == 3:  # 1d
-            op = MagnitudeAveragePool1D(pool_size, strides, padding)
-            op_backend = torch.nn.AvgPool1d(pool_size, strides, padding, padding_mode=padding_mode)
+            op = MagnitudeAveragePool1D(pool_size, strides, padding, padding_mode=padding_mode)
+            if padding_mode.lower() == 'valid':
+                op_backend = torch.nn.AvgPool1d(pool_size, strides, padding, ceil_mode=False)
+            else:
+                op_backend = torch.nn.AvgPool1d(pool_size, strides, padding, ceil_mode=True)
+                
         elif len(shape) == 4:  # 2d
-            op = MagnitudeAveragePool2D(pool_size, strides, padding)
-            op_backend = torch.nn.AvgPool2d(pool_size, strides, padding, padding_mode=padding_mode)
+            op = MagnitudeAveragePool2D(pool_size, strides, padding, padding_mode=padding_mode)
+            if padding_mode.lower() == 'valid':
+                op_backend = torch.nn.AvgPool2d(pool_size, strides, padding, ceil_mode=False)
+            if padding_mode.lower() == 'same':
+                op_backend = torch.nn.AvgPool2d(pool_size, strides, padding, ceil_mode=True)
+
         elif len(shape) == 5:  # 3d
-            op = MagnitudeAveragePool3D(pool_size, strides, padding)
-            op_backend = torch.nn.AvgPool3d(pool_size, strides, padding, padding_mode=padding_mode)
+            op = MagnitudeAveragePool3D(pool_size, strides, padding, padding_mode=padding_mode)
+            if padding_mode.lower() == 'valid':
+                op_backend = torch.nn.AvgPool3d(pool_size, strides, padding, ceil_mode=False)
+            if padding_mode.lower() == 'same':
+                op_backend = torch.nn.AvgPool3d(pool_size, strides, padding, ceil_mode=True)
+                
         elif len(shape) == 6:  # 4d
             op = MagnitudeAveragePool4D(pool_size, strides, padding, padding_mode=padding_mode)
 
