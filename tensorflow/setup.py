@@ -1,12 +1,15 @@
 from setuptools import setup
 import subprocess
 import os
-import tensorflow as tf
+try:
+    import tensorflow as tf
+except:
+    print('Tensorflow not installed')
 
 # If precompiled tensorflow isused, one has to destinguish between "tensorflow" and "tensorflow-gpu"
-tfCPU = not subprocess.call(["pip","-q","show","tensorflow"] )
-tfGPU = not subprocess.call(["pip","-q","show","tensorflow-gpu"] )
-tfNightly = not subprocess.call(["pip","-q","show","tf-nightly"] )
+tfCPU = not subprocess.call(["pip","-q","show","tensorflow"])
+tfGPU = not subprocess.call(["pip","-q","show","tensorflow-gpu"])
+tfNightly = not subprocess.call(["pip","-q","show","tf-nightly"])
 tfaddons = not subprocess.call(["pip","-q","show","tensorflow-addons"])
 
 tfstra = ""
