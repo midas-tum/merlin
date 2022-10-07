@@ -3,7 +3,10 @@ import math
 
 from merlinpy.datapipeline.sampling.VISTA.main import sampling2dt
 import matplotlib.pyplot as plt
-from merlinpy.datapipeline.sampling import VDPDGauss as VDPDGauss
+try:
+    from merlinpy.datapipeline.sampling import VDPDGauss as VDPDGauss
+except:
+    print("VDPDGauss could not be loaded. Are you using linux?")
 
 class Sampling:  # abstract parent class
     # subsampling of phase-encoding directions (y/z) and along time (t)
