@@ -6,7 +6,7 @@ try:
 except:
     print('Tensorflow not installed')
 
-# If precompiled tensorflow isused, one has to destinguish between "tensorflow" and "tensorflow-gpu"
+# If precompiled tensorflow is used, one has to destinguish between "tensorflow" and "tensorflow-gpu"
 tfCPU = not subprocess.call(["pip","-q","show","tensorflow"])
 tfGPU = not subprocess.call(["pip","-q","show","tensorflow-gpu"])
 tfNightly = not subprocess.call(["pip","-q","show","tf-nightly"])
@@ -22,13 +22,9 @@ if tfGPU:
   if not tfaddons:
     tfstra = "tensorflow-addons[tensorflow-gpu]"
 if not (tfGPU or tfCPU):
-  tfstr = ""
-  tfstra = ""
-  assert False, "\n\nunexpected error, is tensorflow or tensorflow-gpu installed with pip?\n\n"
-  exit(1)
-print ("=>required tensorflow for pip: %s\n"% tfstr)
-if not tfaddons:
-    print("=>required tensorflow-addons for pip: %s\n" % tfstra)
+  tfstr = "tensorflow-gpu"
+  if not tfaddons:
+    tfstra = "tensorflow-addons[tensorflow-gpu]"
 
 # define requirements
 if not tfaddons:
@@ -62,4 +58,16 @@ setup(
                  "merlintf.test": os.path.join('.', "merlintf/test"),
     },
     install_requires=REQUIRED_PACKAGES,
+    license='MIT',
+    url='https://github.com/midas-tum/merlin',
+    description='Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) - merlintf',
+    long_description=open('../README.md').read(),
+    long_description_content_type='text/markdown',
+    classifiers=[
+        "Programming Language :: Python :: 3 :: Only",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    ],
 )

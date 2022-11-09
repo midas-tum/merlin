@@ -2,10 +2,19 @@ from setuptools import setup
 from setuptools.dist import Distribution
 import os
 from distutils.core import setup, Extension
+import shutil
+import subprocess
 
 class BinaryDistribution(Distribution):
     def has_ext_modules(self):
         return True
+
+currdir = os.getcwd()
+compilepath = os.path.join('merlinpy', 'datapipeline', 'sampling', 'PoissonDisc')
+os.chdir(compilepath)
+subprocess.run(['python', 'setup_VDPD.py', 'build'])
+os.chdir(currdir)
+shutil.copyfile(os.path.join(compilepath, 'build', 'lib.linux-x86_64-cpython-38', os.listdir(os.path.join(compilepath, 'build', 'lib.linux-x86_64-cpython-38'))[0]), os.path.join('merlinpy', 'datapipeline', 'sampling', 'VDPDGauss.so'))
 
 setup(
     name='merlinpy',
@@ -33,7 +42,7 @@ setup(
                  "merlinpy.test": os.path.join('.', "merlinpy/test"),
     },
     include_package_data=True,
-    package_data={"merlinpy.datapipeline.sampling": ['*.so'],
+    package_data={"merlinpy.datapipeline.sampling": ['VDPDGauss.so'],
     },
     install_requires=[
         "numpy >= 1.15",
@@ -51,4 +60,17 @@ setup(
         "breathe",
     ],
     distclass=BinaryDistribution,
+    license='MIT',
+    url='https://github.com/midas-tum/merlin',
+    description='Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) - merlinpy',
+    long_description=open('../README.md').read(),
+    long_description_content_type='text/markdown',
+    classifiers=[
+        "Programming Language :: Python :: 3 :: Only",
+        "Programming Language :: C++",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    ],
 )

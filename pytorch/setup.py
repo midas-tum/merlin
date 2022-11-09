@@ -27,4 +27,16 @@ setup(
         "torch >= 1.0.0",
         "torchvision >= 0.2.1",
     ],
+    license='MIT',
+    url='https://github.com/midas-tum/merlin',
+    description='Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) - merlinth',
+    long_description=open('../README.md').read(),
+    long_description_content_type='text/markdown',
+    classifiers=[
+        "Programming Language :: Python :: 3 :: Only",
+        "License :: OSI Approved :: MIT License",
+        "Operating System :: OS Independent",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    ],
 )

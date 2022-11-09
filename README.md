@@ -1,9 +1,9 @@
 # MERLIN - Machine Enhanced Reconstruction Learning and Interpretation Networks
 <!-- markdownlint-disable -->
 <p align="center">
-  <a href="http://merlin.rtfd.io/">
-    <img src="https://github.com/midas-tum/merlin/blob/17726307ee9d850db79169afe527bb7c38395c6b/notebooks/fig/MERLIN_logo.png" width="150" alt="MERLIN logo"> 
-  </a>
+<a href="http://merlin-mr.rtfd.io/">
+<img src="https://github.com/midas-tum/merlin/blob/3486af88e5370d49074883bc8cd1816687b8915f/notebooks/fig/MERLIN_logo.png" width="150" alt="MERLIN logo"> 
+</a>
 </p>
 <!-- markdownlint-restore -->
 
@@ -26,6 +26,34 @@ If you use this code, please cite
 Major changes in structure will appear. If you experience any issues, if you have any feature requests or if you found any bugs, please let us know and raise an issue and/or pull request in github :)
 
 Please watch the `Issues` space and look for the latest updates regularly! :)
+
+## Requirements
+```
+git clone https://github.com/midas-tum/optox.git
+cd optox
+```
+follow build instructions on the github.
+
+## Installation
+### PyPi 
+```
+pip3 install merlinpy merlinth merlintf
+```
+
+### Direct way
+
+```
+git clone https://github.com/midas-tum/merlin.git
+python3 install.py
+```
+
+## Verification
+Run unittests to ensure proper working of sub-modules
+```
+python3 -m unittest discover -s merlinpy.test
+python3 -m unittest discover -s merlinth.test
+python3 -m unittest discover -s merlintf.test
+```
 
 ## Contents
 ### merlinth
@@ -79,29 +107,8 @@ merlinpy
     |-- wandb               # logging via wandb.ai
 ```
 
-## Requirements
-```
-git clone https://github.com/midas-tum/optox.git
-cd optox
-```
-follow build instructions on the github.
-
-## Installation
-```
-git clone https://github.com/midas-tum/merlin.git
-chmod 700 install.sh
-./install.sh
-```
-
-## Verification
-Run unittests to ensure proper working of sub-modules
-```
-python3 -m unittest discover -s merlinpy.test
-python3 -m unittest discover -s merlinth.test
-python3 -m unittest discover -s merlintf.test
-```
-
-## Common mistakes and best practices in writing own keras modules and layers
+## Common mistakes and best practices 
+### writing own keras modules and layers
 - `tf.keras.Model` cannot hold any trainable parameters. All trainable weights have to be defined in `tf.keras.layers.Layers`. Wrong implementation will cause weird behaviour when saving and re-loading the model weights!
 - Do *not* define weights in the `__init__` function. Weights should be only 
 created and initialized in the `def build(self, input_shape)` function of the `Layer`.
