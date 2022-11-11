@@ -41,11 +41,11 @@ jobs:
         env:
           CUDA_ROOT_DIR: /usr/local/cuda
           CUDA_SDK_ROOT_DIR: /usr/local/cuda-samples
-          GPUNUFFT_ROOT_DIR: ~/actions-runner-merlin/_work/merlin/merlin/gpuNUFFT
+          GPUNUFFT_ROOT_DIR: ~/actions-runner-merlin/_work/merlin_dev/merlin_dev/gpuNUFFT
           LDFLAGS: -L/usr/local/cuda/lib64
         run: |
           # Your ML workflow goes here      
-          cd ~/actions-runner-merlin/_work/merlin/merlin/optox
+          cd ~/actions-runner-merlin/_work/merlin_dev/merlin_dev/optox
           source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
           pip install -r requirements.txt
           mkdir build
@@ -54,7 +54,7 @@ jobs:
           make install
       - name: Build merlin 
         run: |
-          cd ~/actions-runner-merlin/_work/merlin/merlin
+          cd ~/actions-runner-merlin/_work/merlin_dev/merlin_dev
           source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
           python3 install.py
       - name: Check install
