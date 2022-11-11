@@ -13,8 +13,9 @@ jobs:
       - name: Init environment
         run: |
           # Your ML workflow goes here
-          python3 -m venv merlinenv
-          source ~/actions-runner-merlin/_work/merlin/merlin/merlinenv/bin/activate
+          cd ~/actions-runner-merlin/envs/
+          python3 -m venv merlinbuild
+          source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
           pip install --upgrade pip   # update pip to install TF>2.0
       - name: Clone gpuNUFFT
         run: |
@@ -45,7 +46,7 @@ jobs:
         run: |
           # Your ML workflow goes here      
           cd ~/actions-runner-merlin/_work/merlin/merlin/optox
-          source ~/actions-runner-merlin/_work/merlin/merlin/merlinenv/bin/activate
+          source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
           pip install -r requirements.txt
           mkdir build
           cd build
@@ -54,23 +55,23 @@ jobs:
       - name: Build merlin 
         run: |
           cd ~/actions-runner-merlin/_work/merlin/merlin
-          source ~/actions-runner-merlin/_work/merlin/merlin/merlinenv/bin/activate
-          ./install.sh
+          source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
+          python3 install.py
       - name: Check install
         run: |
-          source ~/actions-runner-merlin/_work/merlin/merlin/merlinenv/bin/activate
+          source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
           pip list
       - name: Run python unittests
         run: |
-          source ~/actions-runner-merlin/_work/merlin/merlin/merlinenv/bin/activate
+          source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
           python3 -m unittest discover -v merlinpy.test >> results_py.txt
       - name: Run pytorch unittests
         run: |
-          source ~/actions-runner-merlin/_work/merlin/merlin/merlinenv/bin/activate
+          source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
           python3 -m unittest discover -v merlinth.test >> results_th.txt
       - name: Run tensorflow unittests
         run: |
-          source ~/actions-runner-merlin/_work/merlin/merlin/merlinenv/bin/activate
+          source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
           export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/cuda/lib64
           python3 -m unittest discover -v merlintf.test >> results_tf.txt
       #- name: Publish Unit Test Results
@@ -80,4 +81,4 @@ jobs:
       #    files: test-results/**/*.xml
       - name: Cleanup
         run: |
-          rm -r ~/actions-runner-merlin/_work/merlin/merlin/merlinenv
+          rm -r ~/actions-runner-merlin/envs/merlinbuild
