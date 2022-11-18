@@ -14,13 +14,14 @@ compilepath = os.path.join('merlinpy', 'datapipeline', 'sampling', 'PoissonDisc'
 os.chdir(compilepath)
 subprocess.run(['python', 'setup_VDPD.py', 'build'])
 os.chdir(currdir)
-shutil.copyfile(os.path.join(compilepath, 'build', 'lib.linux-x86_64-cpython-38', os.listdir(os.path.join(compilepath, 'build', 'lib.linux-x86_64-cpython-38'))[0]), os.path.join('merlinpy', 'datapipeline', 'sampling', 'VDPDGauss.so'))
+libpath = [p for p in os.listdir(os.path.join(compilepath, 'build')) if p.startswith('lib')][0]
+shutil.copyfile(os.path.join(compilepath, 'build', libpath, os.listdir(os.path.join(compilepath, 'build', libpath))[0]), os.path.join('merlinpy', 'datapipeline', 'sampling', 'VDPDGauss.so'))
 
 setup(
     name='merlinpy',
-    version='0.3.0',
+    version='0.3.1',
     author="Kerstin Hammernik, Thomas Kuestner",
-    author_email="k.hammernik@imperial.ac.uk, thomas.kuestner@med.uni-tuebingen.de",
+    author_email="merlin.midastum@gmail.com",
     packages=["merlinpy",
               "merlinpy.fastmri",
               "merlinpy.wandb",

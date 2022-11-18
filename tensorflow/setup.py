@@ -38,7 +38,7 @@ setup(
     name='merlintf',
     version='0.2.3',
     author="Kerstin Hammernik, Thomas Kuestner",
-    author_email="k.hammernik@imperial.ac.uk, thomas.kuestner@med.uni-tuebingen.de",
+    author_email="merlin.midastum@gmail.com",
     packages=["merlintf",
               "merlintf.optim",
               "merlintf.keras",

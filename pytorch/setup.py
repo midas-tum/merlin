@@ -5,7 +5,7 @@ setup(
     name='merlinth',
     version='0.3.1',
     author="Kerstin Hammernik, Thomas Kuestner",
-    author_email="k.hammernik@imperial.ac.uk, thomas.kuestner@med.uni-tuebingen.de",
+    author_email="merlin.midastum@gmail.com",
     packages=["merlinth",
               "merlinth.optim",
               "merlinth.layers",

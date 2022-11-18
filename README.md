@@ -22,11 +22,6 @@ If you use this code, please cite
 }
 ```
 
-**!!! Attention !!!** This package is work in progress and still under construction.
-Major changes in structure will appear. If you experience any issues, if you have any feature requests or if you found any bugs, please let us know and raise an issue and/or pull request in github :)
-
-Please watch the `Issues` space and look for the latest updates regularly! :)
-
 ## Requirements
 ```
 git clone https://github.com/midas-tum/optox.git
@@ -56,6 +51,10 @@ python3 -m unittest discover -s merlintf.test
 ```
 
 ## Contents
+**!!! Attention !!!** This package is work in progress and still under construction.
+Major changes in structure will appear. If you experience any issues, if you have any feature requests or if you found any bugs, please let us know and raise an issue and/or pull request in github :)
+
+Please watch the `Issues` space and look for the latest updates regularly! :)
 ### merlinth
 ```
 merlinth
