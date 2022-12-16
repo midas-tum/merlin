@@ -1,15 +1,22 @@
-from setuptools import setup
+from setuptools import setup, Command
 from setuptools.dist import Distribution
 import os
+import sys
 from distutils.core import setup, Extension
 import shutil
 import subprocess
+import io
+import importlib.util
 
 class BinaryDistribution(Distribution):
     def has_ext_modules(self):
         return True
 
-currdir = os.getcwd()
+# Package meta-data
+DESCRIPTION = 'Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) - merlinpy'
+VERSION = '0.3.2'
+
+currdir = os.path.abspath(os.path.dirname(__file__))  #os.getcwd()
 compilepath = os.path.join('merlinpy', 'datapipeline', 'sampling', 'PoissonDisc')
 os.chdir(compilepath)
 subprocess.run(['python', 'setup_VDPD.py', 'build'])
@@ -17,9 +24,69 @@ os.chdir(currdir)
 libpath = [p for p in os.listdir(os.path.join(compilepath, 'build')) if p.startswith('lib')][0]
 shutil.copyfile(os.path.join(compilepath, 'build', libpath, os.listdir(os.path.join(compilepath, 'build', libpath))[0]), os.path.join('merlinpy', 'datapipeline', 'sampling', 'VDPDGauss.so'))
 
+# Readme
+try:
+    with io.open(os.path.join(os.path.dirname(currdir), 'README.md'), encoding='utf-8') as f:
+        long_description = '\n' + f.read()
+except FileNotFoundError:
+    long_description = DESCRIPTION
+
+class UploadCommand(Command):
+    """Support setup.py upload."""
+
+    description = 'Build and publish the package.'
+    user_options = []
+
+    @staticmethod
+    def status(s):
+        """Prints things in bold."""
+        print('\033[1m{0}\033[0m'.format(s))
+
+    def initialize_options(self):
+        pass
+
+    def finalize_options(self):
+        pass
+
+    def run(self):
+        try:
+            self.status('Removing previous builds…')
+            shutil.rmtree(os.path.join(currdir, 'dist'))
+            shutil.rmtree(os.path.join(currdir, 'wheelhouse'))
+        except OSError:
+            pass
+
+        self.status('Building Source and Wheel (universal) distribution…')
+        os.system('{0} setup.py sdist bdist_wheel --universal'.format(sys.executable))
+
+        self.status('Conform the Wheel to manylinux2010')
+        namemodule = 'auditwheel'
+        if namemodule in sys.modules:
+            print(f"{namemodule!r} already in sys.modules")
+        elif (spec := importlib.util.find_spec(namemodule)) is not None:
+            # If you choose to perform the actual import ...
+            module = importlib.util.module_from_spec(spec)
+            sys.modules[namemodule] = module
+            spec.loader.exec_module(module)
+            print(f"{namemodule!r} has been imported")
+        else:
+            print(f"Installing the {namemodule!r} module")
+            os.system('pip install ' + namemodule)
+        os.system('auditwheel repair dist/merlinpy-' + VERSION + '-cp38-cp38-linux_x86_64.whl')
+
+        self.status('Uploading the package to PyPI via Twine…')
+        os.system('python -m twine upload --repository testpypi wheelhouse/*')
+
+        self.status('Pushing git tags…')
+        os.chdir(os.path.dirname(currdir))
+        #os.system('git tag merlinpy-v{0}'.format(VERSION))
+        #os.system('git push --tags')
+
+        sys.exit()
+
 setup(
     name='merlinpy',
-    version='0.3.1',
+    version=VERSION,
     author="Kerstin Hammernik, Thomas Kuestner",
     author_email="merlin.midastum@gmail.com",
     packages=["merlinpy",
@@ -63,8 +130,8 @@ setup(
     distclass=BinaryDistribution,
     license='MIT',
     url='https://github.com/midas-tum/merlin',
-    description='Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) - merlinpy',
-    long_description=open('../README.md').read(),
+    description=DESCRIPTION,
+    long_description=long_description,
     long_description_content_type='text/markdown',
     classifiers=[
         "Programming Language :: Python :: 3 :: Only",
@@ -74,4 +141,7 @@ setup(
         "Topic :: Scientific/Engineering :: Artificial Intelligence",
         "Topic :: Scientific/Engineering :: Medical Science Apps.",
     ],
+    cmdclass={
+        'upload': UploadCommand,
+    }
 )
