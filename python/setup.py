@@ -61,9 +61,10 @@ class UploadCommand(Command):
 
         self.status('Conform the Wheel to manylinux2010')
         namemodule = 'auditwheel'
+        spec = importlib.util.find_spec(namemodule)
         if namemodule in sys.modules:
             print(f"{namemodule!r} already in sys.modules")
-        elif (spec := importlib.util.find_spec(namemodule)) is not None:
+        elif spec is not None:
             # If you choose to perform the actual import ...
             module = importlib.util.module_from_spec(spec)
             sys.modules[namemodule] = module
