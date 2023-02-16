@@ -82,6 +82,6 @@ class CGClass(torch.nn.Module):
         out = torch.zeros_like(x)
 
         for n in range(x.shape[0]):
-            cg_out = self.cg.apply(self.A, self.AH, self.max_iter, self.tol, lambdaa, x[n::1], y[n::1], *[c[n::1] for c in constants])
+            cg_out = self.cg.apply(self.A, self.AH, self.max_iter, self.tol, lambdaa, x[n:n+1:1], y[n:n+1:1], *[c[n:n+1:1] for c in constants])
             out[n] = cg_out[0]
         return out
