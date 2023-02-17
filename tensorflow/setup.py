@@ -42,6 +42,7 @@ else:
     REQUIRED_PACKAGES = [tfstr]
 
 # Readme
+currdir = os.path.abspath(os.path.dirname(__file__))
 try:
     with io.open(os.path.join(os.path.dirname(currdir), 'README.md'), encoding='utf-8') as f:
         long_description = '\n' + f.read()

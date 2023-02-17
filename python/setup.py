@@ -10,7 +10,7 @@ import importlib.util
 
 # Package meta-data
 DESCRIPTION = 'Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) - merlinpy'
-VERSION = '0.3.8'
+VERSION = '0.3.9'
 
 currdir = os.path.abspath(os.path.dirname(__file__))  #os.getcwd()
 compilepath = os.path.join('merlinpy', 'datapipeline', 'sampling', 'PoissonDisc')
@@ -135,7 +135,7 @@ class UploadCommand(Command):
 
         self.status('Pushing git tags…')
         os.chdir(os.path.dirname(currdir))
-        #os.system('git tag merlinpy-v{0}'.format(VERSION))
+        os.system('git tag merlinpy-v{0}'.format(VERSION))
         #os.system('git push --tags')
 
         sys.exit()
