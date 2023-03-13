@@ -26,7 +26,9 @@ If you use this code, please cite
 ```
 git clone https://github.com/midas-tum/optox.git
 cd optox
+python3 install.py
 ```
+
 follow build instructions on the github.
 
 ## Installation

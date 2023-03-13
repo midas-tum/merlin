@@ -10,7 +10,8 @@ import importlib.util
 
 # Package meta-data
 DESCRIPTION = 'Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) - merlinpy'
-VERSION = '0.3.9'
+VERSION = '0.4.0'
+DEBUG = False
 
 currdir = os.path.abspath(os.path.dirname(__file__))  #os.getcwd()
 compilepath = os.path.join('merlinpy', 'datapipeline', 'sampling', 'PoissonDisc')
@@ -131,12 +132,15 @@ class UploadCommand(Command):
         '''
 
         self.status('Uploading the package to PyPI via Twine…')
-        os.system('python -m twine upload --repository testpypi dist/*')
+        if DEBUG:
+            os.system('python -m twine upload --repository testpypi dist/*')
+        else:
+            os.system('python -m twine upload dist/*')
 
-        self.status('Pushing git tags…')
-        os.chdir(os.path.dirname(currdir))
-        os.system('git tag merlinpy-v{0}'.format(VERSION))
-        #os.system('git push --tags')
+            self.status('Pushing git tags…')
+            os.chdir(os.path.dirname(currdir))
+            os.system('git tag merlinpy-v{0}'.format(VERSION))
+            os.system('git push --tags')
 
         sys.exit()
 

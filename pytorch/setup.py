@@ -6,7 +6,8 @@ import shutil
 
 
 DESCRIPTION = 'Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) - merlinth'
-VERSION = '0.3.2'
+VERSION = '0.4.0'
+DEBUG = False
 
 # Readme
 currdir = os.path.abspath(os.path.dirname(__file__))
@@ -44,12 +45,14 @@ class UploadCommand(Command):
         os.system('{0} setup.py sdist bdist_wheel --universal'.format(sys.executable))
 
         self.status('Uploading the package to PyPI via Twine…')
-        os.system('python -m twine upload --repository testpypi dist/*')
-
-        self.status('Pushing git tags…')
-        os.chdir(os.path.dirname(currdir))
-        #os.system('git tag merlinth-v{0}'.format(VERSION))
-        #os.system('git push --tags')
+        if DEBUG:
+            os.system('python -m twine upload --repository testpypi dist/*')
+        else:
+            os.system('python -m twine upload dist/*')
+            self.status('Pushing git tags…')
+            os.chdir(os.path.dirname(currdir))
+            os.system('git tag merlinth-v{0}'.format(VERSION))
+            os.system('git push --tags')
 
         sys.exit()
 

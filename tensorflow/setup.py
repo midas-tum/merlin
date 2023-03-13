@@ -11,7 +11,8 @@ except:
 
 
 DESCRIPTION = 'Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) - merlintf'
-VERSION = '0.3.0'
+VERSION = '0.4.0'
+DEBUG = False
 
 # If precompiled tensorflow is used, one has to destinguish between "tensorflow" and "tensorflow-gpu"
 tfCPU = not subprocess.call(["pip","-q","show","tensorflow"])
@@ -77,12 +78,14 @@ class UploadCommand(Command):
         os.system('{0} setup.py sdist bdist_wheel --universal'.format(sys.executable))
 
         self.status('Uploading the package to PyPI via Twine…')
-        os.system('python -m twine upload --repository testpypi dist/*')
-
-        self.status('Pushing git tags…')
-        os.chdir(os.path.dirname(currdir))
-        #os.system('git tag merlintf-v{0}'.format(VERSION))
-        #os.system('git push --tags')
+        if DEBUG:
+            os.system('python -m twine upload --repository testpypi dist/*')
+        else:
+            os.system('python -m twine upload dist/*')
+            self.status('Pushing git tags…')
+            os.chdir(os.path.dirname(currdir))
+            os.system('git tag merlintf-v{0}'.format(VERSION))
+            os.system('git push --tags')
 
         sys.exit()
 
