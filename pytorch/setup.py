@@ -58,7 +58,7 @@ class UploadCommand(Command):
 
 
 setup(
-    name='merlinth',
+    name='merlinth-mri',
     version=VERSION,
     author="Kerstin Hammernik, Thomas Kuestner",
     author_email="merlin.midastum@gmail.com",

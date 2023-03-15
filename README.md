@@ -1,7 +1,7 @@
 # MERLIN - Machine Enhanced Reconstruction Learning and Interpretation Networks
 <!-- markdownlint-disable -->
 <p align="center">
-<a href="http://merlin-mr.rtfd.io/">
+<a href="http://merlin-mri.rtfd.io/">
 <img src="https://github.com/midas-tum/merlin/blob/3486af88e5370d49074883bc8cd1816687b8915f/notebooks/fig/MERLIN_logo.png" width="150" alt="MERLIN logo"> 
 </a>
 </p>
@@ -34,7 +34,7 @@ follow build instructions on the github.
 ## Installation
 ### PyPi 
 ```
-pip3 install merlinpy merlinth merlintf
+pip3 install merlinpy-mri merlinth-mri merlintf-mri
 ```
 In case you want to use the sampling codes (C++), please use the direct way installation below for direct compilation according to your system setup. 
 ### Direct way
