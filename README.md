@@ -34,7 +34,7 @@ follow build instructions on the github.
 ## Installation
 ### PyPi 
 ```
-pip3 install merlinpy merlinth merlintf
+pip3 install merlinpy-mri merlinth-mri merlintf-mri
 ```
 In case you want to use the sampling codes (C++), please use the direct way installation below for direct compilation according to your system setup. 
 ### Direct way
