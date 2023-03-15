@@ -90,7 +90,7 @@ class UploadCommand(Command):
         sys.exit()
 
 setup(
-    name='merlintf',
+    name='merlintf-mri',
     version=VERSION,
     author="Kerstin Hammernik, Thomas Kuestner",
     author_email="merlin.midastum@gmail.com",
