@@ -11,7 +11,7 @@ except:
 
 
 DESCRIPTION = 'Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) - merlintf'
-VERSION = '0.4.0'
+VERSION = '0.4.1'
 DEBUG = False
 
 # If precompiled tensorflow is used, one has to destinguish between "tensorflow" and "tensorflow-gpu"
@@ -22,11 +22,11 @@ tfaddons = not subprocess.call(["pip","-q","show","tensorflow-addons"])
 
 tfstra = ""
 if tfCPU:
-  tfstr = "tensorflow=={}".format(tf.version.VERSION)
+  tfstr = "tensorflow>=2.4"
   if not tfaddons:
     tfstra = "tensorflow-addons[tensorflow]"
 if tfGPU:
-  tfstr = "tensorflow-gpu=={}".format(tf.version.VERSION)
+  tfstr = "tensorflow-gpu>=2.4"
   if not tfaddons:
     tfstra = "tensorflow-addons[tensorflow-gpu]"
 if not (tfGPU or tfCPU):
