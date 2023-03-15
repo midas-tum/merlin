@@ -1,10 +1,8 @@
 import tensorflow as tf
-
 try:
     import optotf.keras.warp
 except:
     print('optotf could not be imported')
-
 
 class WarpForward(tf.keras.layers.Layer):
     def __init__(self):
