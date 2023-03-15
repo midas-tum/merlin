@@ -1,5 +1,7 @@
 import torch
 import merlinth
+import six
+import sys
 
 try:
     import optoth.pad
