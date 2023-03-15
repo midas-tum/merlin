@@ -3,8 +3,14 @@ import math
 
 from merlinpy.datapipeline.sampling.VISTA.main import sampling2dt
 import matplotlib.pyplot as plt
-from merlinpy.datapipeline.sampling import VD_CASPR_CINE as VD_CASPR_CINE
-from merlinpy.datapipeline.sampling import VDPDGauss as VDPDGauss
+try:
+    from merlinpy.datapipeline.sampling import VD_CASPR_CINE as VD_CASPR_CINE
+except:
+    print('VD_CASPR_CINE sampling code is not compiled')
+try:
+    from merlinpy.datapipeline.sampling import VDPDGauss as VDPDGauss
+except:
+    print('VDPDGauss sampling code is not compiled')
 
 class Sampling:  # abstract parent class
     # subsampling of phase-encoding directions (y/z) and along time (t)
