@@ -26,7 +26,7 @@ If you use this code, please cite
 ```
 git clone https://github.com/midas-tum/optox.git
 cd optox
-python3 install.py
+python3 install.py --python --pytorch --tensorflow --gpunufft
 ```
 
 follow build instructions on the github.
