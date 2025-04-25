@@ -11,36 +11,8 @@ except:
 
 
 DESCRIPTION = 'Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) - merlintf'
-VERSION = '0.4.1'
+VERSION = '0.4.2'
 DEBUG = False
-
-# If precompiled tensorflow is used, one has to destinguish between "tensorflow" and "tensorflow-gpu"
-tfCPU = not subprocess.call(["pip","-q","show","tensorflow"])
-tfGPU = not subprocess.call(["pip","-q","show","tensorflow-gpu"])
-tfNightly = not subprocess.call(["pip","-q","show","tf-nightly"])
-tfaddons = not subprocess.call(["pip","-q","show","tensorflow-addons"])
-
-tfstra = ""
-if tfCPU:
-  tfstr = "tensorflow>=2.4"
-  if not tfaddons:
-    tfstra = "tensorflow-addons[tensorflow]"
-if tfGPU:
-  tfstr = "tensorflow-gpu>=2.4"
-  if not tfaddons:
-    tfstra = "tensorflow-addons[tensorflow-gpu]"
-if not (tfGPU or tfCPU):
-  tfstr = "tensorflow-gpu"
-  if not tfaddons:
-    tfstra = "tensorflow-addons[tensorflow-gpu]"
-
-# define requirements
-if not tfaddons:
-    REQUIRED_PACKAGES = [tfstr, # tensorflow or tensorflow-gpu
-        tfstra,
-    ]
-else:
-    REQUIRED_PACKAGES = [tfstr]
 
 # Readme
 currdir = os.path.abspath(os.path.dirname(__file__))
@@ -112,7 +84,14 @@ setup(
                  "merlintf.keras.optimizers": os.path.join('.', "merlintf/keras/optimizers"),
                  "merlintf.test": os.path.join('.', "merlintf/test"),
     },
-    install_requires=REQUIRED_PACKAGES,
+    install_requires=[
+        "numpy >= 1.15",
+        "Cython",
+        "tensorflow>=2.4",
+        "tensorflow-addons[tensorflow]",
+        "pkgconfig",
+        "h5py",
+    ],
     license='MIT',
     url='https://github.com/midas-tum/merlin',
     description=DESCRIPTION,
