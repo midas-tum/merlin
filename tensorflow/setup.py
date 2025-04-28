@@ -11,7 +11,7 @@ except:
 
 
 DESCRIPTION = 'Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) - merlintf'
-VERSION = '0.4.2'
+VERSION = '0.4.3'
 DEBUG = False
 
 # Readme
@@ -86,7 +86,6 @@ setup(
     },
     install_requires=[
         "numpy >= 1.15",
-        "Cython",
         "tensorflow>=2.4",
         "tensorflow-addons[tensorflow]",
         "pkgconfig",

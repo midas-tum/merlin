@@ -6,7 +6,7 @@ import shutil
 
 
 DESCRIPTION = 'Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) - merlinth'
-VERSION = '0.4.0'
+VERSION = '0.4.2'
 DEBUG = False
 
 # Readme

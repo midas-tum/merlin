@@ -8,5 +8,6 @@ LICENSE file in the root directory of this source tree.
 from .ssim import *
 from .hfen import *
 from .pairwise_loss import *
+from .pairwise_loss import mae, mse, nmse, nrmse
 from .vgg_loss import *
 from .loss_utils import *
