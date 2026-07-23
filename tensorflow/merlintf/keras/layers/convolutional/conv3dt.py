@@ -144,6 +144,11 @@ class Conv3Dt(tf.keras.layers.Layer):
         self.conv_t.build(shape_t)
 
     def call(self, x):
+        if getattr(self, '_cpu_channels_first_fallback', False):
+            x = tf.transpose(x, [0, 2, 3, 4, 5, 1])
+            x_sp = self.batch_concat_conv(x, self.conv_xyz, axis=1)
+            x_t = self.batch_concat_conv(x_sp, self.conv_t, axis=self.axis_conv_t)
+            return tf.transpose(x_t, [0, 5, 1, 2, 3, 4])
         if self.data_format == 'channels_first':  # [batch, chs, time, x, y, z]
             x_sp = self.batch_concat_conv(x, self.conv_xyz, axis=2)
             x_t = self.batch_concat_conv(x_sp, self.conv_t, axis=self.axis_conv_t)
@@ -185,6 +190,12 @@ class Conv3DtTranspose(tf.keras.layers.Layer):
             self.intermediate_filters = filters
         else:
             self.intermediate_filters = intermediate_filters
+        norm_df = conv_utils.normalize_data_format(data_format)
+        if norm_df == 'channels_first' and not tf.config.list_physical_devices('GPU'):
+            self._cpu_channels_first_fallback = True
+            data_format = 'channels_last'
+        else:
+            self._cpu_channels_first_fallback = False
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.shape = shapes
         self.axis_conv_t = axis_conv_t
@@ -259,6 +270,11 @@ class Conv3DtTranspose(tf.keras.layers.Layer):
         self.conv_t.build(shape_t)
 
     def call(self, x):
+        if getattr(self, '_cpu_channels_first_fallback', False):
+            x = tf.transpose(x, [0, 2, 3, 4, 5, 1])
+            x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
+            x_sp = self.batch_concat_conv(x_t, self.conv_xyz, axis=1)
+            return tf.transpose(x_sp, [0, 5, 1, 2, 3, 4])
         if self.data_format == 'channels_first':  # [batch, chs, time, x, y, z]
             x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
             x_sp = self.batch_concat_conv(x_t, self.conv_xyz, axis=2)

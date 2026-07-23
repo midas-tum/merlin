@@ -898,7 +898,7 @@ class ComplexConvRealWeight2DTranspose(ComplexConvRealWeight2D):
     else:
       output_shape = (batch_size, out_height, out_width, self.filters)
 
-    output_shape_tensor = array_ops.stack(output_shape)
+    output_shape_tensor = tf.stack(output_shape)
     outputs = complex_nn_ops.complex_conv2d_real_weight_transpose(
         inputs,
         self.kernel,
@@ -1201,7 +1201,7 @@ class ComplexConvRealWeight3DTranspose(ComplexConvRealWeight3D):
                       self.filters)
       strides = (1, stride_d, stride_h, stride_w, 1)
 
-    output_shape_tensor = array_ops.stack(output_shape)
+    output_shape_tensor = tf.stack(output_shape)
     outputs = complex_nn_ops.complex_conv3d_real_weight_transpose(
         inputs,
         self.kernel,

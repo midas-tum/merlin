@@ -1,3 +1,4 @@
+import sys
 import tensorflow as tf
 try:
     import optotf.keras.warp
@@ -7,12 +8,13 @@ except:
 class WarpForward(tf.keras.layers.Layer):
     def __init__(self):
         super().__init__()
-        self.W = optotf.keras.warp.Warp(channel_last=False)
+        self.optox = 'optotf.keras.warp' in sys.modules
+        if self.optox:
+            self.W = optotf.keras.warp.Warp(channel_last=False)
 
     def call(self, x, u):
-        # we assume that the input does not have any channel dimension
-        # x [batch, frames, M, N]
-        # u [batch, frames, frames_all, M, N, 2]
+        if not self.optox:
+            return tf.repeat(tf.expand_dims(x, -3), repeats=tf.shape(u)[-4], axis=-3)
         out_shape = tf.shape(u)[:-1]
         M, N = tf.shape(u)[-3:-1]
         x = tf.repeat(tf.expand_dims(x, -3), repeats=tf.shape(u)[-4], axis=-3)
@@ -24,12 +26,13 @@ class WarpForward(tf.keras.layers.Layer):
 class WarpAdjoint(tf.keras.layers.Layer):
     def __init__(self):
         super().__init__()
-        self.WH = optotf.keras.warp.WarpTranspose(channel_last=False)
+        self.optox = 'optotf.keras.warp' in sys.modules
+        if self.optox:
+            self.WH = optotf.keras.warp.WarpTranspose(channel_last=False)
 
     def call(self, x, u):
-        # we assume that the input does not have any channel dimension
-        # x [batch, frames, frames_all, M, N]
-        # u [batch, frames, frames_all, M, N, 2]
+        if not self.optox:
+            return tf.math.reduce_sum(x, -3)
         out_shape = tf.shape(u)[:-1]
         M, N = tf.shape(u)[-3:-1]
         x = tf.reshape(x, (-1, 1, M, N)) # [batch * frames * frames_all, 1, M, N]

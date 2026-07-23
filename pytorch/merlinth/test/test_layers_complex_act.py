@@ -135,6 +135,10 @@ from merlinth.layers.complex_act import *
 #         self._test_gradient((2,5,10,2))
 
 class TestActivation(unittest.TestCase):   
+    def setUp(self):
+        np.random.seed(42)
+        torch.manual_seed(42)
+
     def _test(self, act, args, shape):
         model = act(**args)
         x = merlinth.random_normal_complex(shape)
@@ -169,7 +173,7 @@ class TestActivation2(unittest.TestCase):
         x.requires_grad_(True)
         fx, dfx, dfxH = model(x)
         loss = 0.5 * torch.sum(torch.conj(fx) * fx)
-        loss.backward()
+        loss.real.backward()
         grad_x = x.grad
         x_autograd = grad_x.numpy()
 

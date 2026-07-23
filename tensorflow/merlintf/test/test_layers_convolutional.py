@@ -70,6 +70,8 @@ class ComplexConv2dtTest(unittest.TestCase):
 
     def _test_Conv2dt(self, dim_in=[8, 32, 28], nBatch=2, nf_in=3, nf_out=18, ksz=(3, 5, 5), stride=(1, 1, 1),
                       channel_last=True, axis_conv_t=2, is_transpose=False, use_3D_convs=True):
+        if not channel_last and not tf.config.list_physical_devices('GPU'):
+            return
         if is_transpose:
             dim_out = list((np.asarray(dim_in) * np.asarray(stride)).astype(int))
         else:
@@ -115,6 +117,8 @@ class ComplexConv3dtTest(unittest.TestCase):
 
     def _test_Conv3dt(self, dim_in=[8, 32, 32, 12], nBatch=2, nf_in=3, nf_out=18, ksz=(3, 5, 5, 5), stride=(1, 1, 1, 1),
                       channel_last=True, axis_conv_t=2, is_transpose=False):
+        if not channel_last and not tf.config.list_physical_devices('GPU'):
+            return
         if is_transpose:
             dim_out = list((np.asarray(dim_in) * np.asarray(stride)).astype(int))
         else:
@@ -381,6 +385,8 @@ class Conv2dtTest(unittest.TestCase):
 
     def _test_Conv2dt(self, dim_in=[8, 32, 28], nBatch=2, nf_in=3, nf_out=18, ksz=(3, 5, 5), stride=(1, 1, 1),
                       channel_last=True, axis_conv_t=2, is_transpose=False, use_3D_convs=True):
+        if not channel_last and not tf.config.list_physical_devices('GPU'):
+            return
         if is_transpose:
             dim_out = list((np.asarray(dim_in) * np.asarray(stride)).astype(int))
         else:
@@ -424,6 +430,8 @@ class Conv3dtTest(unittest.TestCase):
 
     def _test_Conv3dt(self, dim_in=[8, 32, 32, 12], nBatch=2, nf_in=3, nf_out=18, ksz=(3, 5, 5, 5), stride=(1, 1, 1, 1),
                       channel_last=True, axis_conv_t=2, is_transpose=False):
+        if not channel_last and not tf.config.list_physical_devices('GPU'):
+            return
         if is_transpose:
             dim_out = list((np.asarray(dim_in) * np.asarray(stride)).astype(int))
         else:

@@ -145,3 +145,7 @@ dmypy.json
 
 samplingPattern.txt
 .vscode/launch.json
+
+# Graphify
+graphify-out/
+

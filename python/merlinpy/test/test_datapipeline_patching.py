@@ -3,6 +3,9 @@ import numpy as np
 from merlinpy.datapipeline.patching import patching, unpatching
 
 class PatchingTest(unittest.TestCase):
+    def setUp(self):
+        np.random.seed(42)
+
     def test_patching2D(self):
         imgin = np.ones((120,120,30))
         patches2D = patching(imgin,[64, 32], 0.5)

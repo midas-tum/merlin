@@ -93,7 +93,7 @@ class TestMagnitudeAvgPool(unittest.TestCase):
             op = MagnitudeAveragePool4D(pool_size, strides, padding, dilations_rate, padding_mode=padding_mode).cuda()
 
         out_complex = op(x)
-        out_complex.sum().backward()
+        out_complex.sum().real.backward()
 
         # (N, T, H, W, D, C)
         expected_shape = [shape[0]]

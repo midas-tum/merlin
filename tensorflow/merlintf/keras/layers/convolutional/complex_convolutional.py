@@ -1012,7 +1012,7 @@ class ComplexConv1DTranspose(ComplexConv1D):
       output_shape = (batch_size, out_length, self.filters)
     data_format = conv_utils.convert_data_format(self.data_format, ndim=3)
 
-    output_shape_tensor = array_ops.stack(output_shape)
+    output_shape_tensor = tf.stack(output_shape)
     outputs = complex_nn_ops.complex_conv1d_transpose(
         inputs,
         self.kernel,
@@ -1296,7 +1296,7 @@ class ComplexConv2DTranspose(ComplexConv2D):
     else:
       output_shape = (batch_size, out_height, out_width, self.filters)
 
-    output_shape_tensor = array_ops.stack(output_shape)
+    output_shape_tensor = tf.stack(output_shape)
     outputs = complex_nn_ops.complex_conv2d_transpose(
         inputs,
         self.kernel,
@@ -1595,7 +1595,7 @@ class ComplexConv3DTranspose(ComplexConv3D):
                       self.filters)
       strides = (1, stride_d, stride_h, stride_w, 1)
 
-    output_shape_tensor = array_ops.stack(output_shape)
+    output_shape_tensor = tf.stack(output_shape)
     outputs = complex_nn_ops.complex_conv3d_transpose(
         inputs,
         self.kernel,

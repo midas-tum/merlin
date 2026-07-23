@@ -11,7 +11,7 @@ except:
 
 
 DESCRIPTION = 'Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) - merlintf'
-VERSION = '0.4.2'
+VERSION = '1.0.0'
 DEBUG = False
 
 # Readme

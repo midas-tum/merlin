@@ -126,7 +126,7 @@ class PadConv1dTest(unittest.TestCase):
 
         Kx = model(x)
         loss = 0.5 * torch.sum(Kx ** 2)
-        loss.backward()
+        loss.real.backward()
         grad_x = x.grad
         x_autograd = grad_x.cpu().numpy()
 
@@ -166,7 +166,7 @@ class PadConv2dTest(unittest.TestCase):
         x.requires_grad_(True)
         Kx = model(x)
         loss = 0.5 * torch.sum(Kx ** 2)
-        loss.backward()
+        loss.real.backward()
         grad_x = x.grad
         x_autograd = grad_x.detach().cpu().numpy()
 
@@ -236,7 +236,7 @@ class PadConv3dTest(unittest.TestCase):
 
         Kx = model(x)
         loss = 0.5 * torch.sum(Kx ** 2)
-        loss.backward()
+        loss.real.backward()
         grad_x = x.grad
         x_autograd = grad_x.detach().cpu().numpy()
 
@@ -304,7 +304,7 @@ class ComplexPadConv1dTest(unittest.TestCase):
         x.requires_grad_(True)
         Kx = model(x)
         loss = 0.5 * torch.sum(torch.conj(Kx) * Kx)
-        loss.backward()
+        loss.real.backward()
         grad_x = x.grad
         x_autograd = grad_x.cpu().numpy()
 
@@ -348,7 +348,7 @@ class ComplexPadConv2dTest(unittest.TestCase):
         x.requires_grad_(True)
         Kx = model(x)
         loss = 0.5 * torch.sum(torch.conj(Kx) * Kx)
-        loss.backward()
+        loss.real.backward()
         grad_x = x.grad
         x_autograd = grad_x.detach().cpu().numpy()
 
@@ -421,7 +421,7 @@ class ComplexPadConv3dTest(unittest.TestCase):
 
         Kx = model(x)
         loss = 0.5 * torch.sum(torch.conj(Kx) * Kx)
-        loss.backward()
+        loss.real.backward()
         grad_x = x.grad
         x_autograd = grad_x.detach().cpu().numpy()
 

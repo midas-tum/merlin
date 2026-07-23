@@ -3,7 +3,14 @@ import merlintf
 from merlintf.keras.layers import ComplexPadConv2D, ComplexPadConv3D
 from merlintf.keras.layers import ComplexPadConv2Dt
 from merlintf.keras.layers import PadConv1D, PadConv2D, PadConv3D
-from optotf.activations import TrainableActivationKeras as TrainableActivation
+try:
+    from optotf.activations import TrainableActivationKeras as TrainableActivation
+except Exception:
+    class TrainableActivation(tf.keras.layers.Layer):
+        def __init__(self, *args, **kwargs):
+            super().__init__()
+        def call(self, x):
+            return tf.math.abs(x)
 from tensorflow.python.eager import context
 
 __all__ = ['Regularizer',

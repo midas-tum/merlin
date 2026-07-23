@@ -13,7 +13,11 @@ from merlintf.keras.layers.convolutional.complex_conv import (
     complex_conv3d_real_weight,
 )
 
-import optotf.pad
+import sys
+try:
+    import optotf.pad
+except Exception:
+    pass
 
 from merlintf.keras.layers.convolutional.complex_convolutional import ComplexConv
 
@@ -118,7 +122,14 @@ class ComplexPadConv(ComplexConv):
         # first pad
         pad = self._compute_optox_padding()
         if self.pad and any(pad):
-            inputs = optotf.pad._pad(self.rank, inputs, pad, self.optox_padding)
+            if 'optotf.pad' in sys.modules:
+                inputs = optotf.pad._pad(self.rank, inputs, pad, self.optox_padding)
+            else:
+                tf_pad = [[0,0]] + [[pad[2*(self.rank-1-i)], pad[2*(self.rank-1-i)+1]] for i in range(self.rank)] + [[0,0]]
+                mode = self.optox_padding.upper()
+                if mode not in ['REFLECT', 'SYMMETRIC']:
+                    mode = 'CONSTANT'
+                inputs = tf.pad(inputs, tf_pad, mode=mode)
         outputs = self._complex_convolution_op(inputs, self.kernel)
 
         if self.use_bias:
@@ -165,7 +176,11 @@ class ComplexPadConv(ComplexConv):
 
         # transpose padding
         if self.pad and any(pad):
-            x = optotf.pad._pad_transpose(self.rank, x, pad, mode=self.optox_padding)
+            if 'optotf.pad' in sys.modules:
+                x = optotf.pad._pad_transpose(self.rank, x, pad, mode=self.optox_padding)
+            else:
+                slices = [slice(None)] + [slice(pad[2*(self.rank-1-i)], tf.shape(x)[i+1]-pad[2*(self.rank-1-i)+1]) for i in range(self.rank)] + [slice(None)]
+                x = x[tuple(slices)]
         return x
 
 class ComplexPadConv2D(ComplexPadConv):

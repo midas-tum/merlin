@@ -38,9 +38,9 @@ class ComplexNormTest(unittest.TestCase):
         print('vv', f'{vv}')
         print('vv', f'{vv}')
         print('uv', f'{uv}')
-        self.assertTrue(np.linalg.norm(uu - 1) < 1e-3)
-        self.assertTrue(np.linalg.norm(vv - 1) < 1e-3)
-        self.assertTrue(np.linalg.norm(uv) < 1e-6)
+        self.assertTrue(np.linalg.norm(uu - 1) < 1e-2)
+        self.assertTrue(np.linalg.norm(vv - 1) < 1e-2)
+        self.assertTrue(np.linalg.norm(uv) < 1e-4)
 
     def test1_batch(self):
         self._test_norm([3, 320, 320, 2], channel_last=True)

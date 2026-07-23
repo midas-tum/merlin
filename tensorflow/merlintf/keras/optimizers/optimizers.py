@@ -21,7 +21,16 @@ from __future__ import print_function
 import six
 from six.moves import zip  # pylint: disable=redefined-builtin
 
-from tensorflow.python.distribute import distribution_strategy_context
+try:
+    from tensorflow.python.distribute import distribution_strategy_context
+except ImportError:
+    try:
+        from tensorflow.python.distribute import distribution_strategy_context_fallback as distribution_strategy_context
+    except ImportError:
+        try:
+            from tensorflow.python.distribute import distribute_lib as distribution_strategy_context
+        except ImportError:
+            distribution_strategy_context = None
 from tensorflow.python.framework import ops
 from tensorflow.python.keras import backend as K
 from tensorflow.python.keras.optimizer_v2 import adadelta as adadelta_v2
@@ -40,7 +49,13 @@ from tensorflow.python.ops import math_ops
 from tensorflow.python.ops import state_ops
 from tensorflow.python.training import optimizer as tf_optimizer_module
 from tensorflow.python.training import training_util
-from tensorflow.python.training.tracking import base as trackable
+try:
+    from tensorflow.python.training.tracking import base as trackable
+except ImportError:
+    try:
+        from tensorflow.python.trackable import base as trackable
+    except ImportError:
+        trackable = None
 from tensorflow.python.util.tf_export import keras_export
 from tensorflow.python.keras.optimizers import serialize
 from tensorflow.python.keras.optimizers import get

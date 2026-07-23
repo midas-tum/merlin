@@ -187,8 +187,8 @@ class UNet(tf.keras.Model):
         pad = []
         optotf_pad = []
         for idx in range(n_dim):
-            pad_top = paddings[idx].astype(np.int) // 2
-            pad_bottom = paddings[idx].astype(np.int) - pad_top
+            pad_top = paddings[idx].astype(int) // 2
+            pad_bottom = paddings[idx].astype(int) - pad_top
             optotf_pad.extend([pad_top, pad_bottom])
             pad.append((pad_top, pad_bottom))
         return tuple(pad), optotf_pad[::-1]
