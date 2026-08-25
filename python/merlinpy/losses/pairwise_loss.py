@@ -20,7 +20,13 @@ def psnr(gt, pred):
 
 def ssim(gt, pred, win_size=None, multichannel=True, use_sample_covariance=True, gaussian_weights=False):
     """ Compute Structural Similarity Index Metric (SSIM). """
-    return structural_similarity(
-        gt.transpose(1, 2, 0), pred.transpose(1, 2, 0), win_size=win_size, multichannel=multichannel,
-        data_range=gt.max(), use_sample_covariance=use_sample_covariance, gaussian_weights=gaussian_weights
-    )
+    try:
+        return structural_similarity(
+            gt.transpose(1, 2, 0), pred.transpose(1, 2, 0), win_size=win_size, channel_axis=-1,
+            data_range=gt.max(), use_sample_covariance=use_sample_covariance, gaussian_weights=gaussian_weights
+        )
+    except TypeError:
+        return structural_similarity(
+            gt.transpose(1, 2, 0), pred.transpose(1, 2, 0), win_size=win_size, multichannel=multichannel,
+            data_range=gt.max(), use_sample_covariance=use_sample_covariance, gaussian_weights=gaussian_weights
+        )

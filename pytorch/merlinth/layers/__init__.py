@@ -21,8 +21,26 @@ try:
     from merlinth.layers.convolutional.complex_padconv import ComplexPadConvScaleTranspose3d
     from merlinth.layers.convolutional.complex_padconv import ComplexPadConvRealWeight3d
     from merlinth.layers.convolutional.complex_padconv import ComplexPadConv2Dt
-except:
+except Exception:
     print('padconv layers could not be loaded. Optox might not be installed.')
+    PadConv1d = None
+    ComplexPadConv1d = None
+    ComplexPadConvRealWeight1d = None
+    PadConv2d = None
+    PadConvScale2d = None
+    PadConvScaleTranspose2d = None
+    ComplexPadConv2d = None
+    ComplexPadConvScale2d = None
+    ComplexPadConvScaleTranspose2d = None
+    ComplexPadConvRealWeight2d = None
+    PadConv3d = None
+    PadConvScale3d = None
+    PadConvScaleTranspose3d = None
+    ComplexPadConv3d = None
+    ComplexPadConvScale3d = None
+    ComplexPadConvScaleTranspose3d = None
+    ComplexPadConvRealWeight3d = None
+    ComplexPadConv2Dt = None
 
 try:
     from merlinth.layers.complex_maxpool import MagnitudeMaxPooling, MagnitudeMaxPool1D, \

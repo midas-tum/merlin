@@ -61,7 +61,7 @@ class TestComplexInstanceNorm(unittest.TestCase):
         th_loss = compute_loss(th_a)
 
         # backpropagate the gradient
-        th_loss.backward()
+        th_loss.real.backward()
         grad_a = th_a.grad.cpu().numpy()
 
         # numerical gradient w.r.t. the input

@@ -66,21 +66,20 @@ class TestMagnitudePool(unittest.TestCase):
         if len(shape) == 3:  # 1d
             op = MagnitudeMaxPool1D(pool_size, strides, padding, padding_mode=padding_mode)
             if padding_mode.lower() == 'valid':
-                op_backend = torch.nn.MaxPool1d(pool_size, strides, padding, ceil_mode=False)
+                op_backend = torch.nn.MaxPool1d(pool_size, strides, padding, ceil_mode=True)
             else:
                 op_backend = torch.nn.MaxPool1d(pool_size, strides, padding, ceil_mode=True)
         elif len(shape) == 4:  # 2d
             op = MagnitudeMaxPool2D(pool_size, strides, padding, padding_mode=padding_mode)
             if padding_mode.lower() == 'valid':
-                op_backend = torch.nn.MaxPool2d(pool_size, strides, padding, ceil_mode=False)
-            if padding_mode.lower() == 'same':
                 op_backend = torch.nn.MaxPool2d(pool_size, strides, padding, ceil_mode=True)
-
+            else:
+                op_backend = torch.nn.MaxPool2d(pool_size, strides, padding, ceil_mode=True)
         elif len(shape) == 5:  # 3d
             op = MagnitudeMaxPool3D(pool_size, strides, padding, padding_mode=padding_mode)
             if padding_mode.lower() == 'valid':
-                op_backend = torch.nn.MaxPool3d(pool_size, strides, padding, ceil_mode=False)
-            if padding_mode.lower() == 'same':
+                op_backend = torch.nn.MaxPool3d(pool_size, strides, padding, ceil_mode=True)
+            else:
                 op_backend = torch.nn.MaxPool3d(pool_size, strides, padding, ceil_mode=True)
         elif len(shape) == 6:  # 4d
             op = MagnitudeMaxPool4D(pool_size, strides, padding, padding_mode=padding_mode)
@@ -106,7 +105,7 @@ class TestMagnitudePool(unittest.TestCase):
             op = MagnitudeMaxPool4D(pool_size, strides, padding, dilations_rate, padding_mode=padding_mode).cuda()
 
         out_complex = op(x)
-        out_complex.sum().backward()
+        out_complex.sum().real.backward()
 
         # (N, T, H, W, D, C)
         expected_shape = [shape[0]]
@@ -116,7 +115,7 @@ class TestMagnitudePool(unittest.TestCase):
         expected_shape.append(shape[-1])
 
         self.assertTrue(np.abs(np.array(expected_shape) - np.array(out_complex.shape)).all() < 1e-8)
-        self.assertTrue(np.abs(np.array(expected_shape) - np.array(x.grad.shape)).all() < 1e-8)
+        self.assertTrue(np.abs(np.array(x.shape) - np.array(x.grad.shape)).all() < 1e-8)
 
 if __name__ == "__main__":
     unittest.main()

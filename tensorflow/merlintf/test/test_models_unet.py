@@ -96,7 +96,7 @@ class UNetTest(unittest.TestCase):
         self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), upsampling='us', network='complex', complex_input=False)
         self._test_UNet('3D', 32, (3, 3, 3), (2, 2, 2), upsampling='us', network='complex', complex_input=True)
 
-    @unittest.expectedFailure
+    #@unittest.expectedFailure
     def test_UNet_2chreal_3dt(self):
         self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), network='2chreal', complex_input=False)
         self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), network='2chreal', complex_input=True)
@@ -116,7 +116,7 @@ class UNetTest(unittest.TestCase):
         self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), upsampling='us', network='2chreal', complex_input=False)
         self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), upsampling='us', network='2chreal', complex_input=True)
 
-    @unittest.expectedFailure
+    #@unittest.expectedFailure
     def test_UNet_complex_3dt(self):
         self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), network='complex', complex_input=False)
         self._test_UNet('3Dt', 32, (2, 3, 3, 3), (1, 2, 2, 2), network='complex', complex_input=True)

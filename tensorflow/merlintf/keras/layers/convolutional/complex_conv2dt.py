@@ -183,6 +183,14 @@ class ComplexConv2Dt(tf.keras.layers.Layer):
         self.conv_t.build(shape_t)
 
     def call(self, x):
+        if getattr(self, '_cpu_channels_first_fallback', False):
+            x = tf.transpose(x, [0, 2, 3, 4, 1])
+            if self.use_3D_convs:
+                out = self.conv_t(self.conv_xy(x))
+            else:
+                x_sp = self.batch_concat_conv(x, self.conv_xy, axis=1)
+                out = self.batch_concat_conv(x_sp, self.conv_t, axis=self.axis_conv_t)
+            return tf.transpose(out, [0, 4, 1, 2, 3])
         if self.use_3D_convs:
             return self.conv_t(self.conv_xy(x))
         else:
@@ -341,6 +349,14 @@ class ComplexConv2DtTranspose(tf.keras.layers.Layer):
         self.conv_t.build(shape_t)
 
     def call(self, x):
+        if getattr(self, '_cpu_channels_first_fallback', False):
+            x = tf.transpose(x, [0, 2, 3, 4, 1])
+            if self.use_3D_convs:
+                out = self.conv_xy(self.conv_t(x))
+            else:
+                x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
+                out = self.batch_concat_conv(x_t, self.conv_xy, axis=1)
+            return tf.transpose(out, [0, 4, 1, 2, 3])
         if self.use_3D_convs:
             return self.conv_xy(self.conv_t(x))
         else:

@@ -1,84 +1,172 @@
-name: merlin-build
+name: merlin-ci
+
 on:
-  pull_request:
+  push:
     branches:
+      - main
       - master
+      - Improvements
+      - improvements
+    tags:
+      - 'v*'
+  pull_request:
+  workflow_dispatch:
+  release:
+    types: [published, created]
+
 jobs:
   run:
-    runs-on: [self-hosted,Linux]
+    runs-on: [self-hosted, Linux]
+    permissions:
+      contents: write
+
+    env:
+      PYTHONUNBUFFERED: "1"
+      CUDA_DIR: /usr/local/cuda-11.1
+      CUDA_HOME: /usr/local/cuda-11.1
+      CUDA_ROOT_DIR: /usr/local/cuda-11.1
+      LDFLAGS: -L/usr/local/cuda-11.1/lib64
+      XLA_FLAGS: --xla_gpu_cuda_data_dir=/usr/local/cuda-11.1
+      LD_LIBRARY_PATH: /usr/local/cuda-11.1/lib64:/usr/local/cuda/lib64:${LD_LIBRARY_PATH}
+
     steps:
       - name: Checkout
-        uses: actions/checkout@v2
-        
+        uses: actions/checkout@v4
+
+      - name: Configure Host Compiler
+        run: |
+          for v in 10 9 8; do
+            if command -v gcc-$v >/dev/null 2>&1; then
+              echo "CC=gcc-$v" >> $GITHUB_ENV
+              echo "CXX=g++-$v" >> $GITHUB_ENV
+              echo "Found and configured compiler: gcc-$v"
+              exit 0
+            fi
+          done
+          echo "No compatible gcc-10/9/8 found. Defaulting to system compiler."
+
+      - name: Debug GPU & CUDA Setup
+        run: |
+          nvidia-smi || echo "nvidia-smi not available"
+          nvcc --version || echo "nvcc not found"
+
       - name: Init environment
         run: |
-          # Your ML workflow goes here
+          mkdir -p ~/actions-runner-merlin/envs/
           cd ~/actions-runner-merlin/envs/
-          python3 -m venv merlinbuild
+          rm -rf merlinbuild
+          python3 -m pip install --quiet uv || true
+          uv venv merlinbuild --python 3.9 || python3.9 -m venv merlinbuild || uv venv merlinbuild --python python3 || python3 -m venv merlinbuild
           source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
-          pip install --upgrade pip   # update pip to install TF>2.0
-      - name: Clone gpuNUFFT
+          uv pip install uv setuptools wheel numpy pyyaml pandas tqdm scipy scikit-image matplotlib joblib xmltodict h5py cython pkgconfig nvidia-cuda-nvcc-cu12 nvidia-cudnn-cu11 nvidia-cublas-cu11 || pip install uv setuptools wheel numpy pyyaml pandas tqdm scipy scikit-image matplotlib joblib xmltodict h5py cython pkgconfig nvidia-cuda-nvcc-cu12 nvidia-cudnn-cu11 nvidia-cublas-cu11
+
+      - name: Install optox prebuilt wheel
         run: |
-           git clone --branch cuda_streams https://github.com/khammernik/gpuNUFFT.git
-      - name: Build gpuNUFFT
-        env:
-          CUDA_ROOT_DIR: /usr/local/cuda
-          CUDA_SDK_ROOT_DIR: /usr/local/cuda-samples
-          LDFLAGS: -L/usr/local/cuda/lib64
-        run: |
-           cd gpuNUFFT/CUDA
-           mkdir -p build
-           cd build
-           cmake .. -DGEN_MEX_FILES=OFF
-           make
-      - name: Clone optox
-        uses: actions/checkout@v2
-        with:
-          repository: midas-tum/optox_dev
-          token: ${{ secrets.OPTOX_TOKEN }}
-          path: optox
-      - name: Build optox
-        env:
-          CUDA_ROOT_DIR: /usr/local/cuda
-          CUDA_SDK_ROOT_DIR: /usr/local/cuda-samples
-          GPUNUFFT_ROOT_DIR: ~/actions-runner-merlin/_work/merlin_dev/merlin_dev/gpuNUFFT
-          LDFLAGS: -L/usr/local/cuda/lib64
-        run: |
-          # Your ML workflow goes here      
-          cd ~/actions-runner-merlin/_work/merlin_dev/merlin_dev/optox
           source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
-          pip install -r requirements.txt
-          mkdir build
-          cd build
-          cmake .. -DWITH_PYTHON=ON -DWITH_PYTORCH=ON -DWITH_TENSORFLOW=ON -DWITH_GPUNUFFT=ON -DCUDA_SDK_ROOT_DIR=/usr/local/cuda-samples -DCUDA_ROOT=/usr/local/cuda/
-          make install
+          uv pip install ${{ github.workspace }}/optox-binary-wheel/optox-0.0.1-py3-none-any.whl || pip install ${{ github.workspace }}/optox-binary-wheel/optox-0.0.1-py3-none-any.whl
+          python3 -c "
+          import os, shutil, sys
+          sp_dirs = [p for p in sys.path if 'site-packages' in p and os.path.exists(p)]
+          py_ver = f'{sys.version_info.major}{sys.version_info.minor}'
+          for sp in sp_dirs:
+              ext_dir = os.path.join(sp, '_ext')
+              if os.path.exists(ext_dir):
+                  for f in os.listdir(ext_dir):
+                      if f.endswith('.so'):
+                          src = os.path.join(ext_dir, f)
+                          base_dst = os.path.join(ext_dir, f.split('.')[0] + '.so')
+                          if src != base_dst:
+                              shutil.copyfile(src, base_dst)
+                          for ver in ['38', '39', '310', '311', '312', '313', py_ver]:
+                              ver_dst = os.path.join(ext_dir, f.replace('-39-', f'-{ver}-'))
+                              if src != ver_dst:
+                                  shutil.copyfile(src, ver_dst)
+          "
+
       - name: Build merlin 
         run: |
-          cd ~/actions-runner-merlin/_work/merlin_dev/merlin_dev
+          cd ${{ github.workspace }}
           source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
           python3 install.py
+
       - name: Check install
         run: |
           source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
-          pip list
+          uv pip list || pip list
+
       - name: Run python unittests
         run: |
           source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
-          python3 -m unittest discover -v merlinpy.test >> results_py.txt
+          export PYTHONPATH=${{ github.workspace }}/python:${{ github.workspace }}/pytorch:${{ github.workspace }}/tensorflow:${PYTHONPATH}
+          cd ${{ github.workspace }}/python
+          python3 -m unittest discover -v -t . -s merlinpy/test
+
       - name: Run pytorch unittests
         run: |
           source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
-          python3 -m unittest discover -v merlinth.test >> results_th.txt
+          export PYTHONPATH=${{ github.workspace }}/python:${{ github.workspace }}/pytorch:${{ github.workspace }}/tensorflow:${PYTHONPATH}
+          cd ${{ github.workspace }}/pytorch
+          python3 -m unittest discover -v -t . -s merlinth/test
+
       - name: Run tensorflow unittests
         run: |
           source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
-          export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/cuda/lib64
-          python3 -m unittest discover -v merlintf.test >> results_tf.txt
-      #- name: Publish Unit Test Results
-      #  uses: EnricoMi/publish-unit-test-result-action@v1
-      #  if: always()
-      #  with:
-      #    files: test-results/**/*.xml
-      - name: Cleanup
+          export CUDA_VISIBLE_DEVICES=""
+          export PYTHONPATH=${{ github.workspace }}/python:${{ github.workspace }}/pytorch:${{ github.workspace }}/tensorflow:${PYTHONPATH}
+          cd ${{ github.workspace }}/tensorflow
+          python3 -m unittest discover -v -t . -s merlintf/test
+
+      - name: Build unified wheel package
         run: |
-          rm -r ~/actions-runner-merlin/envs/merlinbuild
+          source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
+          mkdir -p ${{ github.workspace }}/dist
+
+          # Build single combined wheel (merlin-1.0.0-py3-none-any.whl)
+          cd ${{ github.workspace }}
+          python3 setup.py sampling bdist_wheel --python-tag py3 --plat-name any --dist-dir ${{ github.workspace }}/dist
+          
+          # Rename/verify wheel filename to merlin-1.0.0-py3-none-any.whl
+          cd ${{ github.workspace }}/dist
+          for f in *.whl; do
+            if [ "$f" != "merlin-1.0.0-py3-none-any.whl" ]; then
+              mv "$f" merlin-1.0.0-py3-none-any.whl
+            fi
+          done
+
+      - name: Verify build wheel
+        run: |
+          source ~/actions-runner-merlin/envs/merlinbuild/bin/activate
+          cd ${{ github.workspace }}
+          ls -lh dist/
+          uv pip install dist/*.whl || pip install dist/*.whl
+          PYTHONPATH="" python3 -c "
+          import merlinpy
+          import merlinth
+          import merlintf
+          import optoth
+          import optotf
+          from merlinpy.datapipeline.sampling.sampling import VDPDGauss
+          assert VDPDGauss is not None, 'VDPDGauss sampling code is not compiled'
+          print('Successfully verified combined merlin-mri wheel package with optox & VDPDGauss!')
+          "
+
+      - name: Upload wheel artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: merlin-wheel
+          path: ${{ github.workspace }}/dist/*.whl
+
+      - name: Create GitHub Release & Upload Wheel Asset
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ github.workspace }}/dist/*.whl
+          name: Release ${{ github.ref_name }}
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cleanup
+        if: always()
+        run: |
+          rm -rf ~/actions-runner-merlin/envs/merlinbuild

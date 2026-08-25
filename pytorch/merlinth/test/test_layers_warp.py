@@ -65,7 +65,7 @@ class TestWarping(unittest.TestCase):
         uv.requires_grad_(True)
         Wx = W(img, uv)
         loss = torch.norm(Wx)**2
-        loss.backward()
+        loss.real.backward()
 
         self.assertTrue(img.grad != None)
         self.assertTrue(uv.grad != None)
@@ -84,7 +84,7 @@ class TestWarping(unittest.TestCase):
         uv.requires_grad_(True)
         WHx = WH(imgT, uv)
         loss = torch.norm(WHx)**2
-        loss.backward()
+        loss.real.backward()
 
         self.assertTrue(imgT.grad != None)
         self.assertTrue(uv.grad != None)

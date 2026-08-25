@@ -10,7 +10,7 @@ import importlib.util
 
 # Package meta-data
 DESCRIPTION = 'Machine Enhanced Reconstruction Learning and Interpretation Networks (MERLIN) - merlinpy'
-VERSION = '0.4.0'
+VERSION = '1.0.0'
 DEBUG = False
 
 currdir = os.path.abspath(os.path.dirname(__file__))  #os.getcwd()
@@ -69,7 +69,7 @@ class SamplingCommand(Command):
 
         self.status('Building Source and Wheel (universal) distribution…')
         os.chdir(compilepath)
-        subprocess.run(['python3', 'setup_VDPD.py', 'build'])
+        subprocess.run([sys.executable, 'setup_VDPD.py', 'build'])
         os.chdir(currdir)
         libpath = [p for p in os.listdir(os.path.join(compilepath, 'build')) if p.startswith('lib')][0]
         shutil.copyfile(
@@ -79,7 +79,7 @@ class SamplingCommand(Command):
 
         self.status('Installing locally')
         wheelfile = [f for f in os.listdir(os.path.join(currdir, 'dist')) if f.endswith('.whl')]
-        os.system('pip install ' + os.path.join(currdir, 'dist', wheelfile[0]))
+        os.system('{0} -m pip install '.format(sys.executable) + os.path.join(currdir, 'dist', wheelfile[0]))
 
         sys.exit()
 

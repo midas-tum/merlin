@@ -3,7 +3,7 @@ from tensorflow.python.keras import constraints
 from tensorflow.python.keras import initializers
 from tensorflow.python.keras import regularizers
 from tensorflow.python.keras.utils import conv_utils
-from tensorflow.keras.layers import Conv2D, Conv2DTranspose, Conv3D, Conv3DTranspose
+from tensorflow.keras.layers import Conv1D, Conv1DTranspose, Conv2D, Conv2DTranspose, Conv3D, Conv3DTranspose
 import numpy as np
 
 from merlintf.keras.utils import validate_input_dimension
@@ -44,6 +44,12 @@ class Conv2Dt(tf.keras.layers.Layer):
             self.intermediate_filters = filters
         else:
             self.intermediate_filters = intermediate_filters
+        norm_df = conv_utils.normalize_data_format(data_format)
+        if norm_df == 'channels_first' and not tf.config.list_physical_devices('GPU'):
+            self._cpu_channels_first_fallback = True
+            data_format = 'channels_last'
+        else:
+            self._cpu_channels_first_fallback = False
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.shape = shapes
         self.axis_conv_t = axis_conv_t
@@ -184,13 +190,20 @@ class Conv2Dt(tf.keras.layers.Layer):
         self.conv_t.build(shape_t)
 
     def call(self, x):
+        if getattr(self, '_cpu_channels_first_fallback', False):
+            x = tf.transpose(x, [0, 2, 3, 4, 1])
+            if self.use_3D_convs:
+                out = self.conv_t(self.conv_xy(x))
+            else:
+                x_sp = self.batch_concat_conv(x, self.conv_xy, axis=1)
+                out = self.batch_concat_conv(x_sp, self.conv_t, axis=self.axis_conv_t)
+            return tf.transpose(out, [0, 4, 1, 2, 3])
         if self.use_3D_convs:
             return self.conv_t(self.conv_xy(x))
         else:
             if self.data_format == 'channels_first':  # [batch, chs, time, x, y]
                 x_sp = self.batch_concat_conv(x, self.conv_xy, axis=2)
                 x_t = self.batch_concat_conv(x_sp, self.conv_t, axis=self.axis_conv_t)
-
             else:  # channels last [batch, time, x, y, chs]
                 x_sp = self.batch_concat_conv(x, self.conv_xy, axis=1)
                 x_t = self.batch_concat_conv(x_sp, self.conv_t, axis=self.axis_conv_t)
@@ -228,6 +241,12 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
             self.intermediate_filters = filters
         else:
             self.intermediate_filters = intermediate_filters
+        norm_df = conv_utils.normalize_data_format(data_format)
+        if norm_df == 'channels_first' and not tf.config.list_physical_devices('GPU'):
+            self._cpu_channels_first_fallback = True
+            data_format = 'channels_last'
+        else:
+            self._cpu_channels_first_fallback = False
         self.data_format = conv_utils.normalize_data_format(data_format)
         self.shape = shapes
         self.axis_conv_t = axis_conv_t
@@ -275,7 +294,7 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
                 **kwargs)
         else:
             self.conv_xy = Conv2DTranspose(
-                filters=self.conv_xy_filters,
+                filters=filters,
                 kernel_size=(self.kernel_size[1], self.kernel_size[2]),
                 strides=(self.strides[1], self.strides[2]),
                 padding=padding,
@@ -310,14 +329,10 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
                 bias_constraint=constraints.get(bias_constraint),
                 **kwargs)
 
-    def batch_concat_conv(self, inputs,func, axis=0):
-        shape_in = inputs.shape
-        x_list = tf.split(inputs, shape_in[axis], axis=axis)
-        x = tf.concat(x_list, axis=0)
-        x = tf.squeeze(x, axis=axis)
-        x = func(x)
-        x_list = tf.split(x, shape_in[axis], axis=0)
-        return tf.stack(x_list, axis=axis)
+    def batch_concat_conv(self, x, conv_layer, axis=1):
+        x_unstack = tf.unstack(x, axis=axis)
+        out = [conv_layer(x_unstack[i]) for i in range(len(x_unstack))]
+        return tf.stack(out, axis=axis)
 
     def build(self, input_shape):
         self.shape = input_shape
@@ -342,6 +357,14 @@ class Conv2DtTranspose(tf.keras.layers.Layer):
         self.conv_t.build(shape_t)
 
     def call(self, x):
+        if getattr(self, '_cpu_channels_first_fallback', False):
+            x = tf.transpose(x, [0, 2, 3, 4, 1])
+            if self.use_3D_convs:
+                out = self.conv_xy(self.conv_t(x))
+            else:
+                x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
+                out = self.batch_concat_conv(x_t, self.conv_xy, axis=1)
+            return tf.transpose(out, [0, 4, 1, 2, 3])
         if self.use_3D_convs:
             return self.conv_xy(self.conv_t(x))
         else:

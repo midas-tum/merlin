@@ -65,63 +65,57 @@ class MagnitudeMaxPool(tf.keras.layers.Layer):
             else:
                 return tf.math.real(out), tf.math.imag(out)
         else:
-            if '2Dt' in self.layer_name:
-                if tf.keras.backend.image_data_format() == 'channels_last':
-                    x = tf.transpose(x, [0, 4, 1, 2, 3])
-                orig_shape = x.shape
-                batched_shape = [x.shape[0] * x.shape[1], x.shape[2], x.shape[3], x.shape[4]]
-                x = tf.reshape(x, batched_shape)
-
-                xabs = merlintf.complex_abs(x)
-                _, idx = tf.nn.max_pool_with_argmax(
-                    xabs, self.pool_size, self.strides, self.padding, include_batch_in_index=True)
-                x_pool = tf.reshape(tf.gather(tf.reshape(x, shape=[-1, ]), idx), shape=idx.shape)
-
-                pooled_shape = [orig_shape[0], orig_shape[1], x_pool.shape[1], x_pool.shape[2], orig_shape[-1]]
-                x_pool = tf.reshape(x_pool, pooled_shape)
-                if tf.keras.backend.image_data_format() == 'channels_last':
-                    x_pool = tf.transpose(x_pool, [0, 2, 3, 4, 1])
-                return x_pool
+            xabs = merlintf.complex_abs(x)
+            pad = str.upper(self.padding)
+            if len(xabs.shape) == 6:
+                orig_shape = tf.shape(xabs)
+                batched_shape = [orig_shape[0] * orig_shape[1], orig_shape[2], orig_shape[3], orig_shape[4], orig_shape[5]]
+                xabs_b = tf.reshape(xabs, batched_shape)
+                ps = self.pool_size[1:] if len(self.pool_size) == 4 else self.pool_size
+                st = self.strides[1:] if len(self.strides) == 4 else self.strides
+                x_pool_b = tf.nn.max_pool(xabs_b, ps, st, pad, data_format='NDHWC')
+                pooled_shape = [orig_shape[0], orig_shape[1], tf.shape(x_pool_b)[1], tf.shape(x_pool_b)[2], tf.shape(x_pool_b)[3], orig_shape[5]]
+                return tf.reshape(x_pool_b, pooled_shape)
+            elif len(xabs.shape) == 5:
+                return tf.nn.max_pool(xabs, self.pool_size, self.strides, pad, data_format='NDHWC')
             else:
-                if len(x.shape) == 4:
-                    xabs = merlintf.complex_abs(x)
-                    _, idx = tf.nn.max_pool_with_argmax(
-                        xabs, self.pool_size, self.strides, self.padding, include_batch_in_index=True)
-                    return tf.reshape(tf.gather(tf.reshape(x, shape=[-1, ]), idx), shape=idx.shape)
-                else:
-                    xabs = merlintf.complex_abs(x)
-                    return tf.nn.max_pool(xabs, self.pool_size, self.strides, self.padding)
+                return tf.nn.max_pool(xabs, self.pool_size, self.strides, pad)
 
 
 
 class MagnitudeMaxPool1D(MagnitudeMaxPool):
     def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, ), optox=True, argmax_index=False, layer_name='MagnitudeMaxPool1D', alpha=1, beta=1, **kwargs):
         super(MagnitudeMaxPool1D, self).__init__(pool_size, strides, padding, dilations_rate, optox, argmax_index, layer_name, alpha, beta, **kwargs)
-        self.op = optotf.maxpooling.maxpooling1d
+        if self.optox:
+            self.op = optotf.maxpooling.maxpooling1d
 
 
 class MagnitudeMaxPool2D(MagnitudeMaxPool):
     def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1), optox=True, argmax_index=False, layer_name='MagnitudeMaxPool2D', alpha=1, beta=1, **kwargs):
         super(MagnitudeMaxPool2D, self).__init__(pool_size, strides, padding, dilations_rate, optox, argmax_index, layer_name, alpha, beta, **kwargs)
-        self.op = optotf.maxpooling.maxpooling2d
+        if self.optox:
+            self.op = optotf.maxpooling.maxpooling2d
 
 
 class MagnitudeMaxPool3D(MagnitudeMaxPool):
     def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1), optox=True, argmax_index=False, layer_name='MagnitudeMaxPool3D', alpha=1, beta=1, **kwargs):
         super(MagnitudeMaxPool3D, self).__init__(pool_size, strides, padding, dilations_rate, optox, argmax_index, layer_name, alpha, beta, **kwargs)
-        self.op = optotf.maxpooling.maxpooling3d
+        if self.optox:
+            self.op = optotf.maxpooling.maxpooling3d
 
 
 class MagnitudeMaxPool2Dt(MagnitudeMaxPool):
     def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1), optox=True, argmax_index=False, layer_name='MagnitudeMaxPool2Dt', alpha=1, beta=1, **kwargs):
         super(MagnitudeMaxPool2Dt, self).__init__(pool_size, strides, padding, dilations_rate, optox, argmax_index, layer_name, alpha, beta, **kwargs)
-        self.op = optotf.maxpooling.maxpooling3d
+        if self.optox:
+            self.op = optotf.maxpooling.maxpooling3d
 
 
 class MagnitudeMaxPool3Dt(MagnitudeMaxPool):
-    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1, 1), optox=True, argmax_index=True, layer_name='MagnitudeMaxPool3Dt', alpha=1, beta=1, **kwargs):
+    def __init__(self, pool_size, strides=None, padding='SAME', dilations_rate=(1, 1, 1, 1), optox=True, argmax_index=False, layer_name='MagnitudeMaxPool3Dt', alpha=1, beta=1, **kwargs):
         super(MagnitudeMaxPool3Dt, self).__init__(pool_size, strides, padding, dilations_rate, optox, argmax_index, layer_name, alpha, beta, **kwargs)
-        self.op = optotf.maxpooling.maxpooling4d
+        if self.optox:
+            self.op = optotf.maxpooling.maxpooling4d
 
 
 # Aliases

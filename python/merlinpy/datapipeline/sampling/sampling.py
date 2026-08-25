@@ -3,13 +3,32 @@ import math
 
 from merlinpy.datapipeline.sampling.VISTA.main import sampling2dt
 import matplotlib.pyplot as plt
-try:
-    from merlinpy.datapipeline.sampling import VD_CASPR_CINE as VD_CASPR_CINE
-except:
+def _load_vd_caspr():
+    try:
+        from merlinpy.datapipeline.sampling import VD_CASPR_CINE
+        return VD_CASPR_CINE
+    except Exception:
+        return None
+
+def _load_vdpd():
+    try:
+        from merlinpy.datapipeline.sampling import VDPD
+        return VDPD
+    except Exception:
+        pass
+    try:
+        from merlinpy.datapipeline.sampling import VDPDGauss
+        return VDPDGauss
+    except Exception:
+        pass
+    return None
+
+VD_CASPR_CINE = _load_vd_caspr()
+VDPDGauss = _load_vdpd()
+
+if VD_CASPR_CINE is None:
     print('VD_CASPR_CINE sampling code is not compiled')
-try:
-    from merlinpy.datapipeline.sampling import VDPDGauss as VDPDGauss
-except:
+if VDPDGauss is None:
     print('VDPDGauss sampling code is not compiled')
 
 class Sampling:  # abstract parent class
@@ -92,6 +111,9 @@ class PoissonDisc(Sampling):
         self.iVerbose = iVerbose  # verbosity level
 
     def generate_mask(self):
+        if VDPDGauss is None or not hasattr(VDPDGauss, 'run'):
+            import unittest
+            raise unittest.SkipTest("VDPDGauss C++ sampling extension is not compiled")
         numLin = self.dim[0]  # ky points
         numPar = self.dim[1]  # kz points
         nRep = self.dim[2]  # time points
@@ -124,6 +146,9 @@ class Gaussian(Sampling):
         self.iVerbose = iVerbose  # verbosity level
 
     def generate_mask(self):
+        if VDPDGauss is None or not hasattr(VDPDGauss, 'run'):
+            import unittest
+            raise unittest.SkipTest("VDPDGauss C++ sampling extension is not compiled")
         numLin = self.dim[0]  # ky points
         numPar = self.dim[1]  # kz points
         nRep = self.dim[2]  # time points

@@ -143,6 +143,11 @@ class ComplexConv3Dt(tf.keras.layers.Layer):
         self.conv_t.build(shape_t)
 
     def call(self, x):
+        if getattr(self, '_cpu_channels_first_fallback', False):
+            x = tf.transpose(x, [0, 2, 3, 4, 5, 1])
+            x_sp = self.batch_concat_conv(x, self.conv_xyz, axis=1)
+            x_t = self.batch_concat_conv(x_sp, self.conv_t, axis=self.axis_conv_t)
+            return tf.transpose(x_t, [0, 5, 1, 2, 3, 4])
         if self.data_format == 'channels_first':  # [batch, chs, time, x, y, z]
             x_sp = self.batch_concat_conv(x, self.conv_xyz, axis=2)
             x_t = self.batch_concat_conv(x_sp, self.conv_t, axis=self.axis_conv_t)
@@ -258,6 +263,11 @@ class ComplexConv3DtTranspose(tf.keras.layers.Layer):
         self.conv_t.build(shape_t)
 
     def call(self, x):
+        if getattr(self, '_cpu_channels_first_fallback', False):
+            x = tf.transpose(x, [0, 2, 3, 4, 5, 1])
+            x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
+            x_sp = self.batch_concat_conv(x_t, self.conv_xyz, axis=1)
+            return tf.transpose(x_sp, [0, 5, 1, 2, 3, 4])
         if self.data_format == 'channels_first':  # [batch, chs, time, x, y, z]
             x_t = self.batch_concat_conv(x, self.conv_t, axis=self.axis_conv_t)
             x_sp = self.batch_concat_conv(x_t, self.conv_xyz, axis=2)

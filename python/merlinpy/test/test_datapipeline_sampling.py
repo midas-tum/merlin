@@ -9,6 +9,8 @@ from merlinpy.datapipeline.sampling import (
 )
 
 class SamplingTest(unittest.TestCase):
+    def setUp(self):
+        np.random.seed(42)
 
     def test_samplingVDPD1D(self, acc=4):
         self._test_sampling(PoissonDisc([128, 1, 1], acc))  # 1D Poisson-Disc subsampling
@@ -43,7 +45,11 @@ class SamplingTest(unittest.TestCase):
         self._test_sampling(VRS([32, 1, 8], acc))  # VRS subsampling
 
     def _test_sampling(self, sampler):
-        mask = sampler.generate_mask()
+        try:
+            mask = sampler.generate_mask()
+        except unittest.SkipTest as e:
+            self.skipTest(str(e))
+            return
         #sampler.plot_mask(asfigure=False)
         nsampled = sampler.get_accel()
         print('*** %s ***' % sampler.trajectory)
