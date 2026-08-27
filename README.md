@@ -23,24 +23,39 @@ If you use this code, please cite
 ```
 
 ## Requirements
+`merlin` relies on `optox`. You can install the prebuilt wheel directly:
+```bash
+pip install https://github.com/midas-tum/optox/releases/latest/download/optox-0.0.1-py3-none-any.whl
 ```
-git clone https://github.com/midas-tum/optox.git
-cd optox
-python3 install.py
-```
-
-follow build instructions on the github.
+Or build from source by following the instructions on [optox](https://github.com/midas-tum/optox).
 
 ## Installation
-### PyPi 
-```
-pip3 install merlinpy-mri merlinth-mri merlintf-mri
-```
-In case you want to use the sampling codes (C++), please use the direct way installation below for direct compilation according to your system setup. 
-### Direct way
 
+### 1. Prebuilt Wheel via pip (Recommended)
+Install directly via URL from [GitHub Releases](https://github.com/midas-tum/merlin/releases):
+```bash
+# Install optox dependency
+pip install https://github.com/midas-tum/optox/releases/latest/download/optox-0.0.1-py3-none-any.whl
+
+# Install merlin
+pip install https://github.com/midas-tum/merlin/releases/latest/download/merlin-1.0.0-py3-none-any.whl
 ```
+
+Or if you have downloaded the `.whl` files locally:
+```bash
+pip install optox-0.0.1-py3-none-any.whl
+pip install merlin-1.0.0-py3-none-any.whl
+```
+
+### 2. Directly from GitHub via pip
+```bash
+pip install git+https://github.com/midas-tum/merlin.git
+```
+
+### 3. From Source (Development Mode)
+```bash
 git clone https://github.com/midas-tum/merlin.git
+cd merlin
 python3 install.py
 ```
 
