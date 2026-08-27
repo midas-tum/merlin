@@ -59,6 +59,23 @@ def nrmse(gt, pred, batch=True, reduce=True):
     else:
         return error
 
+def mae(gt, pred, batch=True, reduce=True):
+    """ torch mae for batch input"""
+    if batch:
+        batch_size = gt.shape[0]
+    else:
+        batch_size = 1
+
+    # reshape the view
+    pred = pred.contiguous().view(batch_size, -1)
+    gt = gt.contiguous().view(batch_size, -1)
+
+    error = (torch.norm(gt - pred, dim=1, p=1))
+    if reduce:
+        return error.mean()
+    else:
+        return error
+
 def psnr(gt, pred, data_range=None, batch=True, reduce=True):
     """ Compute the peak signal to noise ratio (psnr)
     :param gt: gt image (torch.Tensor
